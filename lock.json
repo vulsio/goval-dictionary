@@ -1,10 +1,10 @@
 {
-    "memo": "3fcfe7536e8e16c922403a62566f6ddf416fe01edeb6d1645840cd8e8dca9aab",
+    "memo": "f4a0d9122cf3cf66d5fe09a68b1da7f8e0f008d7d433d7270ee022a3f62e88ff",
     "projects": [
         {
             "name": "github.com/Sirupsen/logrus",
-            "branch": "master",
-            "revision": "10f801ebc38b33738c9d17d50860f484a0988ff5",
+            "version": "v0.11.5",
+            "revision": "ba1b36c82c5e05c4f912a88eab0dcd91a171688f",
             "packages": [
                 "."
             ]
@@ -20,7 +20,7 @@
         {
             "name": "github.com/cheggaaa/pb",
             "version": "v1.0.11",
-            "revision": "92bb4fdad81075199696e5b969307407fbcc400e",
+            "revision": "0817e3a1f8de9e3c78b159699b3c07d53e24a963",
             "packages": [
                 "."
             ]
@@ -29,6 +29,22 @@
             "name": "github.com/google/subcommands",
             "branch": "master",
             "revision": "ce3d4cfc062faac7115d44e5befec8b5a08c3faa",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/jinzhu/gorm",
+            "version": "v1.0",
+            "revision": "5174cc5c242a728b435ea2be8a2f7f998e15429b",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/jinzhu/inflection",
+            "branch": "master",
+            "revision": "1c35d901db3da928c72a72d8458480cc9ade058f",
             "packages": [
                 "."
             ]

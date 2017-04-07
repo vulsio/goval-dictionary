@@ -7,8 +7,10 @@ import (
 	"strconv"
 
 	"github.com/google/subcommands"
+	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
+	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/redhat"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
@@ -102,12 +104,16 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		vers = append(vers, ver)
 	}
 
-	defs, err := redhat.FetchFiles(vers)
+	roots, err := redhat.FetchFiles(vers)
 	if err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
-	log.Infof("Fetched %d OVAL definitions", len(defs))
+	for _, r := range roots {
+		log.Infof("Fetched %d OVAL definitions", len(r.Definitions.Definitions))
+		defs := models.ConvertRedHatToModel(r)
+		pp.Println(defs[0])
+	}
 
 	return subcommands.ExitSuccess
 }

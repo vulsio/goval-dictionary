@@ -15,17 +15,14 @@ import (
 )
 
 // FetchFiles fetch OVAL from RedHat
-func FetchFiles(versions []int) (defs []oval.Definition, err error) {
+func FetchFiles(versions []int) ([]oval.Root, error) {
 	urls := makeFeedURLs(versions)
 	roots, err := fetchFeedFileConcurrently(urls)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)
 	}
-	for _, r := range roots {
-		defs = append(defs, r.Definitions.Definitions...)
-	}
-	return
+	return roots, nil
 }
 
 func makeFeedURLs(versions []int) (urls []string) {

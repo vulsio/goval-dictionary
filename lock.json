@@ -1,0 +1,150 @@
+{
+    "memo": "3fcfe7536e8e16c922403a62566f6ddf416fe01edeb6d1645840cd8e8dca9aab",
+    "projects": [
+        {
+            "name": "github.com/Sirupsen/logrus",
+            "branch": "master",
+            "revision": "10f801ebc38b33738c9d17d50860f484a0988ff5",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/asaskevich/govalidator",
+            "version": "v5",
+            "revision": "7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/cheggaaa/pb",
+            "version": "v1.0.11",
+            "revision": "92bb4fdad81075199696e5b969307407fbcc400e",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/google/subcommands",
+            "branch": "master",
+            "revision": "ce3d4cfc062faac7115d44e5befec8b5a08c3faa",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/kotakanbe/logrus-prefixed-formatter",
+            "branch": "master",
+            "revision": "e7519b8c80ba008a3bfc57ffa31232bf2a77f455",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-colorable",
+            "version": "v0.0.7",
+            "revision": "d228849504861217f796da67fae4f6e347643f15",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-isatty",
+            "version": "v0.0.2",
+            "revision": "fc9e8d8ef48496124e79ae0df75490096eccf6fe",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-runewidth",
+            "version": "v0.0.2",
+            "revision": "9e777a8366cce605130a531d2cd6363d07ad7317",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mgutz/ansi",
+            "branch": "master",
+            "revision": "9520e82c474b0a04dd04f8a40959027271bab992",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/moul/http2curl",
+            "branch": "master",
+            "revision": "4e24498b31dba4683efb9d35c1c8a91e2eda28c8",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/parnurzeal/gorequest",
+            "version": "v0.2.15",
+            "revision": "a578a48e8d6ca8b01a3b18314c43c6716bb5f5a3",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/pkg/errors",
+            "version": "v0.8.0",
+            "revision": "645ef00459ed84a119197bfb8d8205042c6df63d",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/rifflock/lfshook",
+            "version": "1.5",
+            "revision": "1ae91782cf87524466b000ea12d8291ea48269be",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/ymomoi/goval-parser",
+            "branch": "master",
+            "revision": "3a944decca2ccb497a60145d0cd77143375da2c8",
+            "packages": [
+                "oval"
+            ]
+        },
+        {
+            "name": "golang.org/x/net",
+            "branch": "master",
+            "revision": "d1e1b351919c6738fdeb9893d5c998b161464f0c",
+            "packages": [
+                "idna",
+                "publicsuffix"
+            ]
+        },
+        {
+            "name": "golang.org/x/sys",
+            "branch": "master",
+            "revision": "f3918c30c5c2cb527c0b071a27c35120a6c0719a",
+            "packages": [
+                "unix"
+            ]
+        },
+        {
+            "name": "golang.org/x/text",
+            "branch": "master",
+            "revision": "f4b4367115ec2de254587813edaa901bc1c723a8",
+            "packages": [
+                "internal/gen",
+                "internal/triegen",
+                "internal/ucd",
+                "secure/bidirule",
+                "transform",
+                "unicode/bidi",
+                "unicode/cldr",
+                "unicode/norm",
+                "unicode/rangetable"
+            ]
+        }
+    ]
+}

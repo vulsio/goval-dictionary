@@ -5,10 +5,11 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/google/subcommands"
-	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
+	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/redhat"
@@ -58,7 +59,7 @@ func (p *FetchRedHatCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
 
 	pwd := os.Getenv("PWD")
-	f.StringVar(&p.DBPath, "dbpath", pwd+"/cve.sqlite3",
+	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
 		"/path/to/sqlite3 or SQL connection string")
 
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
@@ -90,7 +91,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
-	vers := []int{}
+	vers := []string{}
 	if len(f.Args()) == 0 {
 		log.Errorf("Specify versions to fetch")
 		return subcommands.ExitUsageError
@@ -101,18 +102,48 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			log.Errorf("Specify version to fetch (from 5 to latest RHEL version), arg: %s", arg)
 			return subcommands.ExitUsageError
 		}
-		vers = append(vers, ver)
+		vers = append(vers, arg)
 	}
 
-	roots, err := redhat.FetchFiles(vers)
+	results, err := redhat.FetchFiles(vers)
 	if err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
-	for _, r := range roots {
-		log.Infof("Fetched %d OVAL definitions", len(r.Definitions.Definitions))
-		defs := models.ConvertRedHatToModel(r)
-		pp.Println(defs[0])
+
+	log.Infof("Opening DB (%s).", c.Conf.DBType)
+	if err := db.OpenDB(); err != nil {
+		log.Error(err)
+		return subcommands.ExitFailure
+	}
+
+	log.Info("Migrating DB")
+	if err := db.MigrateDB(); err != nil {
+		log.Error(err)
+		return subcommands.ExitFailure
+	}
+
+	for _, r := range results {
+		log.Infof("Fetched %d OVAL definitions", len(r.Root.Definitions.Definitions))
+		defs := models.ConvertRedHatToModel(r.Root)
+
+		var timeformat = "2006-01-02T15:04:05"
+		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
+		if err != nil {
+			panic(err)
+		}
+
+		m := models.Meta{
+			Family:      "RedHat",
+			Release:     r.Target,
+			Definitions: defs,
+			Timestamp:   t,
+		}
+
+		if err := db.InsertRedHat(m); err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
+		}
 	}
 
 	return subcommands.ExitSuccess

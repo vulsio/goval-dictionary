@@ -14,91 +14,109 @@ import (
 	"github.com/ymomoi/goval-parser/oval"
 )
 
+type fetchRequest struct {
+	target string
+	url    string
+}
+
+//FetchResult has url and OVAL definitions
+type FetchResult struct {
+	Target string
+	Root   *oval.Root
+}
+
 // FetchFiles fetch OVAL from RedHat
-func FetchFiles(versions []int) ([]oval.Root, error) {
-	urls := makeFeedURLs(versions)
-	roots, err := fetchFeedFileConcurrently(urls)
+func FetchFiles(versions []string) ([]FetchResult, error) {
+	reqs := newFetchRequests(versions)
+	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)
 	}
-	return roots, nil
+	return results, nil
 }
 
-func makeFeedURLs(versions []int) (urls []string) {
-	t := "https://www.redhat.com/security/data/oval/Red_Hat_Enterprise_Linux_%d.xml"
-	for _, v := range versions {
-		urls = append(urls, fmt.Sprintf(t, v))
+const t = "https://www.redhat.com/security/data/oval/Red_Hat_Enterprise_Linux_%s.xml"
+
+func newFetchRequests(target []string) (reqs []fetchRequest) {
+	for _, v := range target {
+		reqs = append(reqs, fetchRequest{
+			target: v,
+			url:    fmt.Sprintf(t, v),
+		})
 	}
 	return
 }
 
-func fetchFeedFileConcurrently(urls []string) (roots []oval.Root, err error) {
-	reqChan := make(chan string, len(urls))
-	resChan := make(chan *oval.Root, len(urls))
-	errChan := make(chan error, len(urls))
+func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err error) {
+	reqChan := make(chan fetchRequest, len(reqs))
+	resChan := make(chan FetchResult, len(reqs))
+	errChan := make(chan error, len(reqs))
 	defer close(reqChan)
 	defer close(resChan)
 	defer close(errChan)
 
 	go func() {
-		for _, url := range urls {
-			reqChan <- url
+		for _, r := range reqs {
+			reqChan <- r
 		}
 	}()
 
-	concurrency := len(urls)
+	concurrency := len(reqs)
 	tasks := util.GenWorkers(concurrency)
-	for range urls {
+	for range reqs {
 		tasks <- func() {
 			select {
-			case url := <-reqChan:
-				log.Infof("Fetching... %s", url)
-				root, err := fetchFeedFile(url)
+			case req := <-reqChan:
+				log.Infof("Fetching... %s", req.url)
+				root, err := fetchFeedFile(req)
 				if err != nil {
 					errChan <- err
 					return
 				}
-				resChan <- root
+				resChan <- FetchResult{
+					Target: req.target,
+					Root:   root,
+				}
 			}
 		}
 	}
 
 	errs := []error{}
-	bar := pb.StartNew(len(urls))
+	bar := pb.StartNew(len(reqs))
 	timeout := time.After(10 * 60 * time.Second)
-	for range urls {
+	for range reqs {
 		select {
-		case root := <-resChan:
-			roots = append(roots, *root)
+		case res := <-resChan:
+			results = append(results, res)
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:
-			return roots, fmt.Errorf("Timeout Fetching")
+			return results, fmt.Errorf("Timeout Fetching")
 		}
 		bar.Increment()
 	}
 	//  bar.FinishPrint("Finished to fetch CVE information from JVN.")
 	if 0 < len(errs) {
-		return roots, fmt.Errorf("%s", errs)
+		return results, fmt.Errorf("%s", errs)
 	}
-	return roots, nil
+	return results, nil
 }
 
-func fetchFeedFile(url string) (root *oval.Root, err error) {
+func fetchFeedFile(req fetchRequest) (root *oval.Root, err error) {
 	var body string
 	var errs []error
 	var resp *http.Response
 
-	resp, body, errs = gorequest.New().Proxy(c.Conf.HTTPProxy).Get(url).End()
+	resp, body, errs = gorequest.New().Proxy(c.Conf.HTTPProxy).Get(req.url).End()
 	//  defer resp.Body.Close()
 	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
 		return nil, fmt.Errorf(
-			"HTTP error. errs: %v, url: %s", errs, url)
+			"HTTP error. errs: %v, url: %s", errs, req.url)
 	}
 	if err = xml.Unmarshal([]byte(body), &root); err != nil {
 		return nil, fmt.Errorf(
-			"Failed to unmarshal. url: %s, err: %s", url, err)
+			"Failed to unmarshal. url: %s, err: %s", req.url, err)
 	}
 	return
 }

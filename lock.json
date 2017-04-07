@@ -1,5 +1,5 @@
 {
-    "memo": "f4a0d9122cf3cf66d5fe09a68b1da7f8e0f008d7d433d7270ee022a3f62e88ff",
+    "memo": "e94f5d53cbcc8490fa6d27e47d8aa58d214b799489ebe0f01df2bac0a0609e56",
     "projects": [
         {
             "name": "github.com/Sirupsen/logrus",
@@ -26,6 +26,14 @@
             ]
         },
         {
+            "name": "github.com/go-sql-driver/mysql",
+            "version": "v1.3",
+            "revision": "a0583e0143b1624142adab07e0e97fe106d99561",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/google/subcommands",
             "branch": "master",
             "revision": "ce3d4cfc062faac7115d44e5befec8b5a08c3faa",
@@ -38,13 +46,23 @@
             "version": "v1.0",
             "revision": "5174cc5c242a728b435ea2be8a2f7f998e15429b",
             "packages": [
-                "."
+                ".",
+                "dialects/mysql",
+                "dialects/sqlite"
             ]
         },
         {
             "name": "github.com/jinzhu/inflection",
             "branch": "master",
             "revision": "1c35d901db3da928c72a72d8458480cc9ade058f",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/k0kubun/pp",
+            "version": "v2.3.0",
+            "revision": "027a6d1765d673d337e687394dbe780dd64e2a1e",
             "packages": [
                 "."
             ]
@@ -77,6 +95,14 @@
             "name": "github.com/mattn/go-runewidth",
             "version": "v0.0.2",
             "revision": "9e777a8366cce605130a531d2cd6363d07ad7317",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-sqlite3",
+            "version": "v1.2.0",
+            "revision": "ca5e3819723d8eeaf170ad510e7da1d6d2e94a08",
             "packages": [
                 "."
             ]
@@ -123,8 +149,8 @@
         },
         {
             "name": "github.com/ymomoi/goval-parser",
-            "branch": "master",
-            "revision": "3a944decca2ccb497a60145d0cd77143375da2c8",
+            "branch": "fix-advisory",
+            "revision": "9e639dd0541233f7ac03019ab39d3f39f3e7943f",
             "packages": [
                 "oval"
             ]
@@ -134,6 +160,7 @@
             "branch": "master",
             "revision": "d1e1b351919c6738fdeb9893d5c998b161464f0c",
             "packages": [
+                "context",
                 "idna",
                 "publicsuffix"
             ]

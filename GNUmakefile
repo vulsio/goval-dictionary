@@ -16,7 +16,7 @@
 	clean
 
 SRCS = $(shell git ls-files '*.go')
-PKGS =  ./commands ./config ./redhat ./log ./models 
+PKGS =  ./commands ./config ./redhat ./log ./models ./db
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'main.version=$(VERSION)' \

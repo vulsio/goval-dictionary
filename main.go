@@ -23,7 +23,9 @@ func main() {
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
+
 	subcommands.Register(&commands.FetchRedHatCmd{}, "fetch-redhat")
+	subcommands.Register(&commands.SelectRedHatCmd{}, "select-redhat")
 
 	var v = flag.Bool("v", false, "Show version")
 

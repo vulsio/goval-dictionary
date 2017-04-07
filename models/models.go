@@ -2,22 +2,23 @@ package models
 
 import (
 	"time"
-
-	"github.com/jinzhu/gorm"
 )
 
 // Meta has metadata
 type Meta struct {
-	gorm.Model `json:"-" xml:"-"`
-	Timestamp  time.Time
-	Family     string
-	Release    string
+	ID          uint `gorm:"primary_key"`
+	Timestamp   time.Time
+	Family      string
+	Release     string
+	Definitions []Definition
 }
+
+//TODO ALAS
 
 // Definition : >definitions>definition
 type Definition struct {
-	gorm.Model `json:"-" xml:"-"`
-	MetaID     uint `json:"-" xml:"-"`
+	ID     uint `gorm:"primary_key"`
+	MetaID uint `json:"-" xml:"-"`
 
 	Title         string
 	Description   string
@@ -28,7 +29,7 @@ type Definition struct {
 
 // Package affedted
 type Package struct {
-	gorm.Model   `json:"-" xml:"-"`
+	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
 	Name    string
@@ -37,7 +38,7 @@ type Package struct {
 
 // Reference : >definitions>definition>metadata>reference
 type Reference struct {
-	gorm.Model   `json:"-" xml:"-"`
+	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
 	Source string
@@ -47,21 +48,44 @@ type Reference struct {
 
 // Advisory : >definitions>definition>metadata>advisory
 type Advisory struct {
-	gorm.Model   `json:"-" xml:"-"`
+	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
 	Severity        string
-	CveID           string
-	Bugzilla        Bugzilla
-	AffectedCPEList []string
+	Cves            []Cve
+	Bugzillas       []Bugzilla
+	AffectedCPEList []Cpe
+}
+
+// Cve : >definitions>definition>metadata>advisory>cve
+// RedHat OVAL
+type Cve struct {
+	ID         uint `gorm:"primary_key"`
+	AdvisoryID uint `json:"-" xml:"-"`
+
+	CveID  string
+	Cvss2  string
+	Cvss3  string
+	Cwe    string
+	Href   string
+	Public string
 }
 
 // Bugzilla : >definitions>definition>metadata>advisory>bugzilla
+// RedHat OVAL
 type Bugzilla struct {
-	gorm.Model `json:"-" xml:"-"`
+	ID         uint `gorm:"primary_key"`
 	AdvisoryID uint `json:"-" xml:"-"`
 
 	BugzillaID string
 	URL        string
 	Title      string
+}
+
+// Cpe : >definitions>definition>metadata>advisory>affected_cpe_list
+type Cpe struct {
+	ID         uint `gorm:"primary_key"`
+	AdvisoryID uint `json:"-" xml:"-"`
+
+	Cpe string
 }

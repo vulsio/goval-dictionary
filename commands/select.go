@@ -22,6 +22,7 @@ type SelectCmd struct {
 	LogDir   string
 
 	ByPackage bool
+	ByCveID   bool
 }
 
 // Name return subcommand name
@@ -40,6 +41,7 @@ func (*SelectCmd) Usage() string {
 		[-log-dir=/path/to/log]
 
 		[-by-package]
+		[-by-cveid]
 	`
 }
 
@@ -58,7 +60,8 @@ func (p *SelectCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
 		"Database type to store data in (sqlite3 or mysql supported)")
 
-	f.BoolVar(&p.ByPackage, "by-package", true, "select OVAL by package name")
+	f.BoolVar(&p.ByPackage, "by-package", false, "select OVAL by package name")
+	f.BoolVar(&p.ByCveID, "by-cveid", false, "select OVAL by CVE-ID")
 }
 
 // Execute execute
@@ -79,7 +82,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	}
 
 	if p.ByPackage {
-		dfs, err := db.Get(f.Args()[0], f.Args()[1], f.Args()[2])
+		dfs, err := db.GetByPackName(f.Args()[0], f.Args()[1], f.Args()[2])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -91,6 +94,22 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 					fmt.Printf("    %v\n", pack)
 				}
 			}
+		}
+		fmt.Println("------------------")
+		pp.Println(dfs)
+		return subcommands.ExitSuccess
+	}
+
+	if p.ByCveID {
+		dfs, err := db.GetByCveID(f.Args()[0], f.Args()[1], f.Args()[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, d := range dfs {
+			fmt.Printf("%s\n", d.Title)
+			fmt.Printf("%s\n", d.Advisory.Severity)
+			fmt.Printf("%v\n", d.Advisory.Cves)
 		}
 		fmt.Println("------------------")
 		pp.Println(dfs)

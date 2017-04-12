@@ -163,8 +163,8 @@ func InsertRedHat(meta models.Meta) error {
 	return nil
 }
 
-// Get select
-func Get(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+// GetByPackName select OVAL definition related to OS Family, release, packName
+func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
 	var conn *gorm.DB
 	if len(priorityDB) == 1 {
 		conn = priorityDB[0]
@@ -186,6 +186,74 @@ func Get(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Def
 		//TODO error
 		db.Where("id = ?", def.MetaID).Find(&meta)
 
+		if meta.Family == family && meta.Release == release {
+			defs = append(defs, def)
+		}
+	}
+
+	for i, def := range defs {
+		adv := models.Advisory{}
+		//TODO error
+		db.Model(&def).Related(&adv, "Advisory")
+
+		cves := []models.Cve{}
+		//TODO error
+		db.Model(&adv).Related(&cves, "Cves")
+		adv.Cves = cves
+
+		bugs := []models.Bugzilla{}
+		//TODO error
+		db.Model(&adv).Related(&bugs, "Bugzillas")
+		adv.Bugzillas = bugs
+
+		cpes := []models.Cpe{}
+		//TODO error
+		db.Model(&adv).Related(&cpes, "AffectedCPEList")
+		adv.AffectedCPEList = cpes
+
+		defs[i].Advisory = adv
+
+		packs := []models.Package{}
+		//TODO error
+		db.Model(&def).Related(&packs, "AffectedPacks")
+		defs[i].AffectedPacks = packs
+
+		refs := []models.Reference{}
+		//TODO error
+		db.Model(&def).Related(&refs, "References")
+		defs[i].References = refs
+	}
+
+	return defs, nil
+}
+
+// GetByCveID select OVAL definition related to OS Family, release, CVE-ID
+func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+	var conn *gorm.DB
+	if len(priorityDB) == 1 {
+		conn = priorityDB[0]
+	} else {
+		conn = db
+	}
+
+	cves := []models.Cve{}
+	//TODO error
+	conn.Where(&models.Cve{CveID: cveID}).Find(&cves)
+
+	defs := []models.Definition{}
+	for _, cve := range cves {
+
+		//TODO error
+		adv := models.Advisory{}
+		db.Where("id = ?", cve.AdvisoryID).Find(&adv)
+
+		//TODO error
+		def := models.Definition{}
+		db.Where("id = ?", adv.DefinitionID).Find(&def)
+
+		//TODO error
+		meta := models.Meta{}
+		db.Where("id = ?", def.MetaID).Find(&meta)
 		if meta.Family == family && meta.Release == release {
 			defs = append(defs, def)
 		}

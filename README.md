@@ -31,10 +31,12 @@ Fetch OVAL data from RedHat.
 $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
 ```
 
+## select oval by package name 
+
 Select from DB where package name is golang.
 
 ```bash
-$ goval-dictionary select RedHat 7 golang
+$ goval-dictionary select -by-package RedHat 7 golang
 [Apr 10 10:22:43]  INFO Opening DB (sqlite3).
 CVE-2015-5739
     {3399 319 golang 0:1.6.3-1.el7_2.1}
@@ -244,6 +246,205 @@ CVE-2016-5386
 }
 
 ```
+
+## select oval by CVE-ID
+
+Select from DB where CVE-ID CVE-2017-6009
+
+```
+$ goval-dictionary select -by-cveid RedHat 7 CVE-2017-6009
+[Apr 12 12:12:36]  INFO Opening DB (sqlite3).
+RHSA-2017:0837: icoutils security update (Important)
+Important
+[{1822 430 CVE-2017-5208  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-5208 20170108} {1823 430 CVE-2017-5332  2.8/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:U/C:N/I:N/A:L CWE-190 CWE-125 https://access.redhat.com/security/cve/CVE-2017-5332 20170108} {1824 430 CVE-2017-5333  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-5333 20170108} {1825 430 CVE-2017-6009  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-6009 20170203} {1826 430 CVE-2017-6010  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-6010 20170203} {1827 430 CVE-2017-6011  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-122 https://access.redhat.com/security/cve/CVE-2017-6011 20170203}]
+------------------
+[]models.Definition{
+  models.Definition{
+    ID:          0x1ae,
+    MetaID:      0x1,
+    Title:       "RHSA-2017:0837: icoutils security update (Important)",
+    Description: "The icoutils are a set of programs for extracting and converting images in Microsoft Windows icon and cursor files. These files usually have the extension .ico or .cur, but they can also be embedded in executables or libraries.\n\nSecurity Fix(es):\n\n* Multiple vulnerabilities were found in icoutils, in the wrestool program. An attacker could create a crafted executable that, when read by wrestool, could result in memory corruption leading to a crash or potential code execution. (CVE-2017-5208, CVE-2017-5333, CVE-2017-6009)\n\n* A vulnerability was found in icoutils, in the wrestool program. An attacker could create a crafted executable that, when read by wrestool, could result in failure to allocate memory or an over-large memcpy operation, leading to a crash. (CVE-2017-5332)\n\n* Multiple vulnerabilities were found in icoutils, in the icotool program. An attacker could create a crafted ICO or CUR file that, when read by icotool, could result in memory corruption leading to a crash or potential code execution. (CVE-2017-6010, CVE-2017-6011)",
+    Advisory:    models.Advisory{
+      ID:           0x1ae,
+      DefinitionID: 0x1ae,
+      Severity:     "Important",
+      Cves:         []models.Cve{
+        models.Cve{
+          ID:         0x71e,
+          AdvisoryID: 0x1ae,
+          CveID:      "CVE-2017-5208",
+          Cvss2:      "",
+          Cvss3:      "8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L",
+          Cwe:        "CWE-190 CWE-122",
+          Href:       "https://access.redhat.com/security/cve/CVE-2017-5208",
+          Public:     "20170108",
+        },
+        models.Cve{
+          ID:         0x71f,
+          AdvisoryID: 0x1ae,
+          CveID:      "CVE-2017-5332",
+          Cvss2:      "",
+          Cvss3:      "2.8/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:U/C:N/I:N/A:L",
+          Cwe:        "CWE-190 CWE-125",
+          Href:       "https://access.redhat.com/security/cve/CVE-2017-5332",
+          Public:     "20170108",
+        },
+        models.Cve{
+          ID:         0x720,
+          AdvisoryID: 0x1ae,
+          CveID:      "CVE-2017-5333",
+          Cvss2:      "",
+          Cvss3:      "8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L",
+          Cwe:        "CWE-190 CWE-122",
+          Href:       "https://access.redhat.com/security/cve/CVE-2017-5333",
+          Public:     "20170108",
+        },
+        models.Cve{
+          ID:         0x721,
+          AdvisoryID: 0x1ae,
+          CveID:      "CVE-2017-6009",
+          Cvss2:      "",
+          Cvss3:      "8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L",
+          Cwe:        "CWE-190 CWE-122",
+          Href:       "https://access.redhat.com/security/cve/CVE-2017-6009",
+          Public:     "20170203",
+        },
+        models.Cve{
+          ID:         0x722,
+          AdvisoryID: 0x1ae,
+          CveID:      "CVE-2017-6010",
+          Cvss2:      "",
+          Cvss3:      "8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L",
+          Cwe:        "CWE-190 CWE-122",
+          Href:       "https://access.redhat.com/security/cve/CVE-2017-6010",
+          Public:     "20170203",
+        },
+        models.Cve{
+          ID:         0x723,
+          AdvisoryID: 0x1ae,
+          CveID:      "CVE-2017-6011",
+          Cvss2:      "",
+          Cvss3:      "8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L",
+          Cwe:        "CWE-122",
+          Href:       "https://access.redhat.com/security/cve/CVE-2017-6011",
+          Public:     "20170203",
+        },
+      },
+      Bugzillas: []models.Bugzilla{
+        models.Bugzilla{
+          ID:         0xe4a,
+          AdvisoryID: 0x1ae,
+          BugzillaID: "1411251",
+          URL:        "https://bugzilla.redhat.com/1411251",
+          Title:      "CVE-2017-5208 icoutils: Check_offset overflow on 64-bit systems",
+        },
+        models.Bugzilla{
+          ID:         0xe4b,
+          AdvisoryID: 0x1ae,
+          BugzillaID: "1412259",
+          URL:        "https://bugzilla.redhat.com/1412259",
+          Title:      "CVE-2017-5333 icoutils: Integer overflow vulnerability in extract.c",
+        },
+        models.Bugzilla{
+          ID:         0xe4c,
+          AdvisoryID: 0x1ae,
+          BugzillaID: "1412263",
+          URL:        "https://bugzilla.redhat.com/1412263",
+          Title:      "CVE-2017-5332 icoutils: Access to unallocated memory possible in extract.c",
+        },
+        models.Bugzilla{
+          ID:         0xe4d,
+          AdvisoryID: 0x1ae,
+          BugzillaID: "1422906",
+          URL:        "https://bugzilla.redhat.com/1422906",
+          Title:      "CVE-2017-6009 icoutils: Buffer overflow in the decode_ne_resource_id function",
+        },
+        models.Bugzilla{
+          ID:         0xe4e,
+          AdvisoryID: 0x1ae,
+          BugzillaID: "1422907",
+          URL:        "https://bugzilla.redhat.com/1422907",
+          Title:      "CVE-2017-6010 icoutils: Buffer overflow in the extract_icons function",
+        },
+        models.Bugzilla{
+          ID:         0xe4f,
+          AdvisoryID: 0x1ae,
+          BugzillaID: "1422908",
+          URL:        "https://bugzilla.redhat.com/1422908",
+          Title:      "CVE-2017-6011 icoutils: Buffer overflow in the simple_vec function",
+        },
+      },
+      AffectedCPEList: []models.Cpe{
+        models.Cpe{
+          ID:         0x2ae,
+          AdvisoryID: 0x1ae,
+          Cpe:        "cpe:/o:redhat:enterprise_linux:7",
+        },
+      },
+    },
+    AffectedPacks: []models.Package{
+      models.Package{
+        ID:           0x11b1,
+        DefinitionID: 0x1ae,
+        Name:         "icoutils",
+        Version:      "0:0.31.3-1.el7_3",
+      },
+    },
+    References: []models.Reference{
+      models.Reference{
+        ID:           0x8cb,
+        DefinitionID: 0x1ae,
+        Source:       "RHSA",
+        RefID:        "RHSA-2017:0837-01",
+        RefURL:       "https://access.redhat.com/errata/RHSA-2017:0837",
+      },
+      models.Reference{
+        ID:           0x8cc,
+        DefinitionID: 0x1ae,
+        Source:       "CVE",
+        RefID:        "CVE-2017-5208",
+        RefURL:       "https://access.redhat.com/security/cve/CVE-2017-5208",
+      },
+      models.Reference{
+        ID:           0x8cd,
+        DefinitionID: 0x1ae,
+        Source:       "CVE",
+        RefID:        "CVE-2017-5332",
+        RefURL:       "https://access.redhat.com/security/cve/CVE-2017-5332",
+      },
+      models.Reference{
+        ID:           0x8ce,
+        DefinitionID: 0x1ae,
+        Source:       "CVE",
+        RefID:        "CVE-2017-5333",
+        RefURL:       "https://access.redhat.com/security/cve/CVE-2017-5333",
+      },
+      models.Reference{
+        ID:           0x8cf,
+        DefinitionID: 0x1ae,
+        Source:       "CVE",
+        RefID:        "CVE-2017-6009",
+        RefURL:       "https://access.redhat.com/security/cve/CVE-2017-6009",
+      },
+      models.Reference{
+        ID:           0x8d0,
+        DefinitionID: 0x1ae,
+        Source:       "CVE",
+        RefID:        "CVE-2017-6010",
+        RefURL:       "https://access.redhat.com/security/cve/CVE-2017-6010",
+      },
+      models.Reference{
+        ID:           0x8d1,
+        DefinitionID: 0x1ae,
+        Source:       "CVE",
+        RefID:        "CVE-2017-6011",
+        RefURL:       "https://access.redhat.com/security/cve/CVE-2017-6011",
+      },
+    },
+  },
+}
+```
+`
 
 ----
 

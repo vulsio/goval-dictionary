@@ -9,7 +9,7 @@ import (
 	"github.com/ymomoi/goval-parser/oval"
 )
 
-func TestWalk(t *testing.T) {
+func TestWalkRedHat(t *testing.T) {
 	var tests = []struct {
 		cri      oval.Criteria
 		expected []Package
@@ -31,7 +31,7 @@ func TestWalk(t *testing.T) {
 		// 1
 		{
 			cri: oval.Criteria{
-				Criterias: []*oval.Criteria{
+				Criterias: []oval.Criteria{
 					{
 						Criterions: []oval.Criterion{
 							{Comment: "kernel-headers is earlier than 0:2.6.32-71.7.1.el6"},
@@ -58,14 +58,14 @@ func TestWalk(t *testing.T) {
 		// 2
 		{
 			cri: oval.Criteria{
-				Criterias: []*oval.Criteria{
+				Criterias: []oval.Criteria{
 					{
 						Criterions: []oval.Criterion{
 							{Comment: "bzip2 is earlier than 0:1.0.5-7.el6_0"},
 							{Comment: "bzip2 is signed with Red Hat redhatrelease2 key"},
 						},
 
-						Criterias: []*oval.Criteria{
+						Criterias: []oval.Criteria{
 							{
 								Criterions: []oval.Criterion{
 									{Comment: "samba-domainjoin-gui is earlier than 0:3.5.4-68.el6_0.1"},

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/subcommands"
@@ -110,17 +111,17 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
-	roots := []oval.Root{}
+	results := []fetcher.FetchResult{}
 	switch {
 	case p.last2Y || p.years:
 		var err error
-		if roots, err = p.fetchFromInternet(f); err != nil {
+		if results, err = p.fetchFromInternet(f); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
 	case p.ovalFiles:
 		var err error
-		if roots, err = p.fetchFromFiles(f); err != nil {
+		if results, err = p.fetchFromFiles(f); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
@@ -138,29 +139,39 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitFailure
 	}
 
-	for _, r := range roots {
-		log.Infof("Fetched %d OVAL definitions", len(r.Definitions.Definitions))
+	for _, r := range results {
+		log.Infof("Fetched: %s", r.URL)
+		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
 
 		var timeformat = "2006-01-02T15:04:05.999-07:00"
-		t, err := time.Parse(timeformat, r.Generator.Timestamp)
+		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
 		if err != nil {
 			panic(err)
 		}
 
-		metas := models.ConvertDebianToModel(&r)
-		for _, m := range metas {
-			m.Timestamp = t
-			if err := db.InsertDebian(m); err != nil {
+		ss := strings.Split(r.URL, "/")
+		fmeta := models.FetchMeta{
+			Timestamp: t,
+			FileName:  ss[len(ss)-1],
+		}
+
+		roots := models.ConvertDebianToModel(r.Root)
+		for _, root := range roots {
+			if err := db.InsertDebian(&root, fmeta); err != nil {
 				log.Error(err)
 				return subcommands.ExitFailure
 			}
+		}
+		if err := db.InsertFetchMeta(fmeta); err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
 		}
 	}
 
 	return subcommands.ExitSuccess
 }
 
-func (p *FetchDebianCmd) fetchFromInternet(f *flag.FlagSet) (roots []oval.Root, err error) {
+func (p *FetchDebianCmd) fetchFromInternet(f *flag.FlagSet) ([]fetcher.FetchResult, error) {
 	years := []int{}
 	thisYear := time.Now().Year()
 	switch {
@@ -195,18 +206,10 @@ func (p *FetchDebianCmd) fetchFromInternet(f *flag.FlagSet) (roots []oval.Root, 
 		return nil, fmt.Errorf("specify -last2y or -years")
 	}
 
-	results, err := fetcher.FetchDebianFiles(years)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range results {
-		roots = append(roots, *r.Root)
-	}
-	return
+	return fetcher.FetchDebianFiles(years)
 }
 
-func (p *FetchDebianCmd) fetchFromFiles(f *flag.FlagSet) (roots []oval.Root, err error) {
+func (p *FetchDebianCmd) fetchFromFiles(f *flag.FlagSet) (res []fetcher.FetchResult, err error) {
 	if len(f.Args()) == 0 {
 		return nil,
 			fmt.Errorf("Specify OVAL file paths to read")
@@ -220,7 +223,10 @@ func (p *FetchDebianCmd) fetchFromFiles(f *flag.FlagSet) (roots []oval.Root, err
 		if err := xml.Unmarshal([]byte(data), &root); err != nil {
 			return nil, err
 		}
-		roots = append(roots, root)
+		res = append(res, fetcher.FetchResult{
+			URL:  arg,
+			Root: &root,
+		})
 	}
 	return
 }

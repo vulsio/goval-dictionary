@@ -14,6 +14,18 @@ import (
 	"github.com/ymomoi/goval-parser/oval"
 )
 
+type fetchRequest struct {
+	target string
+	url    string
+}
+
+//FetchResult has url and OVAL definitions
+type FetchResult struct {
+	Target string
+	URL    string
+	Root   *oval.Root
+}
+
 func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err error) {
 	reqChan := make(chan fetchRequest, len(reqs))
 	resChan := make(chan FetchResult, len(reqs))
@@ -42,6 +54,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 				}
 				resChan <- FetchResult{
 					Target: req.target,
+					URL:    req.url,
 					Root:   root,
 				}
 			}

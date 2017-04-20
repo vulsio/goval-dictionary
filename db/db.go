@@ -54,7 +54,8 @@ func recconectDB() error {
 // MigrateDB migrates Database
 func MigrateDB() error {
 	if err := db.AutoMigrate(
-		&models.Meta{},
+		&models.FetchMeta{},
+		&models.Root{},
 		&models.Definition{},
 		&models.Package{},
 		&models.Reference{},
@@ -69,7 +70,7 @@ func MigrateDB() error {
 
 	errMsg := "Failed to create index. err: %s"
 	if err := db.Model(&models.Definition{}).
-		AddIndex("idx_definition_meta_id", "meta_id").Error; err != nil {
+		AddIndex("idx_definition_root_id", "root_id").Error; err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
 
@@ -132,11 +133,11 @@ func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]
 		//TODO error
 		db.Where("id = ?", p.DefinitionID).Find(&def)
 
-		meta := models.Meta{}
+		root := models.Root{}
 		//TODO error
-		db.Where("id = ?", def.MetaID).Find(&meta)
+		db.Where("id = ?", def.RootID).Find(&root)
 
-		if meta.Family == family && meta.Release == release {
+		if root.Family == family && root.Release == release {
 			defs = append(defs, def)
 		}
 	}
@@ -202,9 +203,9 @@ func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models
 		db.Where("id = ?", adv.DefinitionID).Find(&def)
 
 		//TODO error
-		meta := models.Meta{}
-		db.Where("id = ?", def.MetaID).Find(&meta)
-		if meta.Family == family && meta.Release == release {
+		root := models.Root{}
+		db.Where("id = ?", def.RootID).Find(&root)
+		if root.Family == family && root.Release == release {
 			defs = append(defs, def)
 		}
 	}

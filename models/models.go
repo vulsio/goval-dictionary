@@ -5,17 +5,17 @@ import (
 )
 
 // FetchMeta has metadata
-//  type FetchMeta struct {
-//      ID uint `gorm:"primary_key"`
+type FetchMeta struct {
+	ID uint `gorm:"primary_key"`
 
-//      filename  string
-//      Timestamp time.Time
-//  }
+	FileName  string
+	Timestamp time.Time
+}
 
-// Meta has metadata
-type Meta struct {
-	ID          uint `gorm:"primary_key"`
-	Timestamp   time.Time
+// Root is root struct
+type Root struct {
+	ID uint `gorm:"primary_key"`
+	//  Timestamp   time.Time
 	Family      string
 	Release     string
 	Definitions []Definition
@@ -26,7 +26,7 @@ type Meta struct {
 // Definition : >definitions>definition
 type Definition struct {
 	ID     uint `gorm:"primary_key"`
-	MetaID uint `json:"-" xml:"-"`
+	RootID uint `json:"-" xml:"-"`
 
 	Title         string
 	Description   string

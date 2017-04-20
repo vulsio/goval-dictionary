@@ -48,9 +48,8 @@ func walkDebian(cri oval.Criteria, release string, acc []distroPackage) []distro
 }
 
 // ConvertDebianToModel Convert OVAL to models
-// return Meta
-func ConvertDebianToModel(root *oval.Root) (metas []Meta) {
-	m := map[string]Meta{}
+func ConvertDebianToModel(root *oval.Root) (roots []Root) {
+	m := map[string]Root{}
 
 	for _, ovaldef := range root.Definitions.Definitions {
 		rs := []Reference{}
@@ -81,12 +80,12 @@ func ConvertDebianToModel(root *oval.Root) (metas []Meta) {
 				References:    rs,
 			}
 
-			meta, ok := m[distPack.release]
+			root, ok := m[distPack.release]
 			if ok {
-				meta.Definitions = append(meta.Definitions, def)
-				m[distPack.release] = meta
+				root.Definitions = append(root.Definitions, def)
+				m[distPack.release] = root
 			} else {
-				m[distPack.release] = Meta{
+				m[distPack.release] = Root{
 					Family:      "Debian",
 					Release:     distPack.release,
 					Definitions: []Definition{def},
@@ -96,7 +95,7 @@ func ConvertDebianToModel(root *oval.Root) (metas []Meta) {
 	}
 
 	for _, v := range m {
-		metas = append(metas, v)
+		roots = append(roots, v)
 	}
 	return
 }

@@ -2,20 +2,7 @@ package fetcher
 
 import (
 	"fmt"
-
-	"github.com/ymomoi/goval-parser/oval"
 )
-
-type fetchRequest struct {
-	target string
-	url    string
-}
-
-//FetchResult has url and OVAL definitions
-type FetchResult struct {
-	Target string
-	Root   *oval.Root
-}
 
 func newRedHatFetchRequests(target []string) (reqs []fetchRequest) {
 	const t = "https://www.redhat.com/security/data/oval/Red_Hat_Enterprise_Linux_%s.xml"

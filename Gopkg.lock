@@ -124,7 +124,7 @@ memo = "cb6f407c41a017e8f65fb9e1c41651e15e19445abb378da9c4ea1f5e214ea8c2"
   branch = "master"
   name = "github.com/ymomoi/goval-parser"
   packages = ["oval"]
-  revision = "0e1d426fd6ebc6c81c560dd20d0a7e8ad5c24f77"
+  revision = "fa7d8e949108b0b2b7d124bef9a7f2bda9b6dd69"
 
 [[projects]]
   branch = "master"

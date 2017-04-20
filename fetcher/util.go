@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
-	"github.com/future-architect/vuls/util"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
+	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/parnurzeal/gorequest"
 	"github.com/ymomoi/goval-parser/oval"
 )

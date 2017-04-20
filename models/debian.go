@@ -2,6 +2,7 @@ package models
 
 import (
 	"strings"
+	"time"
 
 	"github.com/ymomoi/goval-parser/oval"
 )
@@ -62,9 +63,20 @@ func ConvertDebianToModel(root *oval.Root) (metas []Meta) {
 		}
 
 		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
+			const timeformat = "2006-01-02"
+			t, err := time.Parse(timeformat, ovaldef.Debian.Date)
+			if err != nil {
+				panic(err)
+			}
+
 			def := Definition{
-				Title:         ovaldef.Title,
-				Description:   ovaldef.Description,
+				Title:       ovaldef.Title,
+				Description: ovaldef.Description,
+				Debian: Debian{
+					CveID:    ovaldef.Title,
+					MoreInfo: ovaldef.Debian.MoreInfo,
+					Date:     t,
+				},
 				AffectedPacks: []Package{distPack.pack},
 				References:    rs,
 			}

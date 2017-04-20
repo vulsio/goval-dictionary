@@ -55,7 +55,7 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				AffectedCPEList: cl,
 				Bugzillas:       bs,
 			},
-			AffectedPacks: collectPacks(d.Criteria),
+			AffectedPacks: collectRedHatPacks(d.Criteria),
 			References:    rs,
 		}
 		defs = append(defs, def)
@@ -63,11 +63,11 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 	return
 }
 
-func collectPacks(cri oval.Criteria) []Package {
-	return walk(cri, []Package{})
+func collectRedHatPacks(cri oval.Criteria) []Package {
+	return walkRedHat(cri, []Package{})
 }
 
-func walk(cri oval.Criteria, acc []Package) []Package {
+func walkRedHat(cri oval.Criteria, acc []Package) []Package {
 	for _, c := range cri.Criterions {
 		ss := strings.Split(c.Comment, " is earlier than ")
 		if len(ss) != 2 {
@@ -83,7 +83,7 @@ func walk(cri oval.Criteria, acc []Package) []Package {
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walk(*c, acc)
+		acc = walkRedHat(c, acc)
 	}
 	return acc
 }

@@ -5,14 +5,15 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/subcommands"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
+	"github.com/kotakanbe/goval-dictionary/fetcher"
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
-	"github.com/kotakanbe/goval-dictionary/redhat"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
@@ -105,7 +106,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		vers = append(vers, arg)
 	}
 
-	results, err := redhat.FetchFiles(vers)
+	results, err := fetcher.FetchRedHatFiles(vers)
 	if err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
@@ -124,7 +125,8 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	for _, r := range results {
-		log.Infof("Fetched %d OVAL definitions", len(r.Root.Definitions.Definitions))
+		log.Infof("Fetched: %s", r.URL)
+		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
 		defs := models.ConvertRedHatToModel(r.Root)
 
 		var timeformat = "2006-01-02T15:04:05"
@@ -133,14 +135,23 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			panic(err)
 		}
 
-		m := models.Meta{
+		root := models.Root{
 			Family:      "RedHat",
 			Release:     r.Target,
 			Definitions: defs,
-			Timestamp:   t,
 		}
 
-		if err := db.InsertRedHat(m); err != nil {
+		ss := strings.Split(r.URL, "/")
+		fmeta := models.FetchMeta{
+			Timestamp: t,
+			FileName:  ss[len(ss)-1],
+		}
+
+		if err := db.InsertRedHat(&root, fmeta); err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
+		}
+		if err := db.InsertFetchMeta(fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}

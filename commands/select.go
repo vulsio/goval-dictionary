@@ -73,7 +73,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	log.Initialize(p.LogDir)
 
 	if f.NArg() != 3 {
-		log.Fatal("./goval-dictionary select-redhat RedHat 7 java-1.7.0-openjdk")
+		log.Fatal("./goval-dictionary select-redhat -by-package RedHat 7 java-1.7.0-openjdk")
 	}
 
 	log.Infof("Opening DB (%s).", c.Conf.DBType)

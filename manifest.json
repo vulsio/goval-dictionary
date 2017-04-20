@@ -1,7 +1,0 @@
-{
-    "dependencies": {
-        "github.com/ymomoi/goval-parser": {
-            "branch": "fix-advisory"
-        }
-    }
-}

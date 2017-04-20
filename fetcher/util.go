@@ -1,4 +1,4 @@
-package redhat
+package fetcher
 
 import (
 	"encoding/xml"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 	c "github.com/kotakanbe/goval-dictionary/config"
-	log "github.com/kotakanbe/goval-dictionary/log"
+	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/parnurzeal/gorequest"
 	"github.com/ymomoi/goval-parser/oval"
@@ -22,30 +22,8 @@ type fetchRequest struct {
 //FetchResult has url and OVAL definitions
 type FetchResult struct {
 	Target string
+	URL    string
 	Root   *oval.Root
-}
-
-// FetchFiles fetch OVAL from RedHat
-func FetchFiles(versions []string) ([]FetchResult, error) {
-	reqs := newFetchRequests(versions)
-	results, err := fetchFeedFileConcurrently(reqs)
-	if err != nil {
-		return nil,
-			fmt.Errorf("Failed to fetch. err: %s", err)
-	}
-	return results, nil
-}
-
-const t = "https://www.redhat.com/security/data/oval/Red_Hat_Enterprise_Linux_%s.xml"
-
-func newFetchRequests(target []string) (reqs []fetchRequest) {
-	for _, v := range target {
-		reqs = append(reqs, fetchRequest{
-			target: v,
-			url:    fmt.Sprintf(t, v),
-		})
-	}
-	return
 }
 
 func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err error) {
@@ -76,6 +54,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 				}
 				resChan <- FetchResult{
 					Target: req.target,
+					URL:    req.url,
 					Root:   root,
 				}
 			}

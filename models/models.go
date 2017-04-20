@@ -4,10 +4,18 @@ import (
 	"time"
 )
 
-// Meta has metadata
-type Meta struct {
-	ID          uint `gorm:"primary_key"`
-	Timestamp   time.Time
+// FetchMeta has metadata
+type FetchMeta struct {
+	ID uint `gorm:"primary_key"`
+
+	FileName  string
+	Timestamp time.Time
+}
+
+// Root is root struct
+type Root struct {
+	ID uint `gorm:"primary_key"`
+	//  Timestamp   time.Time
 	Family      string
 	Release     string
 	Definitions []Definition
@@ -18,11 +26,12 @@ type Meta struct {
 // Definition : >definitions>definition
 type Definition struct {
 	ID     uint `gorm:"primary_key"`
-	MetaID uint `json:"-" xml:"-"`
+	RootID uint `json:"-" xml:"-"`
 
 	Title         string
 	Description   string
 	Advisory      Advisory
+	Debian        Debian
 	AffectedPacks []Package
 	References    []Reference
 }
@@ -88,4 +97,14 @@ type Cpe struct {
 	AdvisoryID uint `json:"-" xml:"-"`
 
 	Cpe string
+}
+
+// Debian : >definitions>definition>metadata>debian
+type Debian struct {
+	ID           uint `gorm:"primary_key"`
+	DefinitionID uint `json:"-" xml:"-"`
+
+	CveID    string
+	MoreInfo string
+	Date     time.Time
 }

@@ -25,18 +25,119 @@ $ make install
 
 # Usage
 
-Fetch OVAL data from RedHat.  
+```
+./goval-dictionary -h
+Usage: goval-dictionary <flags> <subcommand> <subcommand args>
+
+Subcommands:
+        commands         list all command names
+        flags            describe all known top-level flags
+        help             describe subcommands and their syntax
+
+Subcommands for fetch-debian:
+        fetch-debian     Fetch Vulnerability dictionary from Debian
+
+Subcommands for fetch-redhat:
+        fetch-redhat     Fetch Vulnerability dictionary from RedHat
+
+Subcommands for select:
+        select           Select from DB
+
+
+Use "goval-dictionary flags" for a list of top-level flags
+```
+
+## Usage: Fetch OVAL data from RedHat.  
+
+```
+./goval-dictionary fetch-redhat -h
+fetch-redhat:
+        fetch-redhat
+                [-dbtype=mysql|sqlite3]
+                [-dbpath=$PWD/cve.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-log-dir=/path/to/log]
+
+For the first time, run the blow command to fetch data for all versions.
+   $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+```
 
 ```bash
 $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
 ```
 
+## Usage: Fetch OVAL data from Debian.  
+
+```
+./goval-dictionary fetch-debian -h
+fetch-debian:
+        fetch-debian
+                [-last2y]
+                [-years] 2015 2016 ...
+                [-dbtype=mysql|sqlite3]
+                [-dbpath=$PWD/cve.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-log-dir=/path/to/log]
+                [-oval-files]
+
+For the first time, run the blow command to fetch data for all versions.
+   $ for i in {1999..2017}; do goval-dictionary fetch-debian $i; done
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -last2y
+        Refresh oval data in the last two years.
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+  -oval-files
+        Refresh oval data from local files.
+  -years
+        Refresh oval data of specific years.
+```
+
+- Import oval data from Internet
+```bash
+$ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i; done
+```
+
+- Import oval data from local file
+```bash
+./goval-dictionary fetch-debian -oval-files -debug $HOME/oval/oval-definitions-2015.xml
+```
+
 ## select oval by package name 
 
 Select from DB where package name is golang.
-
-```bash
-$ goval-dictionary select -by-package RedHat 7 golang
+ 
+ <details>
+<summary> 
+`$ goval-dictionary select -by-package RedHat 7 golang`
+</summary>
+ 
+```
 [Apr 10 10:22:43]  INFO Opening DB (sqlite3).
 CVE-2015-5739
     {3399 319 golang 0:1.6.3-1.el7_2.1}
@@ -247,9 +348,14 @@ CVE-2016-5386
 
 ```
 
+</details>
+
 ## select oval by CVE-ID
 
-Select from DB where CVE-ID CVE-2017-6009
+<details>
+<summary>
+`Select from DB where CVE-ID CVE-2017-6009`
+</summary>
 
 ```
 $ goval-dictionary select -by-cveid RedHat 7 CVE-2017-6009
@@ -444,13 +550,15 @@ Important
   },
 }
 ```
-`
+</details>
+
 
 ----
 
 # Data Source
 
 - [RedHat](https://www.redhat.com/security/data/oval/)
+- [Debian](https://www.debian.org/security/oval/)
 
 
 ----

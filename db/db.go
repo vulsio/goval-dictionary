@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jinzhu/gorm"
-	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 
@@ -55,7 +54,8 @@ func recconectDB() error {
 // MigrateDB migrates Database
 func MigrateDB() error {
 	if err := db.AutoMigrate(
-		&models.Meta{},
+		&models.FetchMeta{},
+		&models.Root{},
 		&models.Definition{},
 		&models.Package{},
 		&models.Reference{},
@@ -63,13 +63,14 @@ func MigrateDB() error {
 		&models.Cve{},
 		&models.Bugzilla{},
 		&models.Cpe{},
+		&models.Debian{},
 	).Error; err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}
 
 	errMsg := "Failed to create index. err: %s"
 	if err := db.Model(&models.Definition{}).
-		AddIndex("idx_definition_meta_id", "meta_id").Error; err != nil {
+		AddIndex("idx_definition_root_id", "root_id").Error; err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
 
@@ -102,64 +103,14 @@ func MigrateDB() error {
 		AddIndex("idx_cpes_advisory_id", "advisory_id").Error; err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
-	return nil
-}
-
-// InsertRedHat inserts RedHat OVAL
-func InsertRedHat(meta models.Meta) error {
-	tx := db.Begin()
-
-	old := models.Meta{}
-	r := tx.Where(&models.Meta{Family: meta.Family, Release: meta.Release}).First(&old)
-	if !r.RecordNotFound() {
-		// Delete data related to meta passed in arg
-		defs := []models.Definition{}
-		db.Model(&old).Related(&defs, "Definitions")
-		for _, def := range defs {
-			adv := models.Advisory{}
-			db.Model(&def).Related(&adv, "Avisory")
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Bugzilla{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cpe{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-		}
-		if err := tx.Unscoped().Where("meta_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
-		}
-		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Meta{}).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
-		}
+	if err := db.Model(&models.Debian{}).
+		AddIndex("idx_debian_definition_id", "definition_id").Error; err != nil {
+		return fmt.Errorf(errMsg, err)
 	}
-
-	if err := tx.Create(&meta).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-			pp.Sprintf("%v", meta), err)
+	if err := db.Model(&models.Debian{}).
+		AddIndex("idx_debian_cve_id", "cve_id").Error; err != nil {
+		return fmt.Errorf(errMsg, err)
 	}
-
-	tx.Commit()
 	return nil
 }
 
@@ -182,11 +133,11 @@ func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]
 		//TODO error
 		db.Where("id = ?", p.DefinitionID).Find(&def)
 
-		meta := models.Meta{}
+		root := models.Root{}
 		//TODO error
-		db.Where("id = ?", def.MetaID).Find(&meta)
+		db.Where("id = ?", def.RootID).Find(&root)
 
-		if meta.Family == family && meta.Release == release {
+		if root.Family == family && root.Release == release {
 			defs = append(defs, def)
 		}
 	}
@@ -252,9 +203,9 @@ func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models
 		db.Where("id = ?", adv.DefinitionID).Find(&def)
 
 		//TODO error
-		meta := models.Meta{}
-		db.Where("id = ?", def.MetaID).Find(&meta)
-		if meta.Family == family && meta.Release == release {
+		root := models.Root{}
+		db.Where("id = ?", def.RootID).Find(&root)
+		if root.Family == family && root.Release == release {
 			defs = append(defs, def)
 		}
 	}

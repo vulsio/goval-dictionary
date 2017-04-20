@@ -108,7 +108,7 @@ func TestWalkRedHat(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		actual := collectPacks(tt.cri)
+		actual := collectRedHatPacks(tt.cri)
 		sort.Slice(actual, func(i, j int) bool {
 			return actual[i].Name < actual[j].Name
 		})

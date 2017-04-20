@@ -143,8 +143,9 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log.Infof("Fetched: %s", r.URL)
 		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
 
-		var timeformat = "2006-01-02T15:04:05.999-07:00"
-		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
+		//  var timeformat = "2006-01-02T15:04:05.999-07:00"
+		var timeformat = "2006-01-02T15:04:05"
+		t, err := time.Parse(timeformat, strings.Split(r.Root.Generator.Timestamp, ".")[0])
 		if err != nil {
 			panic(err)
 		}

@@ -12,6 +12,56 @@ type distroPackage struct {
 	pack    Package
 }
 
+// ConvertDebianToModel Convert OVAL to models
+func ConvertDebianToModel(root *oval.Root) (roots []Root) {
+	m := map[string]Root{}
+
+	for _, ovaldef := range root.Definitions.Definitions {
+		rs := []Reference{}
+		for _, r := range ovaldef.References {
+			rs = append(rs, Reference{
+				Source: r.Source,
+				RefID:  r.RefID,
+				RefURL: r.RefURL,
+			})
+		}
+
+		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
+			const timeformat = "2006-01-02"
+			t, _ := time.Parse(timeformat, ovaldef.Debian.Date)
+
+			def := Definition{
+				Title:       ovaldef.Title,
+				Description: ovaldef.Description,
+				Debian: Debian{
+					CveID:    ovaldef.Title,
+					MoreInfo: ovaldef.Debian.MoreInfo,
+					Date:     t,
+				},
+				AffectedPacks: []Package{distPack.pack},
+				References:    rs,
+			}
+
+			root, ok := m[distPack.release]
+			if ok {
+				root.Definitions = append(root.Definitions, def)
+				m[distPack.release] = root
+			} else {
+				m[distPack.release] = Root{
+					Family:      "Debian",
+					Release:     distPack.release,
+					Definitions: []Definition{def},
+				}
+			}
+		}
+	}
+
+	for _, v := range m {
+		roots = append(roots, v)
+	}
+	return
+}
+
 func collectDebianPacks(cri oval.Criteria) []distroPackage {
 	return walkDebian(cri, "", []distroPackage{})
 }
@@ -45,57 +95,4 @@ func walkDebian(cri oval.Criteria, release string, acc []distroPackage) []distro
 		acc = walkDebian(c, release, acc)
 	}
 	return acc
-}
-
-// ConvertDebianToModel Convert OVAL to models
-func ConvertDebianToModel(root *oval.Root) (roots []Root) {
-	m := map[string]Root{}
-
-	for _, ovaldef := range root.Definitions.Definitions {
-		rs := []Reference{}
-		for _, r := range ovaldef.References {
-			rs = append(rs, Reference{
-				Source: r.Source,
-				RefID:  r.RefID,
-				RefURL: r.RefURL,
-			})
-		}
-
-		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
-			const timeformat = "2006-01-02"
-			t, err := time.Parse(timeformat, ovaldef.Debian.Date)
-			if err != nil {
-				panic(err)
-			}
-
-			def := Definition{
-				Title:       ovaldef.Title,
-				Description: ovaldef.Description,
-				Debian: Debian{
-					CveID:    ovaldef.Title,
-					MoreInfo: ovaldef.Debian.MoreInfo,
-					Date:     t,
-				},
-				AffectedPacks: []Package{distPack.pack},
-				References:    rs,
-			}
-
-			root, ok := m[distPack.release]
-			if ok {
-				root.Definitions = append(root.Definitions, def)
-				m[distPack.release] = root
-			} else {
-				m[distPack.release] = Root{
-					Family:      "Debian",
-					Release:     distPack.release,
-					Definitions: []Definition{def},
-				}
-			}
-		}
-	}
-
-	for _, v := range m {
-		roots = append(roots, v)
-	}
-	return
 }

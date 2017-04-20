@@ -75,7 +75,7 @@ func walkRedHat(cri oval.Criteria, acc []Package) []Package {
 		}
 		acc = append(acc, Package{
 			Name:    ss[0],
-			Version: ss[1],
+			Version: strings.Split(ss[1], " ")[0],
 		})
 	}
 

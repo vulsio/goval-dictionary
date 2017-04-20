@@ -83,7 +83,7 @@ func walkDebian(cri oval.Criteria, release string, acc []distroPackage) []distro
 			release: release,
 			pack: Package{
 				Name:    ss[0],
-				Version: ss[1],
+				Version: strings.Split(ss[1], " ")[0],
 			},
 		})
 	}

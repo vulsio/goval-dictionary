@@ -27,6 +27,7 @@ func main() {
 	subcommands.Register(&commands.FetchRedHatCmd{}, "fetch-redhat")
 	subcommands.Register(&commands.FetchDebianCmd{}, "fetch-debian")
 	subcommands.Register(&commands.SelectCmd{}, "select")
+	subcommands.Register(&commands.ServerCmd{}, "server")
 
 	var v = flag.Bool("v", false, "Show version")
 

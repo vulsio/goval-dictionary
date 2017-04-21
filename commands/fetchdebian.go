@@ -157,13 +157,14 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		}
 
 		roots := models.ConvertDebianToModel(r.Root)
+		deb := db.NewDebian()
 		for _, root := range roots {
-			if err := db.InsertDebian(&root, fmeta); err != nil {
+			if err := deb.InsertOval(&root, fmeta); err != nil {
 				log.Error(err)
 				return subcommands.ExitFailure
 			}
 		}
-		if err := db.InsertFetchMeta(fmeta); err != nil {
+		if err := deb.InsertFetchMeta(fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}

@@ -124,6 +124,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitFailure
 	}
 
+	red := db.NewRedHat()
 	for _, r := range results {
 		log.Infof("Fetched: %s", r.URL)
 		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
@@ -147,11 +148,11 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			FileName:  ss[len(ss)-1],
 		}
 
-		if err := db.InsertRedHat(&root, fmeta); err != nil {
+		if err := red.InsertOval(&root, fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
-		if err := db.InsertFetchMeta(fmeta); err != nil {
+		if err := red.InsertFetchMeta(fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}

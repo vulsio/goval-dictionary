@@ -3,43 +3,35 @@ package db
 import (
 	"fmt"
 
+	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-// InsertFetchMeta inserts FetchMeta
-func InsertFetchMeta(meta models.FetchMeta) error {
-	tx := db.Begin()
-
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		return nil
-	}
-
-	// Update FetchMeta
-	if r.RecordNotFound() {
-		if err := tx.Create(&meta).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to insert FetchMeta: %s", err)
-		}
-	} else {
-		oldmeta.Timestamp = meta.Timestamp
-		oldmeta.FileName = meta.FileName
-		if err := tx.Save(&oldmeta).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to update FetchMeta: %s", err)
-		}
-	}
-
-	tx.Commit()
-	return nil
+// Debian is a struct of DBAccess
+type Debian struct {
+	Base
 }
 
-// InsertDebian inserts RedHat OVAL
-func InsertDebian(root *models.Root, meta models.FetchMeta) error {
-	tx := db.Begin()
+// NewDebian creates DBAccess
+func NewDebian(priority ...*gorm.DB) Debian {
+	d := Debian{
+		Base{
+			Family: "Debian",
+		},
+	}
+	if len(priority) == 1 {
+		d.DB = priority[0]
+	} else {
+		d.DB = db
+	}
+	return d
+}
+
+// InsertOval inserts Debian OVAL
+func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
+	tx := o.DB.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
@@ -68,12 +60,12 @@ func InsertDebian(root *models.Root, meta models.FetchMeta) error {
 			// Delete old records
 			for _, olddeb := range olddebs {
 				olddef := models.Definition{}
-				if r := db.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
+				if r := o.DB.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
 					continue
 				}
 
 				oldroot := models.Root{}
-				if r := db.First(&oldroot, olddef.RootID); r.RecordNotFound() {
+				if r := o.DB.First(&oldroot, olddef.RootID); r.RecordNotFound() {
 					continue
 				}
 
@@ -119,4 +111,76 @@ func InsertDebian(root *models.Root, meta models.FetchMeta) error {
 
 	tx.Commit()
 	return nil
+}
+
+// GetByPackName select definitions by packName
+func (o Debian) GetByPackName(release, packName string) ([]models.Definition, error) {
+	packs := []models.Package{}
+	//TODO error
+	o.DB.Where(&models.Package{Name: packName}).Find(&packs)
+
+	defs := []models.Definition{}
+	for _, p := range packs {
+		def := models.Definition{}
+		//TODO error
+		o.DB.Where("id = ?", p.DefinitionID).Find(&def)
+
+		root := models.Root{}
+		//TODO error
+		o.DB.Where("id = ?", def.RootID).Find(&root)
+
+		if root.Family == "Debian" && root.Release == release {
+			defs = append(defs, def)
+		}
+	}
+
+	for i, def := range defs {
+		packs := []models.Package{}
+		//TODO error
+		o.DB.Model(&def).Related(&packs, "AffectedPacks")
+		defs[i].AffectedPacks = packs
+
+		refs := []models.Reference{}
+		//TODO error
+		o.DB.Model(&def).Related(&refs, "References")
+		defs[i].References = refs
+
+		deb := models.Debian{}
+		//TODO error
+		o.DB.Model(&def).Related(&deb, "Debian")
+		defs[i].Debian = deb
+	}
+
+	return defs, nil
+}
+
+// GetByCveID select definitions by CveID
+func (o Debian) GetByCveID(release, cveID string) (defs []models.Definition, err error) {
+	tmpdefs := []models.Definition{}
+	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
+	for _, def := range tmpdefs {
+		root := models.Root{}
+		o.DB.Where("id = ?", def.RootID).Find(&root)
+		if root.Family != "Debian" || root.Release != release {
+			continue
+		}
+
+		deb := models.Debian{}
+		//TODO error
+		o.DB.Model(&def).Related(&deb, "Debian")
+		def.Debian = deb
+
+		packs := []models.Package{}
+		//TODO error
+		o.DB.Model(&def).Related(&packs, "AffectedPacks")
+		def.AffectedPacks = packs
+
+		refs := []models.Reference{}
+		//TODO error
+		o.DB.Model(&def).Related(&refs, "References")
+		def.References = refs
+
+		defs = append(defs, def)
+	}
+	return
 }

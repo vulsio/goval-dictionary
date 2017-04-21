@@ -114,134 +114,74 @@ func MigrateDB() error {
 	return nil
 }
 
-// GetByPackName select OVAL definition related to OS Family, release, packName
-func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
-	var conn *gorm.DB
-	if len(priorityDB) == 1 {
-		conn = priorityDB[0]
-	} else {
-		conn = db
-	}
-
-	packs := []models.Package{}
-	//TODO error
-	conn.Where(&models.Package{Name: packName}).Find(&packs)
-
-	defs := []models.Definition{}
-	for _, p := range packs {
-		def := models.Definition{}
-		//TODO error
-		db.Where("id = ?", p.DefinitionID).Find(&def)
-
-		root := models.Root{}
-		//TODO error
-		db.Where("id = ?", def.RootID).Find(&root)
-
-		if root.Family == family && root.Release == release {
-			defs = append(defs, def)
-		}
-	}
-
-	for i, def := range defs {
-		adv := models.Advisory{}
-		//TODO error
-		db.Model(&def).Related(&adv, "Advisory")
-
-		cves := []models.Cve{}
-		//TODO error
-		db.Model(&adv).Related(&cves, "Cves")
-		adv.Cves = cves
-
-		bugs := []models.Bugzilla{}
-		//TODO error
-		db.Model(&adv).Related(&bugs, "Bugzillas")
-		adv.Bugzillas = bugs
-
-		cpes := []models.Cpe{}
-		//TODO error
-		db.Model(&adv).Related(&cpes, "AffectedCPEList")
-		adv.AffectedCPEList = cpes
-
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		//TODO error
-		db.Model(&def).Related(&packs, "AffectedPacks")
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		//TODO error
-		db.Model(&def).Related(&refs, "References")
-		defs[i].References = refs
-	}
-
-	return defs, nil
+// OvalDB is a interface of RedHat, Debian
+type OvalDB interface {
+	GetByPackName(string, string) ([]models.Definition, error)
+	GetByCveID(string, string) ([]models.Definition, error)
+	InsertFetchMeta(models.FetchMeta) error
+	InsertOval(*models.Root, models.FetchMeta) error
 }
 
-// GetByCveID select OVAL definition related to OS Family, release, CVE-ID
-func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
-	var conn *gorm.DB
-	if len(priorityDB) == 1 {
-		conn = priorityDB[0]
-	} else {
-		conn = db
+// Base struct of RedHat, Debian
+type Base struct {
+	Family string
+	//  Release string
+	DB *gorm.DB
+}
+
+// InsertFetchMeta inserts FetchMeta
+func (o Base) InsertFetchMeta(meta models.FetchMeta) error {
+	tx := db.Begin()
+
+	oldmeta := models.FetchMeta{}
+	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
+	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
+		return nil
 	}
 
-	cves := []models.Cve{}
-	//TODO error
-	conn.Where(&models.Cve{CveID: cveID}).Find(&cves)
-
-	defs := []models.Definition{}
-	for _, cve := range cves {
-
-		//TODO error
-		adv := models.Advisory{}
-		db.Where("id = ?", cve.AdvisoryID).Find(&adv)
-
-		//TODO error
-		def := models.Definition{}
-		db.Where("id = ?", adv.DefinitionID).Find(&def)
-
-		//TODO error
-		root := models.Root{}
-		db.Where("id = ?", def.RootID).Find(&root)
-		if root.Family == family && root.Release == release {
-			defs = append(defs, def)
+	// Update FetchMeta
+	if r.RecordNotFound() {
+		if err := tx.Create(&meta).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("Failed to insert FetchMeta: %s", err)
+		}
+	} else {
+		oldmeta.Timestamp = meta.Timestamp
+		oldmeta.FileName = meta.FileName
+		if err := tx.Save(&oldmeta).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("Failed to update FetchMeta: %s", err)
 		}
 	}
 
-	for i, def := range defs {
-		adv := models.Advisory{}
-		//TODO error
-		db.Model(&def).Related(&adv, "Advisory")
+	tx.Commit()
+	return nil
+}
 
-		cves := []models.Cve{}
-		//TODO error
-		db.Model(&adv).Related(&cves, "Cves")
-		adv.Cves = cves
-
-		bugs := []models.Bugzilla{}
-		//TODO error
-		db.Model(&adv).Related(&bugs, "Bugzillas")
-		adv.Bugzillas = bugs
-
-		cpes := []models.Cpe{}
-		//TODO error
-		db.Model(&adv).Related(&cpes, "AffectedCPEList")
-		adv.AffectedCPEList = cpes
-
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		//TODO error
-		db.Model(&def).Related(&packs, "AffectedPacks")
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		//TODO error
-		db.Model(&def).Related(&refs, "References")
-		defs[i].References = refs
+// GetByPackName select OVAL definition related to OS Family, release, packName
+func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+	var db OvalDB
+	switch family {
+	case "Debian":
+		db = NewDebian(priorityDB...)
+	case "RedHat":
+		db = NewRedHat(priorityDB...)
+	default:
+		return nil, fmt.Errorf("Unknown OS Type: %s", family)
 	}
+	return db.GetByPackName(release, packName)
+}
 
-	return defs, nil
+// GetByCveID select OVAL definition related to OS Family, release, cveID
+func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+	var db OvalDB
+	switch family {
+	case "Debian":
+		db = NewDebian(priorityDB...)
+	case "RedHat":
+		db = NewRedHat(priorityDB...)
+	default:
+		return nil, fmt.Errorf("Unknown OS Type: %s", family)
+	}
+	return db.GetByCveID(release, cveID)
 }

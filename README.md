@@ -43,6 +43,8 @@ Subcommands for fetch-redhat:
 Subcommands for select:
         select           Select from DB
 
+Subcommands for server:
+        server           Start OVAL dictionary HTTP server
 
 Use "goval-dictionary flags" for a list of top-level flags
 ```
@@ -128,7 +130,7 @@ $ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i;
 ./goval-dictionary fetch-debian -oval-files -debug $HOME/oval/oval-definitions-2015.xml
 ```
 
-## select oval by package name 
+## Usage: select oval by package name 
 
 Select from DB where package name is golang.
  
@@ -350,7 +352,7 @@ CVE-2016-5386
 
 </details>
 
-## select oval by CVE-ID
+## Usage: select oval by CVE-ID
 
 <details>
 <summary>
@@ -551,6 +553,37 @@ Important
 }
 ```
 </details>
+
+## Usage: Start goval-dictionary as server mode.  
+
+```
+./goval-dictionary server -h
+server:
+        server
+                [-bind=127.0.0.1]
+                [-port=8000]
+                [-dbpath=$PWD/cve.sqlite3 or connection string]
+                [-dbtype=mysql|sqlite3]
+                [-debug]
+                [-debug-sql]
+                [-log-dir=/path/to/log]
+
+  -bind string
+        HTTP server bind to IP address (default: loop back interface) (default "127.0.0.1")
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+  -debug
+        debug mode (default: false)
+  -debug-sql
+        SQL debug mode (default: false)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+  -port string
+        HTTP server port number (default: 1324) 
+
+```
 
 
 ----

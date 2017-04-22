@@ -13,7 +13,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
-// ServerCmd is Subcommand for CVE dictionary HTTP Server
+// ServerCmd is Subcommand for OVAL dictionary HTTP Server
 type ServerCmd struct {
 	debug    bool
 	debugSQL bool
@@ -29,7 +29,7 @@ type ServerCmd struct {
 func (*ServerCmd) Name() string { return "server" }
 
 // Synopsis return synopsis
-func (*ServerCmd) Synopsis() string { return "Start CVE dictionary HTTP server" }
+func (*ServerCmd) Synopsis() string { return "Start OVAL dictionary HTTP server" }
 
 // Usage return usage
 func (*ServerCmd) Usage() string {
@@ -67,8 +67,8 @@ func (p *ServerCmd) SetFlags(f *flag.FlagSet) {
 		"bind",
 		"127.0.0.1",
 		"HTTP server bind to IP address (default: loop back interface)")
-	f.StringVar(&p.port, "port", "1323",
-		"HTTP server port number (default: 1323)")
+	f.StringVar(&p.port, "port", "1324",
+		"HTTP server port number")
 }
 
 // Execute execute

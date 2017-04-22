@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -48,7 +49,7 @@ func ConvertDebianToModel(root *oval.Root) (roots []Root) {
 				m[distPack.release] = root
 			} else {
 				m[distPack.release] = Root{
-					Family:      "Debian",
+					Family:      config.Debian,
 					Release:     distPack.release,
 					Definitions: []Definition{def},
 				}

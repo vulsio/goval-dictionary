@@ -137,7 +137,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		}
 
 		root := models.Root{
-			Family:      "RedHat",
+			Family:      c.RedHat,
 			Release:     r.Target,
 			Definitions: defs,
 		}

@@ -21,8 +21,6 @@ type Root struct {
 	Definitions []Definition
 }
 
-//TODO ALAS
-
 // Definition : >definitions>definition
 type Definition struct {
 	ID     uint `gorm:"primary_key"`
@@ -60,6 +58,7 @@ type Advisory struct {
 	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
+	RHSA            string
 	Severity        string
 	Cves            []Cve
 	Bugzillas       []Bugzilla

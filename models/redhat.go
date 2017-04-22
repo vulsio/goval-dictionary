@@ -50,6 +50,7 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			Title:       d.Title,
 			Description: d.Description,
 			Advisory: Advisory{
+				RHSA:            strings.TrimSuffix(strings.Fields(d.Title)[0], ":"),
 				Cves:            cves,
 				Severity:        d.Advisory.Severity,
 				AffectedCPEList: cl,

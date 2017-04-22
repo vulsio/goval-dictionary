@@ -116,18 +116,21 @@ func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
 // GetByPackName select definitions by packName
 func (o Debian) GetByPackName(release, packName string) ([]models.Definition, error) {
 	packs := []models.Package{}
-	//TODO error
-	o.DB.Where(&models.Package{Name: packName}).Find(&packs)
+	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+		return nil, err
+	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		//TODO error
-		o.DB.Where("id = ?", p.DefinitionID).Find(&def)
+		if err := o.DB.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+			return nil, err
+		}
 
 		root := models.Root{}
-		//TODO error
-		o.DB.Where("id = ?", def.RootID).Find(&root)
+		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+			return nil, err
+		}
 
 		if root.Family == "Debian" && root.Release == release {
 			defs = append(defs, def)
@@ -136,18 +139,21 @@ func (o Debian) GetByPackName(release, packName string) ([]models.Definition, er
 
 	for i, def := range defs {
 		packs := []models.Package{}
-		//TODO error
-		o.DB.Model(&def).Related(&packs, "AffectedPacks")
+		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+			return nil, err
+		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		//TODO error
-		o.DB.Model(&def).Related(&refs, "References")
+		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
 		defs[i].References = refs
 
 		deb := models.Debian{}
-		//TODO error
-		o.DB.Model(&def).Related(&deb, "Debian")
+		if err := o.DB.Model(&def).Related(&deb, "Debian").Error; err != nil {
+			return nil, err
+		}
 		defs[i].Debian = deb
 	}
 
@@ -160,24 +166,29 @@ func (o Debian) GetByCveID(release, cveID string) (defs []models.Definition, err
 	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
 		root := models.Root{}
-		o.DB.Where("id = ?", def.RootID).Find(&root)
+		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+			return nil, err
+		}
 		if root.Family != "Debian" || root.Release != release {
 			continue
 		}
 
 		deb := models.Debian{}
-		//TODO error
-		o.DB.Model(&def).Related(&deb, "Debian")
+		if err := o.DB.Model(&def).Related(&deb, "Debian").Error; err != nil {
+			return nil, err
+		}
 		def.Debian = deb
 
 		packs := []models.Package{}
-		//TODO error
-		o.DB.Model(&def).Related(&packs, "AffectedPacks")
+		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+			return nil, err
+		}
 		def.AffectedPacks = packs
 
 		refs := []models.Reference{}
-		//TODO error
-		o.DB.Model(&def).Related(&refs, "References")
+		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
 		def.References = refs
 
 		defs = append(defs, def)

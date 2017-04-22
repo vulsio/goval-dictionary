@@ -100,18 +100,21 @@ func (o RedHat) InsertOval(root *models.Root, meta models.FetchMeta) error {
 // GetByPackName select definitions by packName
 func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, error) {
 	packs := []models.Package{}
-	//TODO error
-	o.DB.Where(&models.Package{Name: packName}).Find(&packs)
+	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+		return nil, err
+	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		//TODO error
-		o.DB.Where("id = ?", p.DefinitionID).Find(&def)
+		if err := o.DB.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+			return nil, err
+		}
 
 		root := models.Root{}
-		//TODO error
-		o.DB.Where("id = ?", def.RootID).Find(&root)
+		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+			return nil, err
+		}
 
 		if root.Family == "RedHat" && root.Release == release {
 			defs = append(defs, def)
@@ -120,34 +123,40 @@ func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, er
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		//TODO error
-		o.DB.Model(&def).Related(&adv, "Advisory")
+		if err := o.DB.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+			return nil, err
+		}
 
 		cves := []models.Cve{}
-		//TODO error
-		o.DB.Model(&adv).Related(&cves, "Cves")
+		if err := o.DB.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+			return nil, err
+		}
 		adv.Cves = cves
 
 		bugs := []models.Bugzilla{}
-		//TODO error
-		o.DB.Model(&adv).Related(&bugs, "Bugzillas")
+		if err := o.DB.Model(&adv).Related(&bugs, "Bugzillas").Error; err != nil {
+			return nil, err
+		}
 		adv.Bugzillas = bugs
 
 		cpes := []models.Cpe{}
-		//TODO error
-		o.DB.Model(&adv).Related(&cpes, "AffectedCPEList")
+		if err := o.DB.Model(&adv).Related(&cpes, "AffectedCPEList").Error; err != nil {
+			return nil, err
+		}
 		adv.AffectedCPEList = cpes
 
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		//TODO error
-		o.DB.Model(&def).Related(&packs, "AffectedPacks")
+		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+			return nil, err
+		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		//TODO error
-		o.DB.Model(&def).Related(&refs, "References")
+		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
 		defs[i].References = refs
 	}
 
@@ -157,22 +166,26 @@ func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, er
 // GetByCveID select definitions by CveID
 func (o RedHat) GetByCveID(release, cveID string) ([]models.Definition, error) {
 	cves := []models.Cve{}
-	//TODO error
-	o.DB.Where(&models.Cve{CveID: cveID}).Find(&cves)
+	if err := o.DB.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
+		return nil, err
+	}
 
 	defs := []models.Definition{}
 	for _, cve := range cves {
-		//TODO error
 		adv := models.Advisory{}
-		o.DB.Where("id = ?", cve.AdvisoryID).Find(&adv)
+		if err := o.DB.Where("id = ?", cve.AdvisoryID).Find(&adv).Error; err != nil {
+			return nil, err
+		}
 
-		//TODO error
 		def := models.Definition{}
-		o.DB.Where("id = ?", adv.DefinitionID).Find(&def)
+		if err := o.DB.Where("id = ?", adv.DefinitionID).Find(&def).Error; err != nil {
+			return nil, err
+		}
 
-		//TODO error
 		root := models.Root{}
-		o.DB.Where("id = ?", def.RootID).Find(&root)
+		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+			return nil, err
+		}
 		if root.Family == "RedHat" && root.Release == release {
 			defs = append(defs, def)
 		}
@@ -180,34 +193,40 @@ func (o RedHat) GetByCveID(release, cveID string) ([]models.Definition, error) {
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		//TODO error
-		o.DB.Model(&def).Related(&adv, "Advisory")
+		if err := o.DB.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+			return nil, err
+		}
 
 		cves := []models.Cve{}
-		//TODO error
-		o.DB.Model(&adv).Related(&cves, "Cves")
+		if err := o.DB.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+			return nil, err
+		}
 		adv.Cves = cves
 
 		bugs := []models.Bugzilla{}
-		//TODO error
-		o.DB.Model(&adv).Related(&bugs, "Bugzillas")
+		if err := o.DB.Model(&adv).Related(&bugs, "Bugzillas").Error; err != nil {
+			return nil, err
+		}
 		adv.Bugzillas = bugs
 
 		cpes := []models.Cpe{}
-		//TODO error
-		o.DB.Model(&adv).Related(&cpes, "AffectedCPEList")
+		if err := o.DB.Model(&adv).Related(&cpes, "AffectedCPEList").Error; err != nil {
+			return nil, err
+		}
 		adv.AffectedCPEList = cpes
 
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		//TODO error
-		o.DB.Model(&def).Related(&packs, "AffectedPacks")
+		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+			return nil, err
+		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		//TODO error
-		o.DB.Model(&def).Related(&refs, "References")
+		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
 		defs[i].References = refs
 	}
 

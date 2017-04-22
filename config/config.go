@@ -5,6 +5,29 @@ import (
 	log "github.com/kotakanbe/goval-dictionary/log"
 )
 
+const (
+	// RedHat is
+	RedHat = "RedHat"
+
+	// Debian is
+	Debian = "Debian"
+
+	// OpenSUSE is
+	OpenSUSE = "opensuse"
+
+	// OpenSUSELeap is
+	OpenSUSELeap = "opensuse.leap"
+
+	// SUSEEnterpriseServer is
+	SUSEEnterpriseServer = "suse.linux.enterprise.server"
+
+	// SUSEEnterpriseDesktop is
+	SUSEEnterpriseDesktop = "suse.linux.enterprise.desktop"
+
+	// SUSEOpenstackCloud is
+	SUSEOpenstackCloud = "suse.openstack.cloud"
+)
+
 // Conf has Configuration
 var Conf Config
 

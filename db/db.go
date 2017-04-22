@@ -162,9 +162,9 @@ func (o Base) InsertFetchMeta(meta models.FetchMeta) error {
 func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
 	var db OvalDB
 	switch family {
-	case "Debian":
+	case c.Debian:
 		db = NewDebian(priorityDB...)
-	case "RedHat":
+	case c.RedHat:
 		db = NewRedHat(priorityDB...)
 	default:
 		return nil, fmt.Errorf("Unknown OS Type: %s", family)
@@ -176,9 +176,9 @@ func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]
 func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
 	var db OvalDB
 	switch family {
-	case "Debian":
+	case c.Debian:
 		db = NewDebian(priorityDB...)
-	case "RedHat":
+	case c.RedHat:
 		db = NewRedHat(priorityDB...)
 	default:
 		return nil, fmt.Errorf("Unknown OS Type: %s", family)

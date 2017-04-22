@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
@@ -18,7 +19,7 @@ type RedHat struct {
 func NewRedHat(priority ...*gorm.DB) RedHat {
 	d := RedHat{
 		Base{
-			Family: "RedHat",
+			Family: config.RedHat,
 		},
 	}
 	if len(priority) == 1 {
@@ -116,7 +117,7 @@ func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, er
 			return nil, err
 		}
 
-		if root.Family == "RedHat" && root.Release == release {
+		if root.Family == config.RedHat && root.Release == release {
 			defs = append(defs, def)
 		}
 	}
@@ -186,7 +187,7 @@ func (o RedHat) GetByCveID(release, cveID string) ([]models.Definition, error) {
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == "RedHat" && root.Release == release {
+		if root.Family == config.RedHat && root.Release == release {
 			defs = append(defs, def)
 		}
 	}

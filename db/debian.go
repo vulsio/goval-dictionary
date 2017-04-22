@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
@@ -18,7 +19,7 @@ type Debian struct {
 func NewDebian(priority ...*gorm.DB) Debian {
 	d := Debian{
 		Base{
-			Family: "Debian",
+			Family: config.Debian,
 		},
 	}
 	if len(priority) == 1 {
@@ -132,7 +133,7 @@ func (o Debian) GetByPackName(release, packName string) ([]models.Definition, er
 			return nil, err
 		}
 
-		if root.Family == "Debian" && root.Release == release {
+		if root.Family == config.Debian && root.Release == release {
 			defs = append(defs, def)
 		}
 	}
@@ -169,7 +170,7 @@ func (o Debian) GetByCveID(release, cveID string) (defs []models.Definition, err
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family != "Debian" || root.Release != release {
+		if root.Family != config.Debian || root.Release != release {
 			continue
 		}
 

@@ -10,16 +10,16 @@ import (
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-// RedHat is a struct for DBAccess
-type RedHat struct {
+// Oracle is a struct of DBAccess
+type Oracle struct {
 	Base
 }
 
-// NewRedHat creates DBAccess
-func NewRedHat(priority ...*gorm.DB) RedHat {
-	d := RedHat{
+// NewOracle creates DBAccess
+func NewOracle(priority ...*gorm.DB) Oracle {
+	d := Oracle{
 		Base{
-			Family: config.RedHat,
+			Family: config.Oracle,
 		},
 	}
 	if len(priority) == 1 {
@@ -30,8 +30,8 @@ func NewRedHat(priority ...*gorm.DB) RedHat {
 	return d
 }
 
-// InsertOval inserts RedHat OVAL
-func (o RedHat) InsertOval(root *models.Root, meta models.FetchMeta) error {
+// InsertOval inserts Oracle OVAL
+func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	tx := o.DB.Begin()
 
 	oldmeta := models.FetchMeta{}
@@ -52,14 +52,6 @@ func (o RedHat) InsertOval(root *models.Root, meta models.FetchMeta) error {
 			adv := models.Advisory{}
 			o.DB.Model(&def).Related(&adv, "Avisory")
 			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Bugzilla{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cpe{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
@@ -99,7 +91,7 @@ func (o RedHat) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, error) {
+func (o Oracle) GetByPackName(release, packName string) ([]models.Definition, error) {
 	packs := []models.Package{}
 	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -117,7 +109,7 @@ func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, er
 			return nil, err
 		}
 
-		if root.Family == config.RedHat && root.Release == release {
+		if root.Family == config.Oracle && root.Release == release {
 			defs = append(defs, def)
 		}
 	}
@@ -133,18 +125,6 @@ func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, er
 			return nil, err
 		}
 		adv.Cves = cves
-
-		bugs := []models.Bugzilla{}
-		if err := o.DB.Model(&adv).Related(&bugs, "Bugzillas").Error; err != nil {
-			return nil, err
-		}
-		adv.Bugzillas = bugs
-
-		cpes := []models.Cpe{}
-		if err := o.DB.Model(&adv).Related(&cpes, "AffectedCPEList").Error; err != nil {
-			return nil, err
-		}
-		adv.AffectedCPEList = cpes
 
 		defs[i].Advisory = adv
 
@@ -165,7 +145,7 @@ func (o RedHat) GetByPackName(release, packName string) ([]models.Definition, er
 }
 
 // GetByCveID select definitions by CveID
-func (o RedHat) GetByCveID(release, cveID string) ([]models.Definition, error) {
+func (o Oracle) GetByCveID(release, cveID string) ([]models.Definition, error) {
 	cves := []models.Cve{}
 	if err := o.DB.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
 		return nil, err
@@ -187,7 +167,7 @@ func (o RedHat) GetByCveID(release, cveID string) ([]models.Definition, error) {
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.RedHat && root.Release == release {
+		if root.Family == config.Oracle && root.Release == release {
 			defs = append(defs, def)
 		}
 	}
@@ -203,18 +183,6 @@ func (o RedHat) GetByCveID(release, cveID string) ([]models.Definition, error) {
 			return nil, err
 		}
 		adv.Cves = cves
-
-		bugs := []models.Bugzilla{}
-		if err := o.DB.Model(&adv).Related(&bugs, "Bugzillas").Error; err != nil {
-			return nil, err
-		}
-		adv.Bugzillas = bugs
-
-		cpes := []models.Cpe{}
-		if err := o.DB.Model(&adv).Related(&cpes, "AffectedCPEList").Error; err != nil {
-			return nil, err
-		}
-		adv.AffectedCPEList = cpes
 
 		defs[i].Advisory = adv
 

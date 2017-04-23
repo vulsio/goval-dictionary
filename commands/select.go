@@ -73,7 +73,18 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	log.Initialize(p.LogDir)
 
 	if f.NArg() != 3 {
-		log.Fatal("./goval-dictionary select-redhat -by-package RedHat 7 java-1.7.0-openjdk")
+		log.Fatal(`
+		Usage:
+		select OVAL by package name
+		./goval-dictionary select-redhat -by-package RedHat 7 java-1.7.0-openjdk
+
+		select OVAL by CVE-ID
+		./goval-dictionary select-redhat -by-cveid RedHat 7 CVE-2015-1111
+		`)
+	}
+
+	if !p.ByPackage && !p.ByCveID {
+		log.Fatal("Specify -by-package or -by-cveid")
 	}
 
 	log.Infof("Opening DB (%s).", c.Conf.DBType)
@@ -84,6 +95,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	if p.ByPackage {
 		dfs, err := db.GetByPackName(f.Args()[0], f.Args()[1], f.Args()[2])
 		if err != nil {
+			//TODO Logger
 			log.Fatal(err)
 		}
 

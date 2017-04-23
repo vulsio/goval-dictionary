@@ -37,7 +37,7 @@ func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip (Same Timestamp) %s %s ", root.Family, root.Release)
+		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.Release)
 		return nil
 	}
 	log.Infof("  Refreshing...  %s %s ", root.Family, root.Release)

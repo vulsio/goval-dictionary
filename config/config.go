@@ -26,6 +26,9 @@ const (
 
 	// SUSEOpenstackCloud is
 	SUSEOpenstackCloud = "suse.openstack.cloud"
+
+	// Oracle is
+	Oracle = "Oracle"
 )
 
 // Conf has Configuration

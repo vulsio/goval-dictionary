@@ -1,9 +1,12 @@
 package fetcher
 
 import (
+	"bytes"
+	"compress/bzip2"
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cheggaaa/pb"
@@ -17,6 +20,7 @@ import (
 type fetchRequest struct {
 	target string
 	url    string
+	bzip2  bool
 }
 
 //FetchResult has url and OVAL definitions
@@ -93,7 +97,18 @@ func fetchFeedFile(req fetchRequest) (root *oval.Root, err error) {
 		return nil, fmt.Errorf(
 			"HTTP error. errs: %v, url: %s", errs, req.url)
 	}
-	if err = xml.Unmarshal([]byte(body), &root); err != nil {
+
+	var bytesBody []byte
+	if req.bzip2 {
+		bz := bzip2.NewReader(strings.NewReader(body))
+		var buf bytes.Buffer
+		buf.ReadFrom(bz)
+		bytesBody = buf.Bytes()
+	} else {
+		bytesBody = []byte(body)
+	}
+
+	if err = xml.Unmarshal(bytesBody, &root); err != nil {
 		return nil, fmt.Errorf(
 			"Failed to unmarshal. url: %s, err: %s", req.url, err)
 	}

@@ -26,7 +26,7 @@ $ make install
 # Usage
 
 ```
-./goval-dictionary -h
+goval-dictionary -h
 Usage: goval-dictionary <flags> <subcommand> <subcommand args>
 
 Subcommands:
@@ -37,8 +37,14 @@ Subcommands:
 Subcommands for fetch-debian:
         fetch-debian     Fetch Vulnerability dictionary from Debian
 
+Subcommands for fetch-oracle:
+        fetch-oracle     Fetch Vulnerability dictionary from Oracle
+
 Subcommands for fetch-redhat:
         fetch-redhat     Fetch Vulnerability dictionary from RedHat
+
+Subcommands for fetch-suse:
+        fetch-suse       Fetch Vulnerability dictionary from SUSE
 
 Subcommands for select:
         select           Select from DB
@@ -46,10 +52,13 @@ Subcommands for select:
 Subcommands for server:
         server           Start OVAL dictionary HTTP server
 
+
 Use "goval-dictionary flags" for a list of top-level flags
 ```
 
 ## Usage: Fetch OVAL data from RedHat.  
+
+- [Redhat OVAL](https://www.redhat.com/security/data/oval/)
 
 ```
 ./goval-dictionary fetch-redhat -h
@@ -83,6 +92,8 @@ $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
 ```
 
 ## Usage: Fetch OVAL data from Debian.  
+
+- [Debian OVAL](https://www.debian.org/security/oval/)
 
 ```
 ./goval-dictionary fetch-debian -h
@@ -128,6 +139,94 @@ $ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i;
 - Import oval data from local file
 ```bash
 ./goval-dictionary fetch-debian -oval-files -debug $HOME/oval/oval-definitions-2015.xml
+```
+
+## Usage: Fetch OVAL data from SUSE.  
+
+- [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
+
+```
+fetch-suse:
+        fetch-suse
+                [-opensuse]
+                [-opensuse-leap]
+                [-suse-enterprise-server]
+                [-suse-enterprise-desktop]
+                [-suse-openstack-cloud]
+                [-dbtype=mysql|sqlite3]
+                [-dbpath=$PWD/cve.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-log-dir=/path/to/log]
+
+        example: goval-dictionary fetch-suse -opensuse 13.2
+
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+  -opensuse
+        OpenSUSE
+  -opensuse-leap
+        OpenSUSE Leap
+  -suse-enterprise-desktop
+        SUSE Enterprise Desktop
+  -suse-enterprise-server
+        SUSE Enterprise Server
+  -suse-openstack-cloud
+        SUSE Openstack cloud
+```
+
+- Import oval data from Internet
+
+```bash
+$ goval-dictionary fetch-suse -opensuse 13.2
+```
+
+## Usage: Fetch OVAL data from Oracle.  
+
+- [Oracle Linux](https://linux.oracle.com/security/oval/)
+
+```
+$ goval-dictionary fetch-oracle -h
+fetch-oracle:
+        fetch-oracle
+                [-dbtype=mysql|sqlite3]
+                [-dbpath=$PWD/cve.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-log-dir=/path/to/log]
+
+        example: goval-dictionary fetch-oracle
+
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+```
+
+- Import oval data from Internet
+
+```bash
+$ goval-dictionary fetch-oracle
 ```
 
 ## Usage: select oval by package name 
@@ -592,6 +691,8 @@ server:
 
 - [RedHat](https://www.redhat.com/security/data/oval/)
 - [Debian](https://www.debian.org/security/oval/)
+- [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
+- [Oracle Linux](https://linux.oracle.com/security/oval/)
 
 
 ----

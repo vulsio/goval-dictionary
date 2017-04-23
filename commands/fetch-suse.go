@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/subcommands"
-	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
@@ -40,8 +39,8 @@ func (*FetchSUSECmd) Synopsis() string { return "Fetch Vulnerability dictionary 
 
 // Usage return usage
 func (*FetchSUSECmd) Usage() string {
-	return `fetch-redhat:
-	fetch-redhat
+	return `fetch-suse:
+	fetch-suse
 		[-opensuse]
 		[-opensuse-leap]
 		[-suse-enterprise-server]
@@ -135,8 +134,6 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
-
-	pp.Println(results)
 
 	log.Infof("Opening DB (%s).", c.Conf.DBType)
 	if err := db.OpenDB(); err != nil {

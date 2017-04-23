@@ -15,8 +15,8 @@ type SUSE struct {
 }
 
 // NewSUSE creates DBAccess
-func NewSUSE(suseType string, priority ...*gorm.DB) Debian {
-	d := Debian{
+func NewSUSE(suseType string, priority ...*gorm.DB) SUSE {
+	d := SUSE{
 		Base{
 			Family: suseType,
 		},
@@ -36,10 +36,10 @@ func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip (Same Timestamp)")
+		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.Release)
 		return nil
 	}
-	log.Infof("  Refreshing...")
+	log.Infof("  Refreshing %s %s...", root.Family, root.Release)
 
 	old := models.Root{}
 	r = tx.Where(&models.Root{Family: root.Family, Release: root.Release}).First(&old)
@@ -77,4 +77,75 @@ func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
 		return err
 	}
 	return nil
+}
+
+// GetByPackName select definitions by packName
+func (o SUSE) GetByPackName(release, packName string) ([]models.Definition, error) {
+	packs := []models.Package{}
+	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+		return nil, err
+	}
+
+	defs := []models.Definition{}
+	for _, p := range packs {
+		def := models.Definition{}
+		if err := o.DB.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+			return nil, err
+		}
+
+		root := models.Root{}
+		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+			return nil, err
+		}
+
+		if root.Family == o.Family && root.Release == release {
+			defs = append(defs, def)
+		}
+	}
+
+	for i, def := range defs {
+		packs := []models.Package{}
+		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+			return nil, err
+		}
+		defs[i].AffectedPacks = packs
+
+		refs := []models.Reference{}
+		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
+		defs[i].References = refs
+	}
+
+	return defs, nil
+}
+
+// GetByCveID select definitions by CveID
+func (o SUSE) GetByCveID(release, cveID string) (defs []models.Definition, err error) {
+	tmpdefs := []models.Definition{}
+	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
+	for _, def := range tmpdefs {
+		root := models.Root{}
+		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+			return nil, err
+		}
+		if root.Family != o.Family || root.Release != release {
+			continue
+		}
+
+		packs := []models.Package{}
+		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+			return nil, err
+		}
+		def.AffectedPacks = packs
+
+		refs := []models.Reference{}
+		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
+		def.References = refs
+
+		defs = append(defs, def)
+	}
+	return
 }

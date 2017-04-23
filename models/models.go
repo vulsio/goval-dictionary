@@ -58,7 +58,6 @@ type Advisory struct {
 	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
-	RHSA            string
 	Severity        string
 	Cves            []Cve
 	Bugzillas       []Bugzilla

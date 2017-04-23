@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -158,30 +159,54 @@ func (o Base) InsertFetchMeta(meta models.FetchMeta) error {
 	return nil
 }
 
-// GetByPackName select OVAL definition related to OS Family, release, packName
-func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
-	var db OvalDB
+func newDB(family string, priorityDB ...*gorm.DB) (OvalDB, error) {
 	switch family {
 	case c.Debian:
-		db = NewDebian(priorityDB...)
+		return NewDebian(priorityDB...), nil
 	case c.RedHat:
-		db = NewRedHat(priorityDB...)
+		return NewRedHat(priorityDB...), nil
+	case c.Oracle:
+		return NewOracle(priorityDB...), nil
 	default:
+		if strings.Contains(family, "suse") {
+			suses := []string{
+				c.OpenSUSE,
+				c.OpenSUSELeap,
+				c.SUSEEnterpriseServer,
+				c.SUSEEnterpriseDesktop,
+				c.SUSEOpenstackCloud,
+			}
+			found := false
+			for _, name := range suses {
+				if name == family {
+					found = true
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("Unknown SUSE. Specify from %s: %s",
+					suses, family)
+			}
+			return NewSUSE(family, priorityDB...), nil
+		}
+
 		return nil, fmt.Errorf("Unknown OS Type: %s", family)
+	}
+}
+
+// GetByPackName select OVAL definition related to OS Family, release, packName
+func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+	db, err := newDB(family, priorityDB...)
+	if err != nil {
+		return nil, err
 	}
 	return db.GetByPackName(release, packName)
 }
 
 // GetByCveID select OVAL definition related to OS Family, release, cveID
 func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
-	var db OvalDB
-	switch family {
-	case c.Debian:
-		db = NewDebian(priorityDB...)
-	case c.RedHat:
-		db = NewRedHat(priorityDB...)
-	default:
-		return nil, fmt.Errorf("Unknown OS Type: %s", family)
+	db, err := newDB(family, priorityDB...)
+	if err != nil {
+		return nil, err
 	}
 	return db.GetByCveID(release, cveID)
 }

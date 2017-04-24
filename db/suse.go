@@ -121,6 +121,8 @@ func (o SUSE) GetByPackName(osVer, packName string) ([]models.Definition, error)
 }
 
 // GetByCveID select definitions by CveID
+// SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
+// http: //ftp.suse.com/pub/projects/security/oval/
 func (o SUSE) GetByCveID(osVer, cveID string) (defs []models.Definition, err error) {
 	tmpdefs := []models.Definition{}
 	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)

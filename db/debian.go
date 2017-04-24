@@ -115,7 +115,8 @@ func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o Debian) GetByPackName(osMajorVer, packName string) ([]models.Definition, error) {
+func (o Debian) GetByPackName(osVer, packName string) ([]models.Definition, error) {
+	osVer = major(osVer)
 	packs := []models.Package{}
 	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -133,7 +134,7 @@ func (o Debian) GetByPackName(osMajorVer, packName string) ([]models.Definition,
 			return nil, err
 		}
 
-		if root.Family == config.Debian && major(root.OSVersion) == osMajorVer {
+		if root.Family == config.Debian && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
 	}
@@ -162,7 +163,8 @@ func (o Debian) GetByPackName(osMajorVer, packName string) ([]models.Definition,
 }
 
 // GetByCveID select definitions by CveID
-func (o Debian) GetByCveID(osMajorVer, cveID string) (defs []models.Definition, err error) {
+func (o Debian) GetByCveID(osVer, cveID string) (defs []models.Definition, err error) {
+	osVer = major(osVer)
 	tmpdefs := []models.Definition{}
 	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
@@ -170,7 +172,7 @@ func (o Debian) GetByCveID(osMajorVer, cveID string) (defs []models.Definition, 
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family != config.Debian || major(root.OSVersion) != osMajorVer {
+		if root.Family != config.Debian || major(root.OSVersion) != osVer {
 			continue
 		}
 

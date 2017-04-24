@@ -91,7 +91,8 @@ func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o Oracle) GetByPackName(osMajorVer, packName string) ([]models.Definition, error) {
+func (o Oracle) GetByPackName(osVer, packName string) ([]models.Definition, error) {
+	osVer = major(osVer)
 	packs := []models.Package{}
 	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -109,7 +110,7 @@ func (o Oracle) GetByPackName(osMajorVer, packName string) ([]models.Definition,
 			return nil, err
 		}
 
-		if root.Family == config.Oracle && major(root.OSVersion) == osMajorVer {
+		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
 	}
@@ -145,7 +146,8 @@ func (o Oracle) GetByPackName(osMajorVer, packName string) ([]models.Definition,
 }
 
 // GetByCveID select definitions by CveID
-func (o Oracle) GetByCveID(osMajorVer, cveID string) ([]models.Definition, error) {
+func (o Oracle) GetByCveID(osVer, cveID string) ([]models.Definition, error) {
+	osVer = major(osVer)
 	cves := []models.Cve{}
 	if err := o.DB.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
 		return nil, err
@@ -167,7 +169,7 @@ func (o Oracle) GetByCveID(osMajorVer, cveID string) ([]models.Definition, error
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.Oracle && major(root.OSVersion) == osMajorVer {
+		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
 	}

@@ -158,7 +158,8 @@ func (o Base) InsertFetchMeta(meta models.FetchMeta) error {
 	return nil
 }
 
-func newDB(family string, priorityDB ...*gorm.DB) (OvalDB, error) {
+// NewDB create a OvalDB client
+func NewDB(family string, priorityDB ...*gorm.DB) (OvalDB, error) {
 	switch family {
 	case c.Debian:
 		return NewDebian(priorityDB...), nil
@@ -194,32 +195,18 @@ func newDB(family string, priorityDB ...*gorm.DB) (OvalDB, error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
 func GetByPackName(family, osVer, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
-	db, err := newDB(family, priorityDB...)
+	db, err := NewDB(family, priorityDB...)
 	if err != nil {
 		return nil, err
-	}
-	if strings.Contains(family, "suse") {
-		// SUSE : OVAL is separate for each minor version
-		// http: //ftp.suse.com/pub/projects/security/oval/
-	} else {
-		// Except SUSE : OVAL is provided for each major version
-		osVer = major(osVer)
 	}
 	return db.GetByPackName(osVer, packName)
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
 func GetByCveID(family, osVer, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
-	db, err := newDB(family, priorityDB...)
+	db, err := NewDB(family, priorityDB...)
 	if err != nil {
 		return nil, err
-	}
-	if strings.Contains(family, "suse") {
-		// SUSE : OVAL is separate for each minor version
-		// http: //ftp.suse.com/pub/projects/security/oval/
-	} else {
-		// Except SUSE : OVAL is provided for each major version
-		osVer = major(osVer)
 	}
 	return db.GetByCveID(osVer, cveID)
 }

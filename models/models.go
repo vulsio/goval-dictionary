@@ -17,7 +17,7 @@ type Root struct {
 	ID uint `gorm:"primary_key"`
 	//  Timestamp   time.Time
 	Family      string
-	Release     string
+	OSVersion   string
 	Definitions []Definition
 }
 

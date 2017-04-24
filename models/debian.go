@@ -9,8 +9,8 @@ import (
 )
 
 type distroPackage struct {
-	release string
-	pack    Package
+	osVer string
+	pack  Package
 }
 
 // ConvertDebianToModel Convert OVAL to models
@@ -43,14 +43,14 @@ func ConvertDebianToModel(root *oval.Root) (roots []Root) {
 				References:    rs,
 			}
 
-			root, ok := m[distPack.release]
+			root, ok := m[distPack.osVer]
 			if ok {
 				root.Definitions = append(root.Definitions, def)
-				m[distPack.release] = root
+				m[distPack.osVer] = root
 			} else {
-				m[distPack.release] = Root{
+				m[distPack.osVer] = Root{
 					Family:      config.Debian,
-					Release:     distPack.release,
+					OSVersion:   distPack.osVer,
 					Definitions: []Definition{def},
 				}
 			}
@@ -67,11 +67,11 @@ func collectDebianPacks(cri oval.Criteria) []distroPackage {
 	return walkDebian(cri, "", []distroPackage{})
 }
 
-func walkDebian(cri oval.Criteria, release string, acc []distroPackage) []distroPackage {
+func walkDebian(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {
 	for _, c := range cri.Criterions {
 		if strings.HasPrefix(c.Comment, "Debian ") &&
 			strings.HasSuffix(c.Comment, " is installed") {
-			release = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Debian "), " is installed")
+			osVer = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Debian "), " is installed")
 		}
 		ss := strings.Split(c.Comment, " DPKG is earlier than ")
 		if len(ss) != 2 {
@@ -81,7 +81,7 @@ func walkDebian(cri oval.Criteria, release string, acc []distroPackage) []distro
 			continue
 		}
 		acc = append(acc, distroPackage{
-			release: release,
+			osVer: osVer,
 			pack: Package{
 				Name:    ss[0],
 				Version: strings.Split(ss[1], " ")[0],
@@ -93,7 +93,7 @@ func walkDebian(cri oval.Criteria, release string, acc []distroPackage) []distro
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkDebian(c, release, acc)
+		acc = walkDebian(c, osVer, acc)
 	}
 	return acc
 }

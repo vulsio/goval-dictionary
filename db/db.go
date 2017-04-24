@@ -126,8 +126,7 @@ type OvalDB interface {
 // Base struct of RedHat, Debian
 type Base struct {
 	Family string
-	//  Release string
-	DB *gorm.DB
+	DB     *gorm.DB
 }
 
 // InsertFetchMeta inserts FetchMeta
@@ -193,20 +192,38 @@ func newDB(family string, priorityDB ...*gorm.DB) (OvalDB, error) {
 	}
 }
 
-// GetByPackName select OVAL definition related to OS Family, release, packName
-func GetByPackName(family, release, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+// GetByPackName select OVAL definition related to OS Family, osVer, packName
+func GetByPackName(family, osVer, packName string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
 	db, err := newDB(family, priorityDB...)
 	if err != nil {
 		return nil, err
 	}
-	return db.GetByPackName(release, packName)
+	if strings.Contains(family, "suse") {
+		// SUSE : OVAL is separate for each minor version
+		// http: //ftp.suse.com/pub/projects/security/oval/
+	} else {
+		// Except SUSE : OVAL is provided for each major version
+		osVer = major(osVer)
+	}
+	return db.GetByPackName(osVer, packName)
 }
 
-// GetByCveID select OVAL definition related to OS Family, release, cveID
-func GetByCveID(family, release, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
+// GetByCveID select OVAL definition related to OS Family, osVer, cveID
+func GetByCveID(family, osVer, cveID string, priorityDB ...*gorm.DB) ([]models.Definition, error) {
 	db, err := newDB(family, priorityDB...)
 	if err != nil {
 		return nil, err
 	}
-	return db.GetByCveID(release, cveID)
+	if strings.Contains(family, "suse") {
+		// SUSE : OVAL is separate for each minor version
+		// http: //ftp.suse.com/pub/projects/security/oval/
+	} else {
+		// Except SUSE : OVAL is provided for each major version
+		osVer = major(osVer)
+	}
+	return db.GetByCveID(osVer, cveID)
+}
+
+func major(osVer string) (majorVersion string) {
+	return strings.Split(osVer, ".")[0]
 }

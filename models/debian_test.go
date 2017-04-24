@@ -87,28 +87,28 @@ Critical Patch Update advisory for further details:
 			`,
 			expected: []distroPackage{
 				{
-					release: "7.0",
+					osVer: "7.0",
 					pack: Package{
 						Name:    "mysql-5.5",
 						Version: "5.5.37-0+wheezy1",
 					},
 				},
 				{
-					release: "8.2",
+					osVer: "8.2",
 					pack: Package{
 						Name:    "mysql-5.5",
 						Version: "5.5.37-1",
 					},
 				},
 				{
-					release: "9.0",
+					osVer: "9.0",
 					pack: Package{
 						Name:    "mysql-5.5",
 						Version: "5.5.37-1",
 					},
 				},
 				{
-					release: "9.0",
+					osVer: "9.0",
 					pack: Package{
 						Name:    "mysql-5.6",
 						Version: "5.6.37-1",

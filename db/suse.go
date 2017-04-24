@@ -36,13 +36,13 @@ func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.Release)
+		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.OSVersion)
 		return nil
 	}
-	log.Infof("  Refreshing %s %s...", root.Family, root.Release)
+	log.Infof("  Refreshing %s %s...", root.Family, root.OSVersion)
 
 	old := models.Root{}
-	r = tx.Where(&models.Root{Family: root.Family, Release: root.Release}).First(&old)
+	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
@@ -80,7 +80,7 @@ func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o SUSE) GetByPackName(release, packName string) ([]models.Definition, error) {
+func (o SUSE) GetByPackName(osVer, packName string) ([]models.Definition, error) {
 	packs := []models.Package{}
 	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (o SUSE) GetByPackName(release, packName string) ([]models.Definition, erro
 			return nil, err
 		}
 
-		if root.Family == o.Family && root.Release == release {
+		if root.Family == o.Family && root.OSVersion == osVer {
 			defs = append(defs, def)
 		}
 	}
@@ -121,7 +121,7 @@ func (o SUSE) GetByPackName(release, packName string) ([]models.Definition, erro
 }
 
 // GetByCveID select definitions by CveID
-func (o SUSE) GetByCveID(release, cveID string) (defs []models.Definition, err error) {
+func (o SUSE) GetByCveID(osVer, cveID string) (defs []models.Definition, err error) {
 	tmpdefs := []models.Definition{}
 	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
@@ -129,7 +129,7 @@ func (o SUSE) GetByCveID(release, cveID string) (defs []models.Definition, err e
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family != o.Family || root.Release != release {
+		if root.Family != o.Family || root.OSVersion != osVer {
 			continue
 		}
 

@@ -41,14 +41,14 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 				References:    rs,
 			}
 
-			root, ok := m[distPack.release]
+			root, ok := m[distPack.osVer]
 			if ok {
 				root.Definitions = append(root.Definitions, def)
-				m[distPack.release] = root
+				m[distPack.osVer] = root
 			} else {
-				m[distPack.release] = Root{
+				m[distPack.osVer] = Root{
 					Family:      config.Oracle,
-					Release:     distPack.release,
+					OSVersion:   distPack.osVer,
 					Definitions: []Definition{def},
 				}
 			}
@@ -65,11 +65,11 @@ func collectOraclePacks(cri oval.Criteria) []distroPackage {
 	return walkOracle(cri, "", []distroPackage{})
 }
 
-func walkOracle(cri oval.Criteria, release string, acc []distroPackage) []distroPackage {
+func walkOracle(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {
 	for _, c := range cri.Criterions {
 		if strings.HasPrefix(c.Comment, "Oracle Linux ") &&
 			strings.HasSuffix(c.Comment, " is installed") {
-			release = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Oracle Linux "), " is installed")
+			osVer = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Oracle Linux "), " is installed")
 		}
 		ss := strings.Split(c.Comment, " is earlier than ")
 		if len(ss) != 2 {
@@ -79,7 +79,7 @@ func walkOracle(cri oval.Criteria, release string, acc []distroPackage) []distro
 			continue
 		}
 		acc = append(acc, distroPackage{
-			release: release,
+			osVer: osVer,
 			pack: Package{
 				Name:    ss[0],
 				Version: strings.Split(ss[1], " ")[0],
@@ -91,7 +91,7 @@ func walkOracle(cri oval.Criteria, release string, acc []distroPackage) []distro
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkOracle(c, release, acc)
+		acc = walkOracle(c, osVer, acc)
 	}
 	return acc
 }

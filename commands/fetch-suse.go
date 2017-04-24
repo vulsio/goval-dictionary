@@ -162,7 +162,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 
 		root := models.Root{
 			Family:      suseType,
-			Release:     r.Target,
+			OSVersion:   r.Target,
 			Definitions: defs,
 		}
 

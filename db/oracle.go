@@ -37,13 +37,13 @@ func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.Release)
+		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.OSVersion)
 		return nil
 	}
-	log.Infof("  Refreshing %s %s...", root.Family, root.Release)
+	log.Infof("  Refreshing %s %s...", root.Family, root.OSVersion)
 
 	old := models.Root{}
-	r = tx.Where(&models.Root{Family: root.Family, Release: root.Release}).First(&old)
+	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
@@ -91,7 +91,7 @@ func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o Oracle) GetByPackName(release, packName string) ([]models.Definition, error) {
+func (o Oracle) GetByPackName(osMajorVer, packName string) ([]models.Definition, error) {
 	packs := []models.Package{}
 	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (o Oracle) GetByPackName(release, packName string) ([]models.Definition, er
 			return nil, err
 		}
 
-		if root.Family == config.Oracle && root.Release == release {
+		if root.Family == config.Oracle && major(root.OSVersion) == osMajorVer {
 			defs = append(defs, def)
 		}
 	}
@@ -145,7 +145,7 @@ func (o Oracle) GetByPackName(release, packName string) ([]models.Definition, er
 }
 
 // GetByCveID select definitions by CveID
-func (o Oracle) GetByCveID(release, cveID string) ([]models.Definition, error) {
+func (o Oracle) GetByCveID(osMajorVer, cveID string) ([]models.Definition, error) {
 	cves := []models.Cve{}
 	if err := o.DB.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (o Oracle) GetByCveID(release, cveID string) ([]models.Definition, error) {
 		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.Oracle && root.Release == release {
+		if root.Family == config.Oracle && major(root.OSVersion) == osMajorVer {
 			defs = append(defs, def)
 		}
 	}

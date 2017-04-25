@@ -45,6 +45,8 @@ func (*FetchRedHatCmd) Usage() string {
 		[-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
+   $ goval-dictionary fetch-redhat 5 6 7
+       or
    $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
 `
 }

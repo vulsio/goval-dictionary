@@ -26,6 +26,7 @@ func main() {
 
 	subcommands.Register(&commands.FetchRedHatCmd{}, "fetch-redhat")
 	subcommands.Register(&commands.FetchDebianCmd{}, "fetch-debian")
+	subcommands.Register(&commands.FetchUbuntuCmd{}, "fetch-ubuntu")
 	subcommands.Register(&commands.FetchSUSECmd{}, "fetch-suse")
 	subcommands.Register(&commands.FetchOracleCmd{}, "fetch-oracle")
 	subcommands.Register(&commands.SelectCmd{}, "select")

@@ -39,8 +39,9 @@ type Package struct {
 	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
-	Name    string
-	Version string // affected earlier than this version
+	Name        string
+	Version     string // affected earlier than this version
+	NotFixedYet bool
 }
 
 // Reference : >definitions>definition>metadata>reference

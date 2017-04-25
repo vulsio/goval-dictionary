@@ -1,4 +1,4 @@
-memo = "fbc161df05ae1c796415ac92c8fbfe752e44dcd846c91b6e01a0c6e1671dde05"
+memo = "6ab73a999d1946f986556a9f8b7d4112d339ee0833a7b39370c532dd6937ecaf"
 
 [[projects]]
   branch = "master"
@@ -142,22 +142,22 @@ memo = "fbc161df05ae1c796415ac92c8fbfe752e44dcd846c91b6e01a0c6e1671dde05"
   branch = "master"
   name = "github.com/ymomoi/goval-parser"
   packages = ["oval"]
-  revision = "fa7d8e949108b0b2b7d124bef9a7f2bda9b6dd69"
+  revision = "4ddf6fc4f1a1af026f7cae41f76979c7ff2b2e2f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","idna","publicsuffix"]
-  revision = "0b588ed7a0cd59c271d128ec8c429c1c1607e8ab"
+  revision = "da118f7b8e5954f39d0d2130ab35d4bf0e3cb344"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "ea9bcade75cb975a0b9738936568ab388b845617"
+  revision = "8c0a5eacbac818f9011015b17992f53d9cec3e8f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "6a48995cef2d1856bbef2b064f570126429f78ef"
+  revision = "a9a820217f98f7c8a207ec1e45a874e1fe12c478"

@@ -12,6 +12,18 @@ const (
 	// Debian is
 	Debian = "Debian"
 
+	// Ubuntu is
+	Ubuntu = "Ubuntu"
+
+	// Ubuntu12 is Ubuntu Precise
+	Ubuntu12 = "precise"
+
+	// Ubuntu14 is Ubuntu Trusty
+	Ubuntu14 = "trusty"
+
+	// Ubuntu16 is Ubuntu Xenial
+	Ubuntu16 = "xenial"
+
 	// OpenSUSE is
 	OpenSUSE = "opensuse"
 

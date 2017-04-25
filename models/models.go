@@ -41,7 +41,7 @@ type Package struct {
 
 	Name        string
 	Version     string // affected earlier than this version
-	NotFixedYet bool
+	NotFixedYet bool   // Ubuntu Only
 }
 
 // Reference : >definitions>definition>metadata>reference

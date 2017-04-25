@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
@@ -153,7 +154,7 @@ func (o RedHat) GetByPackName(osVer, packName string) ([]models.Definition, erro
 		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
-		defs[i].AffectedPacks = packs
+		defs[i].AffectedPacks = filterByMajor(packs, osVer)
 
 		refs := []models.Reference{}
 		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
@@ -224,7 +225,7 @@ func (o RedHat) GetByCveID(osVer, cveID string) ([]models.Definition, error) {
 		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
-		defs[i].AffectedPacks = packs
+		defs[i].AffectedPacks = filterByMajor(packs, osVer)
 
 		refs := []models.Reference{}
 		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
@@ -234,4 +235,13 @@ func (o RedHat) GetByCveID(osVer, cveID string) ([]models.Definition, error) {
 	}
 
 	return defs, nil
+}
+
+func filterByMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
+	for _, p := range packs {
+		if strings.Contains(p.Version, ".el"+majorVer) {
+			filtered = append(filtered, p)
+		}
+	}
+	return
 }

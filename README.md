@@ -142,6 +142,7 @@ $ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i;
 - Import oval data from local file
 ```bash
 ./goval-dictionary fetch-debian -oval-files -debug $HOME/oval/oval-definitions-2015.xml
+```
 
 ## Usage: Fetch OVAL data from Ubuntu.  
 

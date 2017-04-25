@@ -46,6 +46,9 @@ Subcommands for fetch-redhat:
 Subcommands for fetch-suse:
         fetch-suse       Fetch Vulnerability dictionary from SUSE
 
+Subcommands for fetch-ubuntu:
+        fetch-ubuntu     Fetch Vulnerability dictionary from Ubuntu
+
 Subcommands for select:
         select           Select from DB
 
@@ -139,6 +142,43 @@ $ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i;
 - Import oval data from local file
 ```bash
 ./goval-dictionary fetch-debian -oval-files -debug $HOME/oval/oval-definitions-2015.xml
+
+## Usage: Fetch OVAL data from Ubuntu.  
+
+- [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
+
+```
+fetch-ubuntu:
+        fetch-ubuntu
+                [-dbtype=mysql|sqlite3]
+                [-dbpath=$PWD/cve.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-log-dir=/path/to/log]
+
+For the first time, run the blow command to fetch data for all versions.
+   $ goval-dictionary fetch-ubuntu 12 14 16
+
+
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+```
+
+- Import oval data from Internet
+
+```bash
+$ goval-dictionary fetch-ubuntu 12 14 16
 ```
 
 ## Usage: Fetch OVAL data from SUSE.  
@@ -691,6 +731,7 @@ server:
 
 - [RedHat](https://www.redhat.com/security/data/oval/)
 - [Debian](https://www.debian.org/security/oval/)
+- [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
 

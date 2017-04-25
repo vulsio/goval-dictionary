@@ -163,6 +163,8 @@ func NewDB(family string, priorityDB ...*gorm.DB) (OvalDB, error) {
 	switch family {
 	case c.Debian:
 		return NewDebian(priorityDB...), nil
+	case c.Ubuntu:
+		return NewUbuntu(priorityDB...), nil
 	case c.RedHat:
 		return NewRedHat(priorityDB...), nil
 	case c.Oracle:

@@ -16,8 +16,8 @@ import (
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
-// FetchOracleCmd is Subcommand for fetch Oracle OVAL
-type FetchOracleCmd struct {
+// FetchUbuntuCmd is Subcommand for fetch RedHat OVAL
+type FetchUbuntuCmd struct {
 	Debug     bool
 	DebugSQL  bool
 	LogDir    string
@@ -27,15 +27,15 @@ type FetchOracleCmd struct {
 }
 
 // Name return subcommand name
-func (*FetchOracleCmd) Name() string { return "fetch-oracle" }
+func (*FetchUbuntuCmd) Name() string { return "fetch-ubuntu" }
 
 // Synopsis return synopsis
-func (*FetchOracleCmd) Synopsis() string { return "Fetch Vulnerability dictionary from Oracle" }
+func (*FetchUbuntuCmd) Synopsis() string { return "Fetch Vulnerability dictionary from Ubuntu" }
 
 // Usage return usage
-func (*FetchOracleCmd) Usage() string {
-	return `fetch-oracle:
-	fetch-oracle
+func (*FetchUbuntuCmd) Usage() string {
+	return `fetch-ubuntu:
+	fetch-ubuntu
 		[-dbtype=mysql|sqlite3]
 		[-dbpath=$PWD/cve.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
@@ -43,15 +43,17 @@ func (*FetchOracleCmd) Usage() string {
 		[-debug-sql]
 		[-log-dir=/path/to/log]
 
-	example: goval-dictionary fetch-oracle
-
+For the first time, run the blow command to fetch data for all versions.
+   $ goval-dictionary fetch-ubuntu 12 14 16
 `
 }
 
 // SetFlags set flag
-func (p *FetchOracleCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&p.Debug, "debug", false, "debug mode")
-	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
+func (p *FetchUbuntuCmd) SetFlags(f *flag.FlagSet) {
+	f.BoolVar(&p.Debug, "debug", false,
+		"debug mode")
+	f.BoolVar(&p.DebugSQL, "debug-sql", false,
+		"SQL debug mode")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
@@ -72,7 +74,7 @@ func (p *FetchOracleCmd) SetFlags(f *flag.FlagSet) {
 }
 
 // Execute execute
-func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	log.Initialize(p.LogDir)
 
 	c.Conf.DebugSQL = p.DebugSQL
@@ -89,7 +91,16 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
-	results, err := fetcher.FetchOracleFiles()
+	vers := []string{}
+	if len(f.Args()) == 0 {
+		log.Errorf("Specify versions to fetch")
+		return subcommands.ExitUsageError
+	}
+	for _, arg := range f.Args() {
+		vers = append(vers, arg)
+	}
+
+	results, err := fetcher.FetchUbuntuFiles(vers)
 	if err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
@@ -107,15 +118,23 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitFailure
 	}
 
+	ubu := db.NewUbuntu()
 	for _, r := range results {
 		log.Infof("Fetched: %s", r.URL)
 		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
 
-		//  var timeformat = "2006-01-02T15:04:05.999-07:00"
+		defs := models.ConvertUbuntuToModel(r.Root)
+
 		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, strings.Split(r.Root.Generator.Timestamp, ".")[0])
+		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
 		if err != nil {
 			panic(err)
+		}
+
+		root := models.Root{
+			Family:      c.Ubuntu,
+			OSVersion:   r.Target,
+			Definitions: defs,
 		}
 
 		ss := strings.Split(r.URL, "/")
@@ -124,15 +143,11 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertOracleToModel(r.Root)
-		deb := db.NewOracle()
-		for _, root := range roots {
-			if err := deb.InsertOval(&root, fmeta); err != nil {
-				log.Error(err)
-				return subcommands.ExitFailure
-			}
+		if err := ubu.InsertOval(&root, fmeta); err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
 		}
-		if err := deb.InsertFetchMeta(fmeta); err != nil {
+		if err := ubu.InsertFetchMeta(fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}

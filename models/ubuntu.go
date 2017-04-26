@@ -9,6 +9,8 @@ import (
 // ConvertUbuntuToModel Convert OVAL to models
 func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 	for _, d := range root.Definitions.Definitions {
+
+		cveID := ""
 		rs := []Reference{}
 		for _, r := range d.References {
 			rs = append(rs, Reference{
@@ -16,6 +18,9 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
+			if r.Source == "CVE" {
+				cveID = r.RefID
+			}
 		}
 
 		for _, r := range d.Advisory.Refs {
@@ -38,6 +43,7 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			Advisory: Advisory{
 				Severity: d.Advisory.Severity,
 			},
+			Debian:        Debian{CveID: cveID},
 			AffectedPacks: collectUbuntuPacks(d.Criteria),
 			References:    rs,
 		}

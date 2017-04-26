@@ -49,6 +49,12 @@ func (o Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta) error {
 		defs := []models.Definition{}
 		o.DB.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
+			deb := models.Debian{}
+			o.DB.Model(&def).Related(&deb, "Debian ")
+			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("Failed to delete: %s", err)
+			}
 			adv := models.Advisory{}
 			o.DB.Model(&def).Related(&adv, "Avisory")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
@@ -112,6 +118,12 @@ func (o Ubuntu) GetByPackName(osVer, packName string) ([]models.Definition, erro
 	}
 
 	for i, def := range defs {
+		deb := models.Debian{}
+		if err := o.DB.Model(&def).Related(&deb, "Debian").Error; err != nil {
+			return nil, err
+		}
+		defs[i].Debian = deb
+
 		adv := models.Advisory{}
 		if err := o.DB.Model(&def).Related(&adv, "Advisory").Error; err != nil {
 			return nil, err
@@ -160,6 +172,12 @@ func (o Ubuntu) GetByCveID(osVer, cveID string) ([]models.Definition, error) {
 	}
 
 	for i, def := range defs {
+		deb := models.Debian{}
+		if err := o.DB.Model(&def).Related(&deb, "Debian").Error; err != nil {
+			return nil, err
+		}
+		defs[i].Debian = deb
+
 		adv := models.Advisory{}
 		if err := o.DB.Model(&def).Related(&adv, "Advisory").Error; err != nil {
 			return nil, err

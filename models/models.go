@@ -63,6 +63,8 @@ type Advisory struct {
 	Cves            []Cve
 	Bugzillas       []Bugzilla
 	AffectedCPEList []Cpe
+	Issued          time.Time
+	Updated         time.Time
 }
 
 // Cve : >definitions>definition>metadata>advisory>cve

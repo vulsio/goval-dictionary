@@ -4,13 +4,13 @@ memo = "6ab73a999d1946f986556a9f8b7d4112d339ee0833a7b39370c532dd6937ecaf"
   branch = "master"
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
-  revision = "10f801ebc38b33738c9d17d50860f484a0988ff5"
+  revision = "508f304878257fb578be3e863e3990ed9ec3aa2e"
 
 [[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
-  revision = "7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877"
-  version = "v5"
+  revision = "4918b99a7cb949bb295f3c7bbaf24b577d806e35"
+  version = "v6"
 
 [[projects]]
   name = "github.com/cheggaaa/pb"
@@ -142,22 +142,22 @@ memo = "6ab73a999d1946f986556a9f8b7d4112d339ee0833a7b39370c532dd6937ecaf"
   branch = "master"
   name = "github.com/ymomoi/goval-parser"
   packages = ["oval"]
-  revision = "4ddf6fc4f1a1af026f7cae41f76979c7ff2b2e2f"
+  revision = "003ac9af5fffac6c97ab1def025d2cb73e88469a"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","idna","publicsuffix"]
-  revision = "da118f7b8e5954f39d0d2130ab35d4bf0e3cb344"
+  revision = "feeb485667d1fdabe727840fe00adc22431bc86e"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "8c0a5eacbac818f9011015b17992f53d9cec3e8f"
+  revision = "9ccfe848b9db8435a24c424abbc07a921adf1df5"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "a9a820217f98f7c8a207ec1e45a874e1fe12c478"
+  revision = "470f45bf29f4147d6fbd7dfd0a02a848e49f5bf4"

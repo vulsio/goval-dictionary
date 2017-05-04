@@ -2,6 +2,7 @@ package models
 
 import (
 	"strings"
+	"time"
 
 	"github.com/ymomoi/goval-parser/oval"
 )
@@ -46,6 +47,10 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			})
 		}
 
+		const timeformat = "2006-01-02"
+		issued, _ := time.Parse(timeformat, d.Advisory.Issued.Date)
+		updated, _ := time.Parse(timeformat, d.Advisory.Updated.Date)
+
 		def := Definition{
 			Title:       d.Title,
 			Description: d.Description,
@@ -54,6 +59,8 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				Severity:        d.Advisory.Severity,
 				AffectedCPEList: cl,
 				Bugzillas:       bs,
+				Issued:          issued,
+				Updated:         updated,
 			},
 			AffectedPacks: collectRedHatPacks(d.Criteria),
 			References:    rs,

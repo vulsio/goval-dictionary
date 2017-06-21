@@ -22,6 +22,7 @@ func ConvertSUSEToModel(root *oval.Root) (defs []Definition) {
 
 		for _, distPack := range collectSUSEPacks(ovaldef.Criteria) {
 			def := Definition{
+				DefinitionID:  ovaldef.ID,
 				Title:         ovaldef.Title,
 				Description:   ovaldef.Description,
 				AffectedPacks: []Package{distPack.pack},

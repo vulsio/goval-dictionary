@@ -38,8 +38,9 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 		}
 
 		def := Definition{
-			Title:       d.Title,
-			Description: d.Description,
+			DefinitionID: d.ID,
+			Title:        d.Title,
+			Description:  d.Description,
 			Advisory: Advisory{
 				Severity: d.Advisory.Severity,
 			},

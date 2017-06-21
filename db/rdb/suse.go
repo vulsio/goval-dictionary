@@ -1,4 +1,4 @@
-package db
+package rdb
 
 import (
 	"fmt"
@@ -11,27 +11,22 @@ import (
 
 // SUSE is a struct of DBAccess
 type SUSE struct {
-	Base
+	Family string
 }
 
 // NewSUSE creates DBAccess
-func NewSUSE(suseType string, priority ...*gorm.DB) SUSE {
-	d := SUSE{
-		Base{
-			Family: suseType,
-		},
-	}
-	if len(priority) == 1 {
-		d.DB = priority[0]
-	} else {
-		d.DB = db
-	}
-	return d
+func NewSUSE(suseType string) *SUSE {
+	return &SUSE{Family: suseType}
+}
+
+// Name return family name
+func (o *SUSE) Name() string {
+	return o.Family
 }
 
 // InsertOval inserts SUSE OVAL
-func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
-	tx := o.DB.Begin()
+func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
@@ -46,7 +41,7 @@ func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		o.DB.Model(&old).Related(&defs, "Definitions")
+		driver.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
 			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
 				tx.Rollback()
@@ -80,21 +75,21 @@ func (o SUSE) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o SUSE) GetByPackName(osVer, packName string) ([]models.Definition, error) {
+func (o *SUSE) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	packs := []models.Package{}
-	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		if err := o.DB.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+		if err := driver.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
 
@@ -105,13 +100,13 @@ func (o SUSE) GetByPackName(osVer, packName string) ([]models.Definition, error)
 
 	for i, def := range defs {
 		packs := []models.Package{}
-		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
 			return nil, err
 		}
 		defs[i].References = refs
@@ -123,12 +118,12 @@ func (o SUSE) GetByPackName(osVer, packName string) ([]models.Definition, error)
 // GetByCveID select definitions by CveID
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
-func (o SUSE) GetByCveID(osVer, cveID string) (defs []models.Definition, err error) {
+func (o *SUSE) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models.Definition, err error) {
 	tmpdefs := []models.Definition{}
-	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
+	driver.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
 		root := models.Root{}
-		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
 		if root.Family != o.Family || root.OSVersion != osVer {
@@ -136,13 +131,13 @@ func (o SUSE) GetByCveID(osVer, cveID string) (defs []models.Definition, err err
 		}
 
 		packs := []models.Package{}
-		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
 		def.AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
 			return nil, err
 		}
 		def.References = refs

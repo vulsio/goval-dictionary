@@ -90,14 +90,22 @@ func (p *ServerCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		return subcommands.ExitUsageError
 	}
 
-	log.Infof("Opening DB (%s).", c.Conf.DBType)
-	if err := db.OpenDB(); err != nil {
+	var err error
+	var driver db.DB
+	noFamily := ""
+	if driver, err = db.NewDB(c.Conf.DBType, noFamily); err != nil {
+		log.Error(err)
+		return subcommands.ExitFailure
+	}
+
+	log.Infof("Opening DB (%s).", driver.Name())
+	if err = driver.OpenDB(c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
 
 	log.Info("Starting HTTP Server...")
-	if err := server.Start(p.logDir); err != nil {
+	if err = server.Start(p.logDir, driver); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}

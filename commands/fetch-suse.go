@@ -46,7 +46,7 @@ func (*FetchSUSECmd) Usage() string {
 		[-suse-enterprise-server]
 		[-suse-enterprise-desktop]
 		[-suse-openstack-cloud]
-		[-dbtype=mysql|sqlite3]
+		[-dbtype=sqlite3|mysql|postgres|redis]
 		[-dbpath=$PWD/cve.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
@@ -78,7 +78,7 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 		"/path/to/sqlite3 or SQL connection string")
 
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
-		"Database type to store data in (sqlite3 or mysql supported)")
+		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 
 	f.StringVar(
 		&p.HTTPProxy,
@@ -135,19 +135,24 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		return subcommands.ExitFailure
 	}
 
-	log.Infof("Opening DB (%s).", c.Conf.DBType)
-	if err := db.OpenDB(); err != nil {
+	var driver db.DB
+	if driver, err = db.NewDB(c.Conf.DBType, suseType); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
 
-	log.Info("Migrating DB")
-	if err := db.MigrateDB(); err != nil {
+	log.Infof("Opening DB (%s).", driver.Name())
+	if err = driver.OpenDB(c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
 
-	suse := db.NewSUSE(suseType)
+	log.Infof("Migrating DB (%s).", driver.Name())
+	if err = driver.MigrateDB(); err != nil {
+		log.Error(err)
+		return subcommands.ExitFailure
+	}
+
 	for _, r := range results {
 		log.Infof("Fetched: %s", r.URL)
 		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
@@ -172,12 +177,12 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			FileName:  ss[len(ss)-1],
 		}
 
-		if err := suse.InsertOval(&root, fmeta); err != nil {
+		if err := driver.InsertOval(&root, fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
 
-		if err := suse.InsertFetchMeta(fmeta); err != nil {
+		if err := driver.InsertFetchMeta(fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}

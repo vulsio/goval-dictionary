@@ -26,6 +26,7 @@ type Definition struct {
 	ID     uint `gorm:"primary_key"`
 	RootID uint `json:"-" xml:"-"`
 
+	DefinitionID  string
 	Title         string
 	Description   string
 	Advisory      Advisory

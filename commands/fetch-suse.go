@@ -46,7 +46,7 @@ func (*FetchSUSECmd) Usage() string {
 		[-suse-enterprise-server]
 		[-suse-enterprise-desktop]
 		[-suse-openstack-cloud]
-		[-dbtype=mysql|sqlite3]
+		[-dbtype=sqlite3|mysql|postgres]
 		[-dbpath=$PWD/cve.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
@@ -78,7 +78,7 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 		"/path/to/sqlite3 or SQL connection string")
 
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
-		"Database type to store data in (sqlite3 or mysql supported)")
+		"Database type to store data in (sqlite3, mysql or postgres supported)")
 
 	f.StringVar(
 		&p.HTTPProxy,

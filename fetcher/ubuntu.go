@@ -4,14 +4,20 @@ import (
 	"fmt"
 
 	"github.com/kotakanbe/goval-dictionary/config"
+	"github.com/kotakanbe/goval-dictionary/log"
 )
 
 func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 	const t = "https://people.canonical.com/~ubuntu-security/oval/com.ubuntu.%s.cve.oval.xml"
 	for _, v := range target {
+		n := ubuntuName(v)
+		if n == "unknown" {
+			log.Warnf("Skip unkown ubuntu version : %s.", v)
+			continue
+		}
 		reqs = append(reqs, fetchRequest{
 			target: v,
-			url:    fmt.Sprintf(t, ubuntuName(v)),
+			url:    fmt.Sprintf(t, n),
 		})
 	}
 	return

@@ -10,6 +10,7 @@ import (
 
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
@@ -17,8 +18,9 @@ var db *gorm.DB
 
 // Supported DB dialects.
 const (
-	dialectSqlite3 = "sqlite3"
-	dialectMysql   = "mysql"
+	dialectSqlite3  = "sqlite3"
+	dialectMysql    = "mysql"
+	dialectPostgres = "postgres"
 )
 
 // OpenDB opens Database
@@ -28,6 +30,8 @@ func OpenDB() (err error) {
 		if c.Conf.DBType == dialectSqlite3 {
 			err = fmt.Errorf("Failed to open DB. datafile: %s, err: %s", c.Conf.DBPath, err)
 		} else if c.Conf.DBType == dialectMysql {
+			err = fmt.Errorf("Failed to open DB, err: %s", err)
+		} else if c.Conf.DBType == dialectPostgres {
 			err = fmt.Errorf("Failed to open DB, err: %s", err)
 		} else {
 			err = fmt.Errorf("Invalid database dialect, %s", c.Conf.DBType)

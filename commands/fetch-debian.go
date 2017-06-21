@@ -46,7 +46,7 @@ func (*FetchDebianCmd) Usage() string {
 	fetch-debian
 		[-last2y]
 		[-years] 2015 2016 ...
-		[-dbtype=mysql|sqlite3]
+		[-dbtype=sqlite3|mysql|postgres]
 		[-dbpath=$PWD/cve.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
@@ -55,7 +55,7 @@ func (*FetchDebianCmd) Usage() string {
 		[-oval-files]
 
 For the first time, run the blow command to fetch data for all versions.
-   $ for i in {1999..2017}; do goval-dictionary fetch-debian $i; done
+   $ for i in {1999..2017}; do goval-dictionary fetch-debian -years $i; done
 `
 }
 
@@ -74,7 +74,7 @@ func (p *FetchDebianCmd) SetFlags(f *flag.FlagSet) {
 		"/path/to/sqlite3 or SQL connection string")
 
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
-		"Database type to store data in (sqlite3 or mysql supported)")
+		"Database type to store data in (sqlite3, mysql or postgres supported)")
 
 	f.BoolVar(&p.last2Y, "last2y", false,
 		"Refresh oval data in the last two years.")

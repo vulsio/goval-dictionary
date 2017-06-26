@@ -127,22 +127,11 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	var driver db.DB
-	if driver, err = db.NewDB(c.Conf.DBType, c.Debian); err != nil {
+	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
-
-	log.Infof("Opening DB (%s).", driver.Name())
-	if err = driver.OpenDB(c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log.Error(err)
-		return subcommands.ExitFailure
-	}
-
-	log.Infof("Migrating DB (%s).", driver.Name())
-	if err = driver.MigrateDB(); err != nil {
-		log.Error(err)
-		return subcommands.ExitFailure
-	}
+	defer driver.CloseDB()
 
 	for _, r := range results {
 		log.Infof("Fetched: %s", r.URL)

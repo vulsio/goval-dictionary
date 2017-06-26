@@ -49,7 +49,7 @@ type RedisDriver struct {
 }
 
 // NewRedis return Redis driver
-func NewRedis(dbType, family string) (driver *RedisDriver, err error) {
+func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver, err error) {
 	driver = &RedisDriver{
 		name: dbType,
 	}
@@ -59,6 +59,12 @@ func NewRedis(dbType, family string) (driver *RedisDriver, err error) {
 			return
 		}
 	}
+
+	log.Infof("Opening DB (%s).", driver.Name())
+	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -110,9 +116,13 @@ func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 	return nil
 }
 
-// MigrateDB migrates Database
-func (d *RedisDriver) MigrateDB() error {
-	return nil
+// CloseDB close Database
+func (d *RedisDriver) CloseDB() (err error) {
+	if err = d.conn.Close(); err != nil {
+		log.Errorf("Failed to close DB. Type: %s. err: %s", d.name, err)
+		return
+	}
+	return
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName

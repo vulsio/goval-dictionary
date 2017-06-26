@@ -90,15 +90,11 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 
 	var err error
 	var driver db.DB
-	if driver, err = db.NewDB(c.Conf.DBType, f.Args()[0]); err != nil {
+	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
-
-	log.Infof("Opening DB (%s).", driver.Name())
-	if err = driver.OpenDB(c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log.Fatal(err)
-	}
+	defer driver.CloseDB()
 
 	var dfs []models.Definition
 	if p.ByPackage {

@@ -14,12 +14,6 @@
   revision = "508f304878257fb578be3e863e3990ed9ec3aa2e"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/apex/log"
-  packages = ["."]
-  revision = "8f3a15d95392c8fc202d1e1059f46df21dff2992"
-
-[[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
   revision = "4918b99a7cb949bb295f3c7bbaf24b577d806e35"
@@ -134,12 +128,6 @@
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
-
-[[projects]]
   name = "github.com/rifflock/lfshook"
   packages = ["."]
   revision = "2adb3e0c4ddd8778c4adde609d2dfd4fbe6096ea"
@@ -184,6 +172,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1b9b10d431783bf1abca74c16e9711dd430140479a636fe619cb9fac9a8ce9ca"
+  inputs-digest = "8a79d61eab254c8977b9a4a557d4615eb66d2c27f5a488b8aa90ffb5261e0daf"
   solver-name = "gps-cdcl"
   solver-version = 1

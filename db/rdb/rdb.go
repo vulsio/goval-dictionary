@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
+	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
@@ -37,7 +38,7 @@ type OvalDB interface {
 }
 
 // NewRDB return RDB driver
-func NewRDB(dbType, family string) (driver *Driver, err error) {
+func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, err error) {
 	driver = &Driver{
 		name: dbType,
 	}
@@ -46,6 +47,16 @@ func NewRDB(dbType, family string) (driver *Driver, err error) {
 		if err = driver.NewOvalDB(family); err != nil {
 			return
 		}
+	}
+
+	log.Infof("Opening DB (%s).", driver.Name())
+	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
+		return
+	}
+
+	log.Infof("Migrating DB (%s).", driver.Name())
+	if err = driver.MigrateDB(); err != nil {
+		return
 	}
 	return
 }
@@ -160,6 +171,15 @@ func (d *Driver) MigrateDB() error {
 		return fmt.Errorf(errMsg, err)
 	}
 	return nil
+}
+
+// CloseDB close Database
+func (d *Driver) CloseDB() (err error) {
+	if err = d.conn.Close(); err != nil {
+		log.Errorf("Failed to close DB. Type: %s. err: %s", d.name, err)
+		return
+	}
+	return
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName

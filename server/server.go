@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
@@ -62,7 +63,7 @@ func health() echo.HandlerFunc {
 // Handler
 func getByCveID(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		family := c.Param("family")
+		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		cveID := c.Param("id")
 		log.Infof("%s %s %s", family, release, cveID)
@@ -77,7 +78,7 @@ func getByCveID(driver db.DB) echo.HandlerFunc {
 
 func getByPackName(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		family := c.Param("family")
+		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		pack := c.Param("pack")
 		log.Infof("%s %s %s", family, release, pack)

@@ -7,13 +7,13 @@ import (
 
 const (
 	// RedHat is
-	RedHat = "RedHat"
+	RedHat = "redhat"
 
 	// Debian is
-	Debian = "Debian"
+	Debian = "debian"
 
 	// Ubuntu is
-	Ubuntu = "Ubuntu"
+	Ubuntu = "ubuntu"
 
 	// Ubuntu12 is Ubuntu Precise
 	Ubuntu12 = "precise"
@@ -40,7 +40,7 @@ const (
 	SUSEOpenstackCloud = "suse.openstack.cloud"
 
 	// Oracle is
-	Oracle = "Oracle"
+	Oracle = "oracle"
 )
 
 // Conf has Configuration

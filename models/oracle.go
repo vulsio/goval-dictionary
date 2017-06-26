@@ -31,8 +31,9 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 
 		for _, distPack := range collectOraclePacks(ovaldef.Criteria) {
 			def := Definition{
-				Title:       ovaldef.Title,
-				Description: ovaldef.Description,
+				DefinitionID: ovaldef.ID,
+				Title:        ovaldef.Title,
+				Description:  ovaldef.Description,
 				Advisory: Advisory{
 					Cves:     cves,
 					Severity: ovaldef.Advisory.Severity,

@@ -6,7 +6,7 @@ This is tool to build a local copy of the OVAL. The local copy is generated in s
 
 goval-dictionary requires the following packages.
 
-- SQLite3 or MySQL
+- SQLite3, MySQL, PostgreSQL or Redis
 - git
 - gcc
 - go v1.8 or later
@@ -67,7 +67,7 @@ Use "goval-dictionary flags" for a list of top-level flags
 ./goval-dictionary fetch-redhat -h
 fetch-redhat:
         fetch-redhat
-                [-dbtype=mysql|sqlite3]
+                [-dbtype=sqlite3|mysql|postgres|redis]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
@@ -79,7 +79,7 @@ For the first time, run the blow command to fetch data for all versions.
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
-        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
   -debug
         debug mode
   -debug-sql
@@ -104,7 +104,7 @@ fetch-debian:
         fetch-debian
                 [-last2y]
                 [-years] 2015 2016 ...
-                [-dbtype=mysql|sqlite3]
+                [-dbtype=sqlite3|mysql|postgres|redis]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
@@ -117,7 +117,7 @@ For the first time, run the blow command to fetch data for all versions.
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
-        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
   -debug
         debug mode
   -debug-sql
@@ -151,7 +151,7 @@ $ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i;
 ```
 fetch-ubuntu:
         fetch-ubuntu
-                [-dbtype=mysql|sqlite3]
+                [-dbtype=sqlite3|mysql|postgres|redis]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
@@ -165,7 +165,7 @@ For the first time, run the blow command to fetch data for all versions.
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
-        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
   -debug
         debug mode
   -debug-sql
@@ -194,7 +194,7 @@ fetch-suse:
                 [-suse-enterprise-server]
                 [-suse-enterprise-desktop]
                 [-suse-openstack-cloud]
-                [-dbtype=mysql|sqlite3]
+                [-dbtype=sqlite3|mysql|postgres|redis]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
@@ -206,7 +206,7 @@ fetch-suse:
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
-        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
   -debug
         debug mode
   -debug-sql
@@ -241,7 +241,7 @@ $ goval-dictionary fetch-suse -opensuse 13.2
 $ goval-dictionary fetch-oracle -h
 fetch-oracle:
         fetch-oracle
-                [-dbtype=mysql|sqlite3]
+                [-dbtype=sqlite3|mysql|postgres|redis]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
@@ -253,7 +253,7 @@ fetch-oracle:
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
-        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
   -debug
         debug mode
   -debug-sql
@@ -703,7 +703,7 @@ server:
                 [-bind=127.0.0.1]
                 [-port=8000]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
-                [-dbtype=mysql|sqlite3]
+                [-dbtype=sqlite3|mysql|postgres|redis]
                 [-debug]
                 [-debug-sql]
                 [-log-dir=/path/to/log]
@@ -713,7 +713,7 @@ server:
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
-        Database type to store data in (sqlite3 or mysql supported) (default "sqlite3")
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
   -debug
         debug mode (default: false)
   -debug-sql
@@ -741,7 +741,7 @@ server:
 
 # Authors
 
-kotakanbe ([@kotakanbe](https://twitter.com/kotakanbe)) created goval-dictionary and [these fine people](https://github.com/future-architect/goval-dictionary/graphs/contributors) have contributed.
+kotakanbe ([@kotakanbe](https://twitter.com/kotakanbe)) created goval-dictionary and [these fine people](https://github.com/kotakanbe/goval-dictionary/graphs/contributors) have contributed.
 
 ----
 

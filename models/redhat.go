@@ -52,8 +52,9 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 		updated, _ := time.Parse(timeformat, d.Advisory.Updated.Date)
 
 		def := Definition{
-			Title:       d.Title,
-			Description: d.Description,
+			DefinitionID: d.ID,
+			Title:        d.Title,
+			Description:  d.Description,
 			Advisory: Advisory{
 				Cves:            cves,
 				Severity:        d.Advisory.Severity,

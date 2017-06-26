@@ -1,4 +1,4 @@
-package db
+package rdb
 
 import (
 	"fmt"
@@ -10,29 +10,24 @@ import (
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-// Oracle is a struct of DBAccess
-type Oracle struct {
-	Base
+// Ubuntu is a struct for DBAccess
+type Ubuntu struct {
+	Family string
 }
 
-// NewOracle creates DBAccess
-func NewOracle(priority ...*gorm.DB) Oracle {
-	d := Oracle{
-		Base{
-			Family: config.Oracle,
-		},
-	}
-	if len(priority) == 1 {
-		d.DB = priority[0]
-	} else {
-		d.DB = db
-	}
-	return d
+// NewUbuntu creates DBAccess
+func NewUbuntu() *Ubuntu {
+	return &Ubuntu{Family: config.Ubuntu}
 }
 
-// InsertOval inserts Oracle OVAL
-func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
-	tx := o.DB.Begin()
+// Name return family name
+func (o *Ubuntu) Name() string {
+	return o.Family
+}
+
+// InsertOval inserts Ubuntu OVAL
+func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
@@ -47,14 +42,16 @@ func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		o.DB.Model(&old).Related(&defs, "Definitions")
+		driver.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
-			adv := models.Advisory{}
-			o.DB.Model(&def).Related(&adv, "Avisory")
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
+			deb := models.Debian{}
+			driver.Model(&def).Related(&deb, "Debian ")
+			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
+			adv := models.Advisory{}
+			driver.Model(&def).Related(&adv, "Avisory")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
@@ -91,52 +88,51 @@ func (o Oracle) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o Oracle) GetByPackName(osVer, packName string) ([]models.Definition, error) {
+func (o *Ubuntu) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
-	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		if err := o.DB.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+		if err := driver.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
 
-		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
+		if root.Family == config.Ubuntu && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
 	}
 
 	for i, def := range defs {
+		deb := models.Debian{}
+		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
+			return nil, err
+		}
+		defs[i].Debian = deb
+
 		adv := models.Advisory{}
-		if err := o.DB.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
 			return nil, err
 		}
-
-		cves := []models.Cve{}
-		if err := o.DB.Model(&adv).Related(&cves, "Cves").Error; err != nil {
-			return nil, err
-		}
-		adv.Cves = cves
-
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
 			return nil, err
 		}
 		defs[i].References = refs
@@ -146,60 +142,54 @@ func (o Oracle) GetByPackName(osVer, packName string) ([]models.Definition, erro
 }
 
 // GetByCveID select definitions by CveID
-func (o Oracle) GetByCveID(osVer, cveID string) ([]models.Definition, error) {
+func (o *Ubuntu) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = major(osVer)
-	cves := []models.Cve{}
-	if err := o.DB.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
+
+	refs := []models.Reference{}
+	if err := driver.Where(&models.Reference{Source: "CVE", RefID: cveID}).Find(&refs).Error; err != nil {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
-	for _, cve := range cves {
-		adv := models.Advisory{}
-		if err := o.DB.Where("id = ?", cve.AdvisoryID).Find(&adv).Error; err != nil {
-			return nil, err
-		}
-
+	for _, ref := range refs {
 		def := models.Definition{}
-		if err := o.DB.Where("id = ?", adv.DefinitionID).Find(&def).Error; err != nil {
+		if err := driver.Where("id = ?", ref.DefinitionID).Find(&def).Error; err != nil {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
+		if root.Family == config.Ubuntu && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
 	}
 
 	for i, def := range defs {
+		deb := models.Debian{}
+		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
+			return nil, err
+		}
+		defs[i].Debian = deb
+
 		adv := models.Advisory{}
-		if err := o.DB.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
 			return nil, err
 		}
-
-		cves := []models.Cve{}
-		if err := o.DB.Model(&adv).Related(&cves, "Cves").Error; err != nil {
-			return nil, err
-		}
-		adv.Cves = cves
-
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
 			return nil, err
 		}
 		defs[i].References = refs
 	}
-
 	return defs, nil
 }

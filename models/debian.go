@@ -32,8 +32,9 @@ func ConvertDebianToModel(root *oval.Root) (roots []Root) {
 			t, _ := time.Parse(timeformat, ovaldef.Debian.Date)
 
 			def := Definition{
-				Title:       ovaldef.Title,
-				Description: ovaldef.Description,
+				DefinitionID: ovaldef.ID,
+				Title:        ovaldef.Title,
+				Description:  ovaldef.Description,
 				Debian: Debian{
 					CveID:    ovaldef.Title,
 					MoreInfo: ovaldef.Debian.MoreInfo,

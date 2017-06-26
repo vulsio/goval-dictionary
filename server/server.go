@@ -15,7 +15,7 @@ import (
 )
 
 // Start starts CVE dictionary HTTP Server.
-func Start(logDir string) error {
+func Start(logDir string, driver db.DB) error {
 	e := echo.New()
 	e.SetDebug(config.Conf.Debug)
 
@@ -41,8 +41,8 @@ func Start(logDir string) error {
 
 	// Routes
 	e.Get("/health", health())
-	e.Get("/cves/:family/:release/:id", getByCveID())
-	e.Get("/packs/:family/:release/:pack", getByPackName())
+	e.Get("/cves/:family/:release/:id", getByCveID(driver))
+	e.Get("/packs/:family/:release/:pack", getByPackName(driver))
 	//  e.Post("/cpes", getByPackName())
 
 	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
@@ -60,13 +60,14 @@ func health() echo.HandlerFunc {
 }
 
 // Handler
-func getByCveID() echo.HandlerFunc {
+func getByCveID(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		family := c.Param("family")
 		release := c.Param("release")
 		cveID := c.Param("id")
 		log.Infof("%s %s %s", family, release, cveID)
-		defs, err := db.GetByCveID(family, release, cveID)
+		driver.NewOvalDB(family)
+		defs, err := driver.GetByCveID(release, cveID)
 		if err != nil {
 			log.Infof("Failed to get by CveID: %s", err)
 		}
@@ -74,13 +75,14 @@ func getByCveID() echo.HandlerFunc {
 	}
 }
 
-func getByPackName() echo.HandlerFunc {
+func getByPackName(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		family := c.Param("family")
 		release := c.Param("release")
 		pack := c.Param("pack")
 		log.Infof("%s %s %s", family, release, pack)
-		defs, err := db.GetByPackName(family, release, pack)
+		driver.NewOvalDB(family)
+		defs, err := driver.GetByPackName(release, pack)
 		if err != nil {
 			log.Infof("Failed to get by CveID: %s", err)
 		}

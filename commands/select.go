@@ -11,6 +11,7 @@ import (
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/log"
+	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
@@ -87,13 +88,21 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		log.Fatal("Specify -by-package or -by-cveid")
 	}
 
-	log.Infof("Opening DB (%s).", c.Conf.DBType)
-	if err := db.OpenDB(); err != nil {
+	var err error
+	var driver db.DB
+	if driver, err = db.NewDB(c.Conf.DBType, f.Args()[0]); err != nil {
+		log.Error(err)
+		return subcommands.ExitFailure
+	}
+
+	log.Infof("Opening DB (%s).", driver.Name())
+	if err = driver.OpenDB(c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Fatal(err)
 	}
 
+	var dfs []models.Definition
 	if p.ByPackage {
-		dfs, err := db.GetByPackName(f.Args()[0], f.Args()[1], f.Args()[2])
+		dfs, err = driver.GetByPackName(f.Args()[1], f.Args()[2])
 		if err != nil {
 			//TODO Logger
 			log.Fatal(err)
@@ -113,7 +122,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	}
 
 	if p.ByCveID {
-		dfs, err := db.GetByCveID(f.Args()[0], f.Args()[1], f.Args()[2])
+		dfs, err = driver.GetByCveID(f.Args()[1], f.Args()[2])
 		if err != nil {
 			log.Fatal(err)
 		}

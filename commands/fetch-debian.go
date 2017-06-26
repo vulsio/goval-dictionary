@@ -46,7 +46,7 @@ func (*FetchDebianCmd) Usage() string {
 	fetch-debian
 		[-last2y]
 		[-years] 2015 2016 ...
-		[-dbtype=mysql|sqlite3]
+		[-dbtype=sqlite3|mysql|postgres|redis]
 		[-dbpath=$PWD/cve.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
@@ -55,7 +55,7 @@ func (*FetchDebianCmd) Usage() string {
 		[-oval-files]
 
 For the first time, run the blow command to fetch data for all versions.
-   $ for i in {1999..2017}; do goval-dictionary fetch-debian $i; done
+   $ for i in {1999..2017}; do goval-dictionary fetch-debian -years $i; done
 `
 }
 
@@ -74,7 +74,7 @@ func (p *FetchDebianCmd) SetFlags(f *flag.FlagSet) {
 		"/path/to/sqlite3 or SQL connection string")
 
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
-		"Database type to store data in (sqlite3 or mysql supported)")
+		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 
 	f.BoolVar(&p.last2Y, "last2y", false,
 		"Refresh oval data in the last two years.")
@@ -111,30 +111,35 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
+	var err error
 	results := []fetcher.FetchResult{}
 	switch {
 	case p.last2Y || p.years:
-		var err error
 		if results, err = p.fetchFromInternet(f); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
 	case p.ovalFiles:
-		var err error
 		if results, err = p.fetchFromFiles(f); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
 	}
 
-	log.Infof("Opening DB (%s).", c.Conf.DBType)
-	if err := db.OpenDB(); err != nil {
+	var driver db.DB
+	if driver, err = db.NewDB(c.Conf.DBType, c.Debian); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
 
-	log.Info("Migrating DB")
-	if err := db.MigrateDB(); err != nil {
+	log.Infof("Opening DB (%s).", driver.Name())
+	if err = driver.OpenDB(c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+		log.Error(err)
+		return subcommands.ExitFailure
+	}
+
+	log.Infof("Migrating DB (%s).", driver.Name())
+	if err = driver.MigrateDB(); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
@@ -145,7 +150,8 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 		//  var timeformat = "2006-01-02T15:04:05.999-07:00"
 		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, strings.Split(r.Root.Generator.Timestamp, ".")[0])
+		var t time.Time
+		t, err = time.Parse(timeformat, strings.Split(r.Root.Generator.Timestamp, ".")[0])
 		if err != nil {
 			panic(err)
 		}
@@ -157,14 +163,13 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		}
 
 		roots := models.ConvertDebianToModel(r.Root)
-		deb := db.NewDebian()
 		for _, root := range roots {
-			if err := deb.InsertOval(&root, fmeta); err != nil {
+			if err = driver.InsertOval(&root, fmeta); err != nil {
 				log.Error(err)
 				return subcommands.ExitFailure
 			}
 		}
-		if err := deb.InsertFetchMeta(fmeta); err != nil {
+		if err = driver.InsertFetchMeta(fmeta); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}

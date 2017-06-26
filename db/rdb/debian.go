@@ -1,4 +1,4 @@
-package db
+package rdb
 
 import (
 	"fmt"
@@ -12,27 +12,22 @@ import (
 
 // Debian is a struct of DBAccess
 type Debian struct {
-	Base
+	Family string
 }
 
 // NewDebian creates DBAccess
-func NewDebian(priority ...*gorm.DB) Debian {
-	d := Debian{
-		Base{
-			Family: config.Debian,
-		},
-	}
-	if len(priority) == 1 {
-		d.DB = priority[0]
-	} else {
-		d.DB = db
-	}
-	return d
+func NewDebian() *Debian {
+	return &Debian{Family: config.Debian}
+}
+
+// Name return family name
+func (o *Debian) Name() string {
+	return o.Family
 }
 
 // InsertOval inserts Debian OVAL
-func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
-	tx := o.DB.Begin()
+func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
@@ -61,12 +56,12 @@ func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
 			// Delete old records
 			for _, olddeb := range olddebs {
 				olddef := models.Definition{}
-				if r := o.DB.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
+				if r := driver.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
 					continue
 				}
 
 				oldroot := models.Root{}
-				if r := o.DB.First(&oldroot, olddef.RootID); r.RecordNotFound() {
+				if r := driver.First(&oldroot, olddef.RootID); r.RecordNotFound() {
 					continue
 				}
 
@@ -115,22 +110,22 @@ func (o Debian) InsertOval(root *models.Root, meta models.FetchMeta) error {
 }
 
 // GetByPackName select definitions by packName
-func (o Debian) GetByPackName(osVer, packName string) ([]models.Definition, error) {
+func (o *Debian) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
-	if err := o.DB.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		if err := o.DB.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+		if err := driver.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
 
@@ -141,19 +136,19 @@ func (o Debian) GetByPackName(osVer, packName string) ([]models.Definition, erro
 
 	for i, def := range defs {
 		packs := []models.Package{}
-		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
 			return nil, err
 		}
 		defs[i].References = refs
 
 		deb := models.Debian{}
-		if err := o.DB.Model(&def).Related(&deb, "Debian").Error; err != nil {
+		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
 			return nil, err
 		}
 		defs[i].Debian = deb
@@ -163,13 +158,13 @@ func (o Debian) GetByPackName(osVer, packName string) ([]models.Definition, erro
 }
 
 // GetByCveID select definitions by CveID
-func (o Debian) GetByCveID(osVer, cveID string) (defs []models.Definition, err error) {
+func (o *Debian) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models.Definition, err error) {
 	osVer = major(osVer)
 	tmpdefs := []models.Definition{}
-	o.DB.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
+	driver.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
 		root := models.Root{}
-		if err := o.DB.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
 		if root.Family != config.Debian || major(root.OSVersion) != osVer {
@@ -177,19 +172,19 @@ func (o Debian) GetByCveID(osVer, cveID string) (defs []models.Definition, err e
 		}
 
 		deb := models.Debian{}
-		if err := o.DB.Model(&def).Related(&deb, "Debian").Error; err != nil {
+		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
 			return nil, err
 		}
 		def.Debian = deb
 
 		packs := []models.Package{}
-		if err := o.DB.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
 			return nil, err
 		}
 		def.AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := o.DB.Model(&def).Related(&refs, "References").Error; err != nil {
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
 			return nil, err
 		}
 		def.References = refs

@@ -3,8 +3,8 @@ package fetcher
 import (
 	"fmt"
 
-	"github.com/apex/log"
 	"github.com/kotakanbe/goval-dictionary/config"
+	"github.com/kotakanbe/goval-dictionary/log"
 )
 
 func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {

@@ -11,8 +11,7 @@ import (
 type DB interface {
 	Name() string
 	NewOvalDB(string) error
-	OpenDB(string, string, bool) error
-	MigrateDB() error
+	CloseDB() error
 	GetByPackName(string, string) ([]models.Definition, error)
 	GetByCveID(string, string) ([]models.Definition, error)
 	InsertOval(*models.Root, models.FetchMeta) error
@@ -20,12 +19,12 @@ type DB interface {
 }
 
 // NewDB return DB accessor.
-func NewDB(dbType, ovalFamily string) (db DB, err error) {
+func NewDB(family, dbType, dbpath string, debugSQL bool) (db DB, err error) {
 	switch dbType {
 	case rdb.DialectSqlite3, rdb.DialectMysql, rdb.DialectPostgreSQL:
-		return rdb.NewRDB(dbType, ovalFamily)
+		return rdb.NewRDB(family, dbType, dbpath, debugSQL)
 	case dialectRedis:
-		return NewRedis(dbType, ovalFamily)
+		return NewRedis(family, dbType, dbpath, debugSQL)
 	}
 	return nil, fmt.Errorf("Invalid database dialect, %s", dbType)
 }

@@ -2,18 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/BurntSushi/toml"
-  packages = ["."]
-  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
-  version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  revision = "508f304878257fb578be3e863e3990ed9ec3aa2e"
-
-[[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
   revision = "4918b99a7cb949bb295f3c7bbaf24b577d806e35"
@@ -22,20 +10,14 @@
 [[projects]]
   name = "github.com/cheggaaa/pb"
   packages = ["."]
-  revision = "b6229822fa186496fcbf34111237e7a9693c6971"
-  version = "v1.0.13"
+  revision = "f6ccf2184de4dd34495277e38dc19b6e7fbe0ea2"
+  version = "v1.0.15"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
   revision = "d2709f9f1f31ebcda9651b03077758c1f3a0018c"
   version = "v3.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/future-architect/vuls"
-  packages = ["config","contrib/owasp-dependency-check/parser","util"]
-  revision = "7ecd09f49729053deea632882b6ecf9ef8f3a92f"
 
 [[projects]]
   name = "github.com/go-redis/redis"
@@ -77,7 +59,7 @@
   branch = "master"
   name = "github.com/kotakanbe/logrus-prefixed-formatter"
   packages = ["."]
-  revision = "e7519b8c80ba008a3bfc57ffa31232bf2a77f455"
+  revision = "5ea278a9a3f980f7cdf1dc787dc4a85ac72502d9"
 
 [[projects]]
   name = "github.com/labstack/echo"
@@ -88,8 +70,8 @@
 [[projects]]
   name = "github.com/labstack/gommon"
   packages = ["bytes","color","log","random"]
-  revision = "9cedb429ffbe71a32a3ae7c65fd109cb7ae07804"
-  version = "v0.2.0"
+  revision = "1121fd3e243c202482226a7afe4dcd07ffc4139a"
+  version = "v0.2.1"
 
 [[projects]]
   branch = "master"
@@ -100,8 +82,8 @@
 [[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
-  revision = "d228849504861217f796da67fae4f6e347643f15"
-  version = "v0.0.7"
+  revision = "941b50ebc6efddf4c41c8e4537a5f68a4e686b24"
+  version = "v0.0.8"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -130,8 +112,14 @@
 [[projects]]
   name = "github.com/rifflock/lfshook"
   packages = ["."]
-  revision = "2adb3e0c4ddd8778c4adde609d2dfd4fbe6096ea"
-  version = "1.6"
+  revision = "6844c808343cb8fa357d7f141b1b990e05d24e41"
+  version = "1.7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "3d4380f53a34dcdc95f0c1db702615992b38d9a4"
 
 [[projects]]
   branch = "master"
@@ -161,17 +149,17 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "feeb485667d1fdabe727840fe00adc22431bc86e"
+  revision = "455220fa52c866a8aa14ff5e8cc68cde16b8395e"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "9ccfe848b9db8435a24c424abbc07a921adf1df5"
+  revision = "90796e5a05ce440b41c768bd9af257005e470461"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8a79d61eab254c8977b9a4a557d4615eb66d2c27f5a488b8aa90ffb5261e0daf"
+  inputs-digest = "bc9c091c8c855fd99e0f0c508f4099f6db9ba526aee420c4017a2ad38ff77ae2"
   solver-name = "gps-cdcl"
   solver-version = 1

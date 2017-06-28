@@ -1,11 +1,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/Sirupsen/logrus"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/future-architect/vuls"
+  name = "github.com/sirupsen/logrus"
 
 [[constraint]]
   branch = "master"
@@ -18,3 +14,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/ymomoi/goval-parser"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/cheggaaa/pb"

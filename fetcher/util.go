@@ -14,10 +14,9 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
-	"github.com/future-architect/vuls/util"
-	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
+	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -55,7 +54,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 
 			if pool == nil {
 				if pool, err = pb.StartPool(r.bar); err != nil {
-					pp.Println(err)
+					log.Warn(err)
 				}
 			} else {
 				pool.Add(r.bar)

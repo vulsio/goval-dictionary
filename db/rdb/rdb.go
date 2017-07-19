@@ -226,6 +226,21 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 	return nil
 }
 
+// CountDefs counts the number of definitions specified by args
+func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
+	root := models.Root{}
+	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: major(osVer)}).First(&root)
+	if r.RecordNotFound() {
+		return 0, nil
+	}
+	count := 0
+	if err := d.conn.Model(&models.Definition{}).Where(
+		"root_id = ?", root.ID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func major(osVer string) (majorVersion string) {
 	return strings.Split(osVer, ".")[0]
 }

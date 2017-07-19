@@ -22,8 +22,8 @@
 [[projects]]
   name = "github.com/go-redis/redis"
   packages = [".","internal","internal/consistenthash","internal/hashtag","internal/pool","internal/proto"]
-  revision = "e14976b254c5bc5f399dd0ae9314b1d02a176897"
-  version = "v6.5.0"
+  revision = "da63fe7def48e378caf9539abf64b9b1e37bc01e"
+  version = "v6.5.3"
 
 [[projects]]
   name = "github.com/go-sql-driver/mysql"
@@ -70,14 +70,14 @@
 [[projects]]
   name = "github.com/labstack/gommon"
   packages = ["bytes","color","log","random"]
-  revision = "1121fd3e243c202482226a7afe4dcd07ffc4139a"
-  version = "v0.2.1"
+  revision = "779b8a8b9850a97acba6a3fe20feb628c39e17c1"
+  version = "0.2.2"
 
 [[projects]]
   branch = "master"
   name = "github.com/lib/pq"
   packages = [".","hstore","oid"]
-  revision = "8837942c3e09574accbc5f150e2c5e057189cace"
+  revision = "dd1fe2071026ce53f36a39112e645b4d4f5793a4"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -119,7 +119,7 @@
   branch = "master"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "3d4380f53a34dcdc95f0c1db702615992b38d9a4"
+  revision = "e49c59d69b89746796d48156991108c80faf1d7d"
 
 [[projects]]
   branch = "master"
@@ -141,21 +141,15 @@
 
 [[projects]]
   branch = "master"
-  name = "go4.org"
-  packages = ["syncutil"]
-  revision = "034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "455220fa52c866a8aa14ff5e8cc68cde16b8395e"
+  revision = "02ac38e2528ff4adea90f184d71a3faa04b4b1b0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "90796e5a05ce440b41c768bd9af257005e470461"
+  revision = "cd2c276457edda6df7fb04895d3fd6a6add42926"
 
 [solve-meta]
   analyzer-name = "dep"

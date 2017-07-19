@@ -44,6 +44,7 @@ func Start(logDir string, driver db.DB) error {
 	e.Get("/health", health())
 	e.Get("/cves/:family/:release/:id", getByCveID(driver))
 	e.Get("/packs/:family/:release/:pack", getByPackName(driver))
+	e.Get("/count/:family/:release", countOvalDefs(driver))
 	//  e.Post("/cpes", getByPackName())
 
 	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
@@ -88,5 +89,19 @@ func getByPackName(driver db.DB) echo.HandlerFunc {
 			log.Infof("Failed to get by CveID: %s", err)
 		}
 		return c.JSON(http.StatusOK, defs)
+	}
+}
+
+func countOvalDefs(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		family := strings.ToLower(c.Param("family"))
+		release := c.Param("release")
+		log.Infof("count: %s %s %s", family, release)
+		driver.NewOvalDB(family)
+		count, err := driver.CountDefs(family, release)
+		if err != nil {
+			log.Infof("Failed to count OVAL defs: %s", err)
+		}
+		return c.JSON(http.StatusOK, count)
 	}
 }

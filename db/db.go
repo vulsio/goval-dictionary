@@ -16,6 +16,7 @@ type DB interface {
 	GetByCveID(string, string) ([]models.Definition, error)
 	InsertOval(*models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
+	CountDefs(string, string) (int, error)
 }
 
 // NewDB return DB accessor.

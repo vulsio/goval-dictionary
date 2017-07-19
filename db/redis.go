@@ -184,7 +184,8 @@ func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err 
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
 				for _, pack := range c.AffectedPacks {
-					if result := pipe.ZAdd(hashKeyPrefix+pack.Name, redis.Z{0, hashKey}); result.Err() != nil {
+					if result := pipe.ZAdd(hashKeyPrefix+pack.Name,
+						redis.Z{Score: 0, Member: hashKey}); result.Err() != nil {
 						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
 					}
 				}
@@ -247,4 +248,10 @@ func getByHashKey(hashKey string, driver *redis.Client) (defs []models.Definitio
 
 func getHashKey(family, osVer, cveID string) string {
 	return hashKeyPrefix + family + hashKeySeparator + osVer + hashKeySeparator + cveID
+}
+
+// CountDefs counts the number of definitions specified by args
+func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
+	// TODO not implemented yet
+	return 1, nil
 }

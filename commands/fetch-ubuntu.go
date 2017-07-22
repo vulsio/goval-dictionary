@@ -129,6 +129,7 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Family:      c.Ubuntu,
 			OSVersion:   r.Target,
 			Definitions: defs,
+			Timestamp:   t,
 		}
 
 		ss := strings.Split(r.URL, "/")

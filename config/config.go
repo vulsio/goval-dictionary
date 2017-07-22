@@ -9,6 +9,9 @@ const (
 	// RedHat is
 	RedHat = "redhat"
 
+	// CentOS is
+	CentOS = "centos"
+
 	// Debian is
 	Debian = "debian"
 

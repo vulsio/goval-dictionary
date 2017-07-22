@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kotakanbe/goval-dictionary/db/rdb"
 	"github.com/kotakanbe/goval-dictionary/models"
@@ -17,6 +18,7 @@ type DB interface {
 	InsertOval(*models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
 	CountDefs(string, string) (int, error)
+	GetLastModified(string, string) time.Time
 }
 
 // NewDB return DB accessor.

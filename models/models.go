@@ -19,6 +19,7 @@ type Root struct {
 	Family      string
 	OSVersion   string
 	Definitions []Definition
+	Timestamp   time.Time
 }
 
 // Definition : >definitions>definition

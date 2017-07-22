@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cheggaaa/pb"
 	"github.com/go-redis/redis"
@@ -254,4 +255,10 @@ func getHashKey(family, osVer, cveID string) string {
 func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
 	// TODO not implemented yet
 	return 1, nil
+}
+
+// GetLastModified get last modified time of OVAL in roots
+func (d *RedisDriver) GetLastModified(osFamily, osVer string) time.Time {
+	// TODO not implemented yet
+	return time.Now()
 }

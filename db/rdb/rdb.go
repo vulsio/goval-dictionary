@@ -3,6 +3,7 @@ package rdb
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -68,7 +69,7 @@ func (d *Driver) NewOvalDB(family string) error {
 		d.ovaldb = NewDebian()
 	case c.Ubuntu:
 		d.ovaldb = NewUbuntu()
-	case c.RedHat:
+	case c.RedHat, c.CentOS:
 		d.ovaldb = NewRedHat()
 	case c.Oracle:
 		d.ovaldb = NewOracle()
@@ -239,6 +240,17 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// GetLastModified get last modified time of OVAL in roots
+func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
+	root := models.Root{}
+	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: major(osVer)}).First(&root)
+	if r.RecordNotFound() {
+		now := time.Now()
+		return now.AddDate(-10, 0, 0)
+	}
+	return root.Timestamp
 }
 
 func major(osVer string) (majorVersion string) {

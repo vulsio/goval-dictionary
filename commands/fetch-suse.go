@@ -158,6 +158,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			Family:      suseType,
 			OSVersion:   r.Target,
 			Definitions: defs,
+			Timestamp:   t,
 		}
 
 		ss := strings.Split(r.URL, "/")

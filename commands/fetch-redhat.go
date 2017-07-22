@@ -136,6 +136,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Family:      c.RedHat,
 			OSVersion:   r.Target,
 			Definitions: defs,
+			Timestamp:   t,
 		}
 
 		ss := strings.Split(r.URL, "/")

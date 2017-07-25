@@ -50,12 +50,12 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, err e
 		}
 	}
 
-	log.Infof("Opening DB (%s).", driver.Name())
+	log.Debugf("Opening DB (%s).", driver.Name())
 	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return
 	}
 
-	log.Infof("Migrating DB (%s).", driver.Name())
+	log.Debugf("Migrating DB (%s).", driver.Name())
 	if err = driver.MigrateDB(); err != nil {
 		return
 	}

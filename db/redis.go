@@ -61,7 +61,7 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 		}
 	}
 
-	log.Infof("Opening DB (%s).", driver.Name())
+	log.Debugf("Opening DB (%s).", driver.Name())
 	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return
 	}

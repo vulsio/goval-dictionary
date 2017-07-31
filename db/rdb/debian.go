@@ -27,6 +27,7 @@ func (o *Debian) Name() string {
 
 // InsertOval inserts Debian OVAL
 func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in Debian")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}

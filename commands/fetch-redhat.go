@@ -53,10 +53,8 @@ For the first time, run the blow command to fetch data for all versions.
 
 // SetFlags set flag
 func (p *FetchRedHatCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&p.Debug, "debug", false,
-		"debug mode")
-	f.BoolVar(&p.DebugSQL, "debug-sql", false,
-		"SQL debug mode")
+	f.BoolVar(&p.Debug, "debug", false, "debug mode")
+	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
@@ -115,7 +113,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	var driver db.DB
-	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+	if driver, err = db.NewDB(c.RedHat, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
@@ -136,7 +134,7 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Family:      c.RedHat,
 			OSVersion:   r.Target,
 			Definitions: defs,
-			Timestamp:   t,
+			Timestamp:   time.Now(),
 		}
 
 		ss := strings.Split(r.URL, "/")

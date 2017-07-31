@@ -27,6 +27,7 @@ func (o *Oracle) Name() string {
 
 // InsertOval inserts Oracle OVAL
 func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in Oracle")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}

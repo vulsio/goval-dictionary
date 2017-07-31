@@ -208,13 +208,13 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 		return nil
 	}
 
-	// Update FetchMeta
 	if r.RecordNotFound() {
 		if err := tx.Create(&meta).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("Failed to insert FetchMeta: %s", err)
 		}
 	} else {
+		// Update FetchMeta
 		oldmeta.Timestamp = meta.Timestamp
 		oldmeta.FileName = meta.FileName
 		if err := tx.Save(&oldmeta).Error; err != nil {
@@ -248,7 +248,7 @@ func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: major(osVer)}).First(&root)
 	if r.RecordNotFound() {
 		now := time.Now()
-		return now.AddDate(-10, 0, 0)
+		return now.AddDate(-100, 0, 0)
 	}
 	return root.Timestamp
 }

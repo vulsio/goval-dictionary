@@ -96,7 +96,7 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	var driver db.DB
-	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+	if driver, err = db.NewDB(c.Oracle, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
@@ -121,7 +121,7 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 		roots := models.ConvertOracleToModel(r.Root)
 		for _, root := range roots {
-			root.Timestamp = t
+			root.Timestamp = time.Now()
 			if err := driver.InsertOval(&root, fmeta); err != nil {
 				log.Error(err)
 				return subcommands.ExitFailure

@@ -153,7 +153,7 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 		roots := models.ConvertDebianToModel(r.Root)
 		for _, root := range roots {
-			root.Timestamp = t
+			root.Timestamp = time.Now()
 			if err = driver.InsertOval(&root, fmeta); err != nil {
 				log.Error(err)
 				return subcommands.ExitFailure

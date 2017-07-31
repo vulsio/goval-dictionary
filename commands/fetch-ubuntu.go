@@ -107,7 +107,7 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	var driver db.DB
-	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+	if driver, err = db.NewDB(c.Ubuntu, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
@@ -129,7 +129,7 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Family:      c.Ubuntu,
 			OSVersion:   r.Target,
 			Definitions: defs,
-			Timestamp:   t,
+			Timestamp:   time.Now(),
 		}
 
 		ss := strings.Split(r.URL, "/")

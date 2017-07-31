@@ -136,7 +136,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	}
 
 	var driver db.DB
-	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+	if driver, err = db.NewDB(suseType, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
@@ -158,7 +158,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			Family:      suseType,
 			OSVersion:   r.Target,
 			Definitions: defs,
-			Timestamp:   t,
+			Timestamp:   time.Now(),
 		}
 
 		ss := strings.Split(r.URL, "/")

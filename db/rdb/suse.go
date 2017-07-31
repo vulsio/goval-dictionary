@@ -26,6 +26,7 @@ func (o *SUSE) Name() string {
 
 // InsertOval inserts SUSE OVAL
 func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in suse")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}

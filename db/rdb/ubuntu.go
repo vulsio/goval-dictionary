@@ -27,6 +27,7 @@ func (o *Ubuntu) Name() string {
 
 // InsertOval inserts Ubuntu OVAL
 func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in Ubuntu")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}

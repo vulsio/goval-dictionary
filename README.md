@@ -91,7 +91,7 @@ For the first time, run the blow command to fetch data for all versions.
 ```
 
 ```bash
-$ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
+$ goval-dictionary fetch-redhat 5 6 7
 ```
 
 ## Usage: Fetch OVAL data from Debian.  

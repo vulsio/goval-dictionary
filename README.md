@@ -18,7 +18,7 @@ goval-dictionary requires the following packages.
 ```bash
 $ mkdir -p $GOPATH/src/github.com/kotakanbe
 $ cd $GOPATH/src/github.com/kotakanbe
-$ git https://github.com/kotakanbe/goval-dictionary.git
+$ git clone https://github.com/kotakanbe/goval-dictionary.git
 $ cd goval-dictionary
 $ make install
 ```

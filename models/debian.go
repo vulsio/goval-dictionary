@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -14,9 +13,7 @@ type distroPackage struct {
 }
 
 // ConvertDebianToModel Convert OVAL to models
-func ConvertDebianToModel(root *oval.Root) (roots []Root) {
-	m := map[string]Root{}
-
+func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 	for _, ovaldef := range root.Definitions.Definitions {
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
@@ -43,23 +40,8 @@ func ConvertDebianToModel(root *oval.Root) (roots []Root) {
 				AffectedPacks: []Package{distPack.pack},
 				References:    rs,
 			}
-
-			root, ok := m[distPack.osVer]
-			if ok {
-				root.Definitions = append(root.Definitions, def)
-				m[distPack.osVer] = root
-			} else {
-				m[distPack.osVer] = Root{
-					Family:      config.Debian,
-					OSVersion:   distPack.osVer,
-					Definitions: []Definition{def},
-				}
-			}
+			defs = append(defs, def)
 		}
-	}
-
-	for _, v := range m {
-		roots = append(roots, v)
 	}
 	return
 }

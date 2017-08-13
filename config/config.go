@@ -27,6 +27,18 @@ const (
 	// Ubuntu16 is Ubuntu Xenial
 	Ubuntu16 = "xenial"
 
+	// Debian7 is wheezy
+	Debian7 = "wheezy"
+
+	// Debian8 is jessie
+	Debian8 = "jessie"
+
+	// Debian9 is stretch
+	Debian9 = "stretch"
+
+	// Debian10 is buster
+	Debian10 = "buster"
+
 	// OpenSUSE is
 	OpenSUSE = "opensuse"
 

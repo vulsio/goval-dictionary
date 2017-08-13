@@ -8,10 +8,10 @@
   version = "v6"
 
 [[projects]]
+  branch = "master"
   name = "github.com/cheggaaa/pb"
   packages = ["."]
-  revision = "f6ccf2184de4dd34495277e38dc19b6e7fbe0ea2"
-  version = "v1.0.15"
+  revision = "0af82b7d15eb9371fbdf8f468ff10cbba62e0414"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
@@ -22,8 +22,8 @@
 [[projects]]
   name = "github.com/go-redis/redis"
   packages = [".","internal","internal/consistenthash","internal/hashtag","internal/pool","internal/proto"]
-  revision = "da63fe7def48e378caf9539abf64b9b1e37bc01e"
-  version = "v6.5.3"
+  revision = "89515eebd1b5761486abd32d9e84a8f55dda7740"
+  version = "v6.5.6"
 
 [[projects]]
   name = "github.com/go-sql-driver/mysql"
@@ -59,7 +59,7 @@
   branch = "master"
   name = "github.com/kotakanbe/logrus-prefixed-formatter"
   packages = ["."]
-  revision = "5ea278a9a3f980f7cdf1dc787dc4a85ac72502d9"
+  revision = "75edb2e85a38873f0318be05a458446681d1022f"
 
 [[projects]]
   name = "github.com/labstack/echo"
@@ -77,13 +77,13 @@
   branch = "master"
   name = "github.com/lib/pq"
   packages = [".","hstore","oid"]
-  revision = "dd1fe2071026ce53f36a39112e645b4d4f5793a4"
+  revision = "e42267488fe361b9dc034be7a6bffef5b195bceb"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
-  revision = "941b50ebc6efddf4c41c8e4537a5f68a4e686b24"
-  version = "v0.0.8"
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
 
 [[projects]]
   name = "github.com/mattn/go-isatty"
@@ -119,7 +119,7 @@
   branch = "master"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "e49c59d69b89746796d48156991108c80faf1d7d"
+  revision = "181d419aa9e2223811b824e8f0b4af96f9ba9302"
 
 [[projects]]
   branch = "master"
@@ -137,19 +137,25 @@
   branch = "master"
   name = "github.com/ymomoi/goval-parser"
   packages = ["oval"]
-  revision = "003ac9af5fffac6c97ab1def025d2cb73e88469a"
+  revision = "0a0be1dd9d0855b50be0be5a10ad3085382b6d59"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "b176d7def5d71bdd214203491f89843ed217f420"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "02ac38e2528ff4adea90f184d71a3faa04b4b1b0"
+  revision = "1c05540f6879653db88113bc4a2b70aec4bd491f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "cd2c276457edda6df7fb04895d3fd6a6add42926"
+  packages = ["unix","windows"]
+  revision = "e42485b6e20ae7d2304ec72e535b103ed350cc02"
 
 [solve-meta]
   analyzer-name = "dep"

@@ -79,6 +79,7 @@ type Cve struct {
 	Cvss2  string
 	Cvss3  string
 	Cwe    string
+	Impact string
 	Href   string
 	Public string
 }

@@ -33,6 +33,7 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				Cvss2:  c.Cvss2,
 				Cvss3:  c.Cvss3,
 				Cwe:    c.Cwe,
+				Impact: c.Impact,
 				Href:   c.Href,
 				Public: c.Public,
 			})

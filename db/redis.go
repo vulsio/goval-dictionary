@@ -130,6 +130,7 @@ func (d *RedisDriver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
 func (d *RedisDriver) GetByPackName(osVer, packName string) (defs []models.Definition, err error) {
+	osVer = major(osVer)
 	defs = []models.Definition{}
 	var result *redis.StringSliceCmd
 	if result = d.conn.ZRange(hashKeyPrefix+packName, 0, -1); result.Err() != nil {

@@ -102,18 +102,15 @@ $ goval-dictionary fetch-redhat 5 6 7
 ./goval-dictionary fetch-debian -h
 fetch-debian:
         fetch-debian
-                [-last2y]
-                [-years] 2015 2016 ...
                 [-dbtype=sqlite3|mysql|postgres|redis]
                 [-dbpath=$PWD/cve.sqlite3 or connection string]
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
                 [-debug-sql]
                 [-log-dir=/path/to/log]
-                [-oval-files]
 
 For the first time, run the blow command to fetch data for all versions.
-   $ for i in {1999..2017}; do goval-dictionary fetch-debian $i; done
+   $ goval-dictionary fetch-debian 7 8 9 10
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "/Users/kotakanbe/go/src/github.com/kotakanbe/goval-dictionary/oval.sqlite3")
   -dbtype string
@@ -124,24 +121,12 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
-  -last2y
-        Refresh oval data in the last two years.
   -log-dir string
         /path/to/log (default "/var/log/vuls")
-  -oval-files
-        Refresh oval data from local files.
-  -years
-        Refresh oval data of specific years.
 ```
 
-- Import oval data from Internet
 ```bash
-$ for i in `seq 1999 $(date +"%Y")`; do goval-dictionary fetch-debian -years $i; done
-```
-
-- Import oval data from local file
-```bash
-./goval-dictionary fetch-debian -oval-files -debug $HOME/oval/oval-definitions-2015.xml
+$ goval-dictionary fetch-debian 7 8 9 10
 ```
 
 ## Usage: Fetch OVAL data from Ubuntu.  

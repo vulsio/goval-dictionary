@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cheggaaa/pb"
 	"github.com/go-redis/redis"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
@@ -168,13 +167,10 @@ func (d *RedisDriver) GetByCveID(osVer, cveID string) ([]models.Definition, erro
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err error) {
-	bar := pb.StartNew(len(root.Definitions))
-
 	for chunked := range chunkSlice(root.Definitions, 10) {
 		var pipe redis.Pipeliner
 		pipe = d.conn.Pipeline()
 		for _, c := range chunked {
-			bar.Increment()
 			var dj []byte
 			if dj, err = json.Marshal(c); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
@@ -199,7 +195,6 @@ func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err 
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
 	}
-	bar.Finish()
 	return nil
 }
 

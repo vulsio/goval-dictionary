@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ type FetchSUSECmd struct {
 	SUSEOpenstackCloud    bool
 	Debug                 bool
 	DebugSQL              bool
+	Quiet                 bool
 	LogDir                string
 	DBPath                string
 	DBType                string
@@ -51,6 +53,7 @@ func (*FetchSUSECmd) Usage() string {
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
 		[-debug-sql]
+		[-quiet]
 		[-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
@@ -70,6 +73,7 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 
 	f.BoolVar(&p.Debug, "debug", false, "debug mode")
 	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
+	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
@@ -91,7 +95,12 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 
 // Execute execute
 func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	log.Initialize(p.LogDir)
+	c.Conf.Quiet = p.Quiet
+	if c.Conf.Quiet {
+		log.Initialize(p.LogDir, ioutil.Discard)
+	} else {
+		log.Initialize(p.LogDir, os.Stderr)
+	}
 
 	c.Conf.DebugSQL = p.DebugSQL
 	c.Conf.Debug = p.Debug

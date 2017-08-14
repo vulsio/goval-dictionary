@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,6 +25,7 @@ type fetchRequest struct {
 	target string
 	url    string
 	bzip2  bool
+	pbErr  error
 	bar    *pb.ProgressBar
 }
 
@@ -46,18 +48,27 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		log.Infof("Fetching... %s", r.url)
 	}
 
+	// check pb pool's err. cron (or something has no terminal) returns err here.
+	_, pbErr := pb.StartPool()
 	var pool *pb.Pool
 	go func() {
 		for _, r := range reqs {
+			r.pbErr = pbErr
 			prefix := filepath.Base(r.url) + ":"
 			r.bar = pb.New(getFileSize(r)).SetUnits(pb.U_BYTES).Prefix(prefix)
 
-			if pool == nil {
-				if pool, err = pb.StartPool(r.bar); err != nil {
-					log.Warn(err)
+			if pool == nil && pbErr == nil {
+				if pool, pbErr = pb.StartPool(r.bar); pbErr == nil {
+					if c.Conf.Quiet {
+						pool.Output = ioutil.Discard
+					} else {
+						pool.Output = os.Stderr
+					}
 				}
 			} else {
-				pool.Add(r.bar)
+				if pbErr == nil {
+					pool.Add(r.bar)
+				}
 			}
 			reqChan <- r
 		}
@@ -87,7 +98,9 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		}
 	}
 	wg.Wait()
-	pool.Stop()
+	if pbErr == nil {
+		pool.Stop()
+	}
 
 	errs := []error{}
 	timeout := time.After(10 * 60 * time.Second)
@@ -129,9 +142,13 @@ func fetchFeedFile(req fetchRequest) (root *oval.Root, err error) {
 	defer resp.Body.Close()
 
 	buf := bytes.NewBuffer(nil)
-	req.bar.Start()
-	rd := req.bar.NewProxyReader(resp.Body)
-	io.Copy(buf, rd)
+	if req.pbErr == nil {
+		req.bar.Start()
+		rd := req.bar.NewProxyReader(resp.Body)
+		io.Copy(buf, rd)
+	} else {
+		io.Copy(buf, resp.Body)
+	}
 
 	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
 		return nil, fmt.Errorf(

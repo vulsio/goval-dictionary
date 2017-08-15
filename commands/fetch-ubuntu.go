@@ -37,14 +37,15 @@ func (*FetchUbuntuCmd) Usage() string {
 	return `fetch-ubuntu:
 	fetch-ubuntu
 		[-dbtype=sqlite3|mysql|postgres|redis]
-		[-dbpath=$PWD/cve.sqlite3 or connection string]
+		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
 		[-debug-sql]
 		[-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
-   $ goval-dictionary fetch-ubuntu 12 14 16
+	$ goval-dictionary fetch-ubuntu 12 14 16
+
 `
 }
 

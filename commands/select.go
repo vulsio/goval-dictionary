@@ -37,13 +37,14 @@ func (*SelectCmd) Usage() string {
 	return `fetch-redhat:
 	fetch-redhat
 		[-dbtype=mysql|sqlite3]
-		[-dbpath=$PWD/cve.sqlite3 or connection string]
+		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-debug-sql]
 		[-log-dir=/path/to/log]
 
 		[-by-package]
 		[-by-cveid]
-	`
+
+`
 }
 
 // SetFlags set flag

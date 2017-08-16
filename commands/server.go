@@ -37,7 +37,7 @@ func (*ServerCmd) Usage() string {
 	server
 		[-bind=127.0.0.1]
 		[-port=8000]
-		[-dbpath=$PWD/cve.sqlite3 or connection string]
+		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-dbtype=mysql|sqlite3]
 		[-debug]
 		[-debug-sql]

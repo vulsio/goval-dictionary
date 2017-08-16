@@ -38,16 +38,17 @@ func (*FetchRedHatCmd) Usage() string {
 	return `fetch-redhat:
 	fetch-redhat
 		[-dbtype=sqlite3|mysql|postgres|redis]
-		[-dbpath=$PWD/cve.sqlite3 or connection string]
+		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
 		[-debug-sql]
 		[-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
-   $ goval-dictionary fetch-redhat 5 6 7
-       or
-   $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
+	$ goval-dictionary fetch-redhat 5 6 7
+    	or
+	$ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
+
 `
 }
 

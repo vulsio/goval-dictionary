@@ -37,13 +37,14 @@ func (*FetchOracleCmd) Usage() string {
 	return `fetch-oracle:
 	fetch-oracle
 		[-dbtype=sqlite3|mysql|postgres|redis]
-		[-dbpath=$PWD/cve.sqlite3 or connection string]
+		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
 		[-debug]
 		[-debug-sql]
 		[-log-dir=/path/to/log]
 
-	example: goval-dictionary fetch-oracle
+For the first time, run the blow command to fetch data for all versions.
+	$ goval-dictionary fetch-oracle
 
 `
 }

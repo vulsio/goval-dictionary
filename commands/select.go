@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/google/subcommands"
@@ -20,6 +21,7 @@ type SelectCmd struct {
 	DebugSQL bool
 	DBPath   string
 	DBType   string
+	Quiet    bool
 	LogDir   string
 
 	ByPackage bool
@@ -39,6 +41,7 @@ func (*SelectCmd) Usage() string {
 		[-dbtype=mysql|sqlite3]
 		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-debug-sql]
+		[-quiet]
 		[-log-dir=/path/to/log]
 
 		[-by-package]
@@ -49,8 +52,8 @@ func (*SelectCmd) Usage() string {
 
 // SetFlags set flag
 func (p *SelectCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&p.DebugSQL, "debug-sql", false,
-		"SQL debug mode")
+	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
+	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
@@ -72,7 +75,12 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 
-	log.Initialize(p.LogDir)
+	c.Conf.Quiet = p.Quiet
+	if c.Conf.Quiet {
+		log.Initialize(p.LogDir, ioutil.Discard)
+	} else {
+		log.Initialize(p.LogDir, os.Stderr)
+	}
 
 	if f.NArg() != 3 {
 		log.Fatal(`

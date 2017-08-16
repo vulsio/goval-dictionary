@@ -75,6 +75,7 @@ fetch-redhat:
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
                 [-debug-sql]
+                [-quiet]
                 [-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
@@ -92,6 +93,8 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
+  -quiet
+        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
 ```
@@ -115,6 +118,7 @@ fetch-debian:
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
                 [-debug-sql]
+                [-quiet]
                 [-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
@@ -130,6 +134,8 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
+  -quiet
+        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
 ```
@@ -153,6 +159,7 @@ fetch-ubuntu:
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
                 [-debug-sql]
+                [-quiet]
                 [-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
@@ -168,6 +175,8 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
+  -quiet
+        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
 ```
@@ -196,6 +205,7 @@ fetch-suse:
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
                 [-debug-sql]
+                [-quiet]
                 [-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
@@ -211,6 +221,8 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
+  -quiet
+        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -opensuse
@@ -244,6 +256,7 @@ fetch-oracle:
                 [-http-proxy=http://192.168.0.1:8080]
                 [-debug]
                 [-debug-sql]
+                [-quiet]
                 [-log-dir=/path/to/log]
 
 For the first time, run the blow command to fetch data for all versions.
@@ -259,6 +272,8 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
+  -quiet
+        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
 ```
@@ -708,6 +723,7 @@ server:
                 [-dbtype=sqlite3|mysql|postgres|redis]
                 [-debug]
                 [-debug-sql]
+                [-quiet]
                 [-log-dir=/path/to/log]
 
   -bind string
@@ -720,6 +736,8 @@ server:
         debug mode (default: false)
   -debug-sql
         SQL debug mode (default: false)
+  -quiet
+        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -port string

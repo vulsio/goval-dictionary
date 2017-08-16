@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/google/subcommands"
 	"github.com/kotakanbe/goval-dictionary/commands"
@@ -34,7 +35,11 @@ func main() {
 
 	var v = flag.Bool("v", false, "Show version")
 
-	flag.Parse()
+	if envArgs := os.Getenv("GOVAL_DICTIONARY_ARGS"); 0 < len(envArgs) {
+		flag.CommandLine.Parse(strings.Fields(envArgs))
+	} else {
+		flag.Parse()
+	}
 
 	if *v {
 		fmt.Printf("goval-dictionary %s %s\n", version, revision)

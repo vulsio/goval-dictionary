@@ -60,6 +60,9 @@ func walkDebian(cri oval.Criteria, osVer string, acc []distroPackage) []distroPa
 		if len(ss) != 2 {
 			continue
 		}
+
+		// "0" means notyetfixed or erroneous information.
+		// Not available because "0" inclues erroneous info...
 		if ss[1] == "0" {
 			continue
 		}

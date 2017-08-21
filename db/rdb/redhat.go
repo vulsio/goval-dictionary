@@ -28,7 +28,6 @@ func (o *RedHat) Name() string {
 
 // InsertOval inserts RedHat OVAL
 func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
-	log.Info("in RedHat")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}

@@ -57,8 +57,9 @@ func collectUbuntuPacks(cri oval.Criteria) []Package {
 	return walkUbuntu(cri, []Package{})
 }
 
-var reFixed = regexp.MustCompile(`^The '(.+)'.+\(note: '(.+)'\).$`)
-var reNotFixed = regexp.MustCompile(`^The '(.+)' package in xenial is affected and needs fixing.$`)
+var reFixed = regexp.MustCompile(`^The '(.+)' package in .* was vulnerable but has been fixed \(note: '(.+)'\).$`)
+var reNotFixed = regexp.MustCompile(`^The '(.+)' package in .* is affected and needs fixing.$`)
+var reNotDecided = regexp.MustCompile(`^The '(.+)' package in .* is affected, but a decision has been made to defer addressing it.*$`)
 
 func walkUbuntu(cri oval.Criteria, acc []Package) []Package {
 	for _, c := range cri.Criterions {
@@ -66,23 +67,33 @@ func walkUbuntu(cri oval.Criteria, acc []Package) []Package {
 			continue
 		}
 
-		// <criterion comment="The 'poppler' package in xenial was vulnerable but has been fixed (note: '0.12.2-2.1ubuntu1')." />
-		res := reFixed.FindStringSubmatch(c.Comment)
-		if len(res) == 3 {
-			acc = append(acc, Package{
-				Name:    res[1],
-				Version: res[2],
-			})
-			continue
-		}
-
 		// <criterion comment="The 'linux-flo' package in xenial is affected and needs fixing." />
 		//  ss := strings.Split(c.Comment, " is earlier than ")
-		res = reNotFixed.FindStringSubmatch(c.Comment)
+		res := reNotFixed.FindStringSubmatch(c.Comment)
 		if len(res) == 2 {
 			acc = append(acc, Package{
 				Name:        res[1],
 				NotFixedYet: true,
+			})
+			continue
+		}
+
+		// <criterion comment="The 'tiff' package in xenial is affected, but a decision has been made to defer addressing it (note: '2017-02-24')." />
+		res = reNotDecided.FindStringSubmatch(c.Comment)
+		if len(res) == 2 {
+			acc = append(acc, Package{
+				Name:        res[1],
+				NotFixedYet: true,
+			})
+			continue
+		}
+
+		// <criterion comment="The 'poppler' package in xenial was vulnerable but has been fixed (note: '0.12.2-2.1ubuntu1')." />
+		res = reFixed.FindStringSubmatch(c.Comment)
+		if len(res) == 3 {
+			acc = append(acc, Package{
+				Name:    res[1],
+				Version: res[2],
 			})
 			continue
 		}

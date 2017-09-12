@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/xml"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
+	"github.com/ymomoi/goval-parser/oval"
 )
 
 // FetchSUSECmd is Subcommand for fetch SUSE OVAL
@@ -31,6 +33,7 @@ type FetchSUSECmd struct {
 	DBPath                string
 	DBType                string
 	HTTPProxy             string
+	OVALPath              string
 }
 
 // Name return subcommand name
@@ -85,12 +88,9 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&p.DBType, "dbtype", "sqlite3",
 		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 
-	f.StringVar(
-		&p.HTTPProxy,
-		"http-proxy",
-		"",
-		"http://proxy-url:port (default: empty)",
-	)
+	f.StringVar(&p.HTTPProxy, "http-proxy", "", "http://proxy-url:port (default: empty)")
+
+	f.StringVar(&p.OVALPath, "oval-path", "", "Local file path of Downloaded oval")
 }
 
 // Execute execute
@@ -139,10 +139,26 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		suseType = c.SUSEOpenstackCloud
 	}
 
-	results, err := fetcher.FetchSUSEFiles(suseType, vers)
-	if err != nil {
-		log.Error(err)
-		return subcommands.ExitFailure
+	var results []fetcher.FetchResult
+	var err error
+	if p.OVALPath == "" {
+		results, err = fetcher.FetchSUSEFiles(suseType, vers)
+		if err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
+		}
+	} else {
+		dat, err := ioutil.ReadFile(p.OVALPath)
+		if err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
+		}
+		var root *oval.Root
+		if err = xml.Unmarshal(dat, &root); err != nil {
+			log.Error(err)
+			return subcommands.ExitFailure
+		}
+		results = []fetcher.FetchResult{{Root: root}}
 	}
 
 	var driver db.DB
@@ -161,7 +177,8 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
 		if err != nil {
-			panic(err)
+			log.Error(err)
+			return subcommands.ExitFailure
 		}
 
 		root := models.Root{

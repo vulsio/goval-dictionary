@@ -158,7 +158,10 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
-		results = []fetcher.FetchResult{{Root: root}}
+		results = []fetcher.FetchResult{{
+			Root:   root,
+			Target: vers[0],
+		}}
 	}
 
 	var driver db.DB

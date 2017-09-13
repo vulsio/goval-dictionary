@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/labstack/gommon/log"
 )
@@ -77,6 +78,12 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 
 // GetByPackName select definitions by packName
 func (o *SUSE) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+	// The oval of enterprise server provided each major version
+	// But community provided each major.minior versoin
+	// see http://ftp.suse.com/pub/projects/security/oval/
+	if o.Family == config.SUSEEnterpriseServer {
+		osVer = major(osVer)
+	}
 	packs := []models.Package{}
 	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -120,6 +127,12 @@ func (o *SUSE) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
 func (o *SUSE) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models.Definition, err error) {
+	// The oval of enterprise server provided each major version
+	// But community provided each major.minior versoin
+	// see http://ftp.suse.com/pub/projects/security/oval/
+	if o.Family == config.SUSEEnterpriseServer {
+		osVer = major(osVer)
+	}
 	tmpdefs := []models.Definition{}
 	driver.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {

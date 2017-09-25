@@ -4,14 +4,14 @@
 [[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
-  revision = "4918b99a7cb949bb295f3c7bbaf24b577d806e35"
-  version = "v6"
+  revision = "73945b6115bfbbcc57d89b7316e28109364124e1"
+  version = "v7"
 
 [[projects]]
-  branch = "master"
   name = "github.com/cheggaaa/pb"
   packages = ["."]
-  revision = "0af82b7d15eb9371fbdf8f468ff10cbba62e0414"
+  revision = "657164d0228d6bebe316fdf725c69f131a50fb10"
+  version = "v1.0.18"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
@@ -22,8 +22,8 @@
 [[projects]]
   name = "github.com/go-redis/redis"
   packages = [".","internal","internal/consistenthash","internal/hashtag","internal/pool","internal/proto"]
-  revision = "89515eebd1b5761486abd32d9e84a8f55dda7740"
-  version = "v6.5.6"
+  revision = "975882d73d21759d45a4eb49652064083bc23e61"
+  version = "v6.7.0"
 
 [[projects]]
   name = "github.com/go-sql-driver/mysql"
@@ -53,7 +53,7 @@
   branch = "master"
   name = "github.com/k0kubun/pp"
   packages = ["."]
-  revision = "d1532fc5d94ecdf2da29e24d7b99721f3287de4a"
+  revision = "440887843c00299bd837843473568421f051ba35"
 
 [[projects]]
   branch = "master"
@@ -70,14 +70,14 @@
 [[projects]]
   name = "github.com/labstack/gommon"
   packages = ["bytes","color","log","random"]
-  revision = "779b8a8b9850a97acba6a3fe20feb628c39e17c1"
-  version = "0.2.2"
+  revision = "57409ada9da0f2afad6664c49502f8c50fbd8476"
+  version = "0.2.3"
 
 [[projects]]
   branch = "master"
   name = "github.com/lib/pq"
   packages = [".","hstore","oid"]
-  revision = "e42267488fe361b9dc034be7a6bffef5b195bceb"
+  revision = "b77235e3890a962fe8a6f8c4c7198679ca7814e7"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -88,8 +88,8 @@
 [[projects]]
   name = "github.com/mattn/go-isatty"
   packages = ["."]
-  revision = "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
-  version = "v0.0.2"
+  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
+  version = "v0.0.3"
 
 [[projects]]
   name = "github.com/mattn/go-runewidth"
@@ -119,7 +119,7 @@
   branch = "master"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "181d419aa9e2223811b824e8f0b4af96f9ba9302"
+  revision = "89742aefa4b206dcf400792f3bd35b542998eb3b"
 
 [[projects]]
   branch = "master"
@@ -143,23 +143,23 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "b176d7def5d71bdd214203491f89843ed217f420"
+  revision = "847319b7fc94cab682988f93da778204da164588"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "1c05540f6879653db88113bc4a2b70aec4bd491f"
+  revision = "278c6cf336eb9139d63479da09da0cfb40fdc4c8"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "e42485b6e20ae7d2304ec72e535b103ed350cc02"
+  revision = "429f518978ab01db8bb6f44b66785088e7fba58b"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bc9c091c8c855fd99e0f0c508f4099f6db9ba526aee420c4017a2ad38ff77ae2"
+  inputs-digest = "9a64fdf1a7ba17b06a87fcd355ee21e8b87a5be97060dfec702bc5c32a995399"
   solver-name = "gps-cdcl"
   solver-version = 1

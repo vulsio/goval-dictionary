@@ -229,8 +229,15 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 
 // CountDefs counts the number of definitions specified by args
 func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
+	switch osFamily {
+	case c.SUSEEnterpriseServer:
+		// SUSE provides OVAL each major.minor
+	default:
+		osVer = major(osVer)
+	}
+
 	root := models.Root{}
-	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: major(osVer)}).First(&root)
+	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
 	if r.RecordNotFound() {
 		return 0, nil
 	}
@@ -244,8 +251,15 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 
 // GetLastModified get last modified time of OVAL in roots
 func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
+	switch osFamily {
+	case c.SUSEEnterpriseServer:
+		// SUSE provides OVAL each major.minor
+	default:
+		osVer = major(osVer)
+	}
+
 	root := models.Root{}
-	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: major(osVer)}).First(&root)
+	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
 	if r.RecordNotFound() {
 		now := time.Now()
 		return now.AddDate(-100, 0, 0)

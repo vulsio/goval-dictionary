@@ -229,18 +229,19 @@ For the first time, run the blow command to fetch data for all versions.
         OpenSUSE
   -opensuse-leap
         OpenSUSE Leap
-  -suse-enterprise-desktop
-        SUSE Enterprise Desktop
   -suse-enterprise-server
         SUSE Enterprise Server
-  -suse-openstack-cloud
-        SUSE Openstack cloud
 ```
 
 - Import OVAL data from Internet
 
 ```bash
 $ goval-dictionary fetch-suse -opensuse 13.2
+```
+
+```bash
+$ goval-dictionary fetch-suse -suse-enterprise-server 12
+
 ```
 
 ### Usage: Fetch OVAL data from Oracle

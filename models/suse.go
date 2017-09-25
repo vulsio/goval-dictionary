@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/k0kubun/pp"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
 // ConvertSUSEToModel Convert OVAL to models
-func ConvertSUSEToModel(root *oval.Root) (defs []Definition) {
+func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
+	m := map[string]Root{}
 	for _, ovaldef := range root.Definitions.Definitions {
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
@@ -28,32 +28,56 @@ func ConvertSUSEToModel(root *oval.Root) (defs []Definition) {
 				AffectedPacks: []Package{distPack.pack},
 				References:    rs,
 			}
-			defs = append(defs, def)
+
+			root, ok := m[distPack.osVer]
+			if ok {
+				root.Definitions = append(root.Definitions, def)
+				m[distPack.osVer] = root
+			} else {
+				m[distPack.osVer] = Root{
+					Family:      suseType,
+					OSVersion:   distPack.osVer,
+					Definitions: []Definition{def},
+				}
+			}
 		}
+	}
+	for _, v := range m {
+		roots = append(roots, v)
 	}
 	return
 }
 
 func collectSUSEPacks(cri oval.Criteria) []distroPackage {
-	return walkSUSE(cri, []distroPackage{})
+	return walkSUSE(cri, "", []distroPackage{})
 }
 
-func walkSUSE(cri oval.Criteria, acc []distroPackage) []distroPackage {
+func walkSUSE(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {
 	for _, c := range cri.Criterions {
-		var packVer string
-		if strings.HasPrefix(c.Comment, "SUSE ") ||
-			strings.HasPrefix(c.Comment, "openSUSE ") {
+		if strings.HasPrefix(c.Comment, "openSUSE ") {
+			continue
+		}
+		if strings.HasPrefix(c.Comment, "SUSE Linux Enterprise Server ") {
+			osVer = strings.TrimPrefix(strings.TrimSuffix(c.Comment, " is installed"),
+				"SUSE Linux Enterprise Server ")
 			continue
 		}
 
+		// Ignore except SUSE Enterprise Linux and openSUSE for now.
+		if strings.HasPrefix(c.Comment, "SUSE") {
+			return acc
+		}
+
+		osVer = strings.TrimSuffix(osVer, "-LTSS")
+		osVer = strings.Replace(osVer, " SP", ".", -1)
+
+		packVer := ""
 		if strings.HasSuffix(c.Comment, " is installed") {
 			packVer = strings.TrimSuffix(c.Comment, " is installed")
 		}
 
 		ss := strings.Split(packVer, "-")
 		if len(ss) < 3 {
-			//TODO Remove
-			pp.Printf("NG %s", packVer)
 			continue
 		}
 
@@ -61,6 +85,7 @@ func walkSUSE(cri oval.Criteria, acc []distroPackage) []distroPackage {
 		version := fmt.Sprintf("%s-%s", ss[len(ss)-2], ss[len(ss)-1])
 
 		acc = append(acc, distroPackage{
+			osVer: osVer,
 			pack: Package{
 				Name:    name,
 				Version: version,
@@ -72,7 +97,7 @@ func walkSUSE(cri oval.Criteria, acc []distroPackage) []distroPackage {
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkSUSE(c, acc)
+		acc = walkSUSE(c, osVer, acc)
 	}
 	return acc
 }

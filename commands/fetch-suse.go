@@ -118,7 +118,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 
 	vers := []string{}
 	if len(f.Args()) == 0 {
-		log.Errorf("Specify versions to fetch. Oval are here: http://ftp.suse.com/pub/projects/security/oval/")
+		log.Errorf("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
 		return subcommands.ExitUsageError
 	}
 	for _, arg := range f.Args() {
@@ -175,31 +175,25 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		log.Infof("Fetched: %s", r.URL)
 		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
 
-		defs := models.ConvertSUSEToModel(r.Root)
-
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
 		if err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
-
-		root := models.Root{
-			Family:      suseType,
-			OSVersion:   r.Target,
-			Definitions: defs,
-			Timestamp:   time.Now(),
-		}
-
 		ss := strings.Split(r.URL, "/")
 		fmeta := models.FetchMeta{
 			Timestamp: t,
 			FileName:  ss[len(ss)-1],
 		}
 
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			log.Error(err)
-			return subcommands.ExitFailure
+		roots := models.ConvertSUSEToModel(r.Root, suseType)
+		for _, root := range roots {
+			root.Timestamp = time.Now()
+			if err := driver.InsertOval(&root, fmeta); err != nil {
+				log.Error(err)
+				return subcommands.ExitFailure
+			}
 		}
 
 		if err := driver.InsertFetchMeta(fmeta); err != nil {

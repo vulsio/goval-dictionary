@@ -75,6 +75,8 @@ func (d *Driver) NewOvalDB(family string) error {
 		d.ovaldb = NewOracle()
 	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud:
 		d.ovaldb = NewSUSE(family)
+	case c.Alpine:
+		d.ovaldb = NewAlpine()
 	default:
 		if strings.Contains(family, "suse") {
 			suses := []string{
@@ -230,6 +232,8 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 // CountDefs counts the number of definitions specified by args
 func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {
+	case c.Alpine:
+		osVer = majorMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
 	default:
@@ -252,6 +256,8 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 // GetLastModified get last modified time of OVAL in roots
 func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 	switch osFamily {
+	case c.Alpine:
+		osVer = majorMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
 	default:
@@ -269,4 +275,9 @@ func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 
 func major(osVer string) (majorVersion string) {
 	return strings.Split(osVer, ".")[0]
+}
+
+func majorMinor(osVer string) (majorMinorVersion string) {
+	ss := strings.Split(osVer, ".")
+	return strings.Join(ss[:len(ss)-1], ".")
 }

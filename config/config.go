@@ -56,6 +56,9 @@ const (
 
 	// Oracle is
 	Oracle = "oracle"
+
+	// Alpine is
+	Alpine = "alpine"
 )
 
 // Conf has Configuration

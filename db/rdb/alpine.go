@@ -10,36 +10,28 @@ import (
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-// Oracle is a struct of DBAccess
-type Oracle struct {
+// Alpine is a struct for DBAccess
+type Alpine struct {
 	Family string
 }
 
-// NewOracle creates DBAccess
-func NewOracle() *Oracle {
-	return &Oracle{Family: config.Oracle}
+// NewAlpine creates DBAccess
+func NewAlpine() *Alpine {
+	return &Alpine{Family: config.Alpine}
 }
 
 // Name return family name
-func (o *Oracle) Name() string {
+func (o *Alpine) Name() string {
 	return o.Family
 }
 
-// InsertOval inserts Oracle OVAL
-func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
-	log.Debugf("in Oracle")
+// InsertOval inserts Alpine secdb information as OVAL format
+func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in alpine")
 	tx := driver.Begin()
 
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.OSVersion)
-		return nil
-	}
-	log.Infof("  Refreshing %s %s...", root.Family, root.OSVersion)
-
 	old := models.Root{}
-	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
+	r := tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
@@ -56,10 +48,6 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
 			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
@@ -87,8 +75,8 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Oracle) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = major(osVer)
+func (o *Alpine) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+	osVer = majorMinor(osVer)
 	packs := []models.Package{}
 	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -106,44 +94,39 @@ func (o *Oracle) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 			return nil, err
 		}
 
-		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
+		if root.Family == config.Alpine && root.OSVersion == osVer {
 			defs = append(defs, def)
 		}
-	}
 
-	for i, def := range defs {
-		adv := models.Advisory{}
-		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
-			return nil, err
+		for i, def := range defs {
+			adv := models.Advisory{}
+			if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+				return nil, err
+			}
+
+			cves := []models.Cve{}
+			if err := driver.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+				return nil, err
+			}
+
+			adv.Cves = cves
+			defs[i].Advisory = adv
+
+			packs := []models.Package{}
+			if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+				return nil, err
+			}
+			defs[i].AffectedPacks = packs
+
 		}
-
-		cves := []models.Cve{}
-		if err := driver.Model(&adv).Related(&cves, "Cves").Error; err != nil {
-			return nil, err
-		}
-		adv.Cves = cves
-
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
-			return nil, err
-		}
-		defs[i].References = refs
 	}
 
 	return defs, nil
 }
 
 // GetByCveID select definitions by CveID
-func (o *Oracle) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = major(osVer)
+func (o *Alpine) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
+	osVer = majorMinor(osVer)
 	cves := []models.Cve{}
 	if err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
 		return nil, err
@@ -165,7 +148,7 @@ func (o *Oracle) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
+		if root.Family == config.Alpine && root.OSVersion == osVer {
 			defs = append(defs, def)
 		}
 	}
@@ -189,12 +172,7 @@ func (o *Oracle) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
-			return nil, err
-		}
-		defs[i].References = refs
+		// defs[i].AffectedPacks = filterByMajor(packs, osVer)
 	}
 
 	return defs, nil

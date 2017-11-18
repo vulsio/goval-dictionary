@@ -75,7 +75,8 @@ func (d *RedisDriver) NewOvalDB(family string) error {
 		d.ovaldb = c.RedHat
 	case c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
 		c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer,
-		c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud:
+		c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud,
+		c.Alpine:
 
 		d.ovaldb = family
 	default:

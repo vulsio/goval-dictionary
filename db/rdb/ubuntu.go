@@ -52,7 +52,7 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
 			adv := models.Advisory{}
-			driver.Model(&def).Related(&adv, "Avisory")
+			driver.Model(&def).Related(&adv, "Advisory")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)

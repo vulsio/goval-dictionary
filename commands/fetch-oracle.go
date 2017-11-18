@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/xml"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
+	"github.com/ymomoi/goval-parser/oval"
 )
 
 // FetchOracleCmd is Subcommand for fetch Oracle OVAL
@@ -46,7 +48,7 @@ func (*FetchOracleCmd) Usage() string {
 		[-quiet]
 		[-log-dir=/path/to/log]
 
-For the first time, run the blow command to fetch data for all versions.
+For details, see https://github.com/kotakanbe/goval-dictionary#usage-fetch-oval-data-from-oracle
 	$ goval-dictionary fetch-oracle
 
 `
@@ -113,12 +115,17 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	defer driver.CloseDB()
 
 	for _, r := range results {
+		ovalroot := oval.Root{}
+		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+			log.Errorf("Failed to unmarshal. url: %s, err: %s", r.URL, err)
+			return subcommands.ExitUsageError
+		}
 		log.Infof("Fetched: %s", r.URL)
-		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
+		log.Infof("  %d OVAL definitions", len(ovalroot.Definitions.Definitions))
 
 		//  var timeformat = "2006-01-02T15:04:05.999-07:00"
 		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, strings.Split(r.Root.Generator.Timestamp, ".")[0])
+		t, err := time.Parse(timeformat, strings.Split(ovalroot.Generator.Timestamp, ".")[0])
 		if err != nil {
 			panic(err)
 		}
@@ -129,7 +136,7 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertOracleToModel(r.Root)
+		roots := models.ConvertOracleToModel(&ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
 			if err := driver.InsertOval(&root, fmeta); err != nil {

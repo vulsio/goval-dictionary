@@ -37,6 +37,9 @@ Subcommands:
         flags            describe all known top-level flags
         help             describe subcommands and their syntax
 
+Subcommands for fetch-alpine:
+        fetch-alpine     Fetch Vulnerability dictionary from Alpine secdb
+
 Subcommands for fetch-debian:
         fetch-debian     Fetch Vulnerability dictionary from Debian
 
@@ -282,8 +285,51 @@ For the first time, run the blow command to fetch data for all versions.
 - Import OVAL data from Internet
 
 ```bash
-$ goval-dictionary fetch-oracle
+ $ goval-dictionary fetch-oracle
 ```
+
+### Usage: Fetch alpine-secdb as OVAL data type
+
+- [Alpine Linux](https://git.alpinelinux.org/cgit/alpine-secdb/)
+alpine-secdb is provided in YAML format and not OVAL, but it is supported by goval-dictionary to make alpine-secdb easier to handle from Vuls.
+See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of supported alpines.
+
+```bash
+fetch-alpine:
+        fetch-alpine
+                [-dbtype=sqlite3|mysql|postgres|redis]
+                [-dbpath=$PWD/oval.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-quiet]
+                [-log-dir=/path/to/log]
+
+The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
+        $ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
+
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+  -quiet
+        quiet mode (no output)
+```
+
+- Import alpine-secdb from Internet
+
+```bash
+ $ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
+```
+See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of supported alpines.
 
 ### Usage: select oval by package name
 
@@ -755,6 +801,7 @@ server:
 - [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
+- [Alpine-secdb](https://git.alpinelinux.org/cgit/alpine-secdb/)
 
 ----
 

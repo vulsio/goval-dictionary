@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/xml"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
+	"github.com/ymomoi/goval-parser/oval"
 )
 
 // FetchDebianCmd is Subcommand for fetch RedHat OVAL
@@ -47,7 +49,7 @@ func (*FetchDebianCmd) Usage() string {
 		[-quiet]
 		[-log-dir=/path/to/log]
 
-For the first time, run the blow command to fetch data for all versions.
+For details, see https://github.com/kotakanbe/goval-dictionary#usage-fetch-oval-data-from-debian
 	$ goval-dictionary fetch-debian 7 8 9 10
 
 `
@@ -100,13 +102,19 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
-	vers := []string{}
 	if len(f.Args()) == 0 {
 		log.Errorf("Specify versions to fetch")
 		return subcommands.ExitUsageError
 	}
+
+	// Distinct
+	vers := []string{}
+	v := map[string]bool{}
 	for _, arg := range f.Args() {
-		vers = append(vers, arg)
+		v[arg] = true
+	}
+	for k := range v {
+		vers = append(vers, k)
 	}
 
 	results, err := fetcher.FetchDebianFiles(vers)
@@ -123,16 +131,22 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	defer driver.CloseDB()
 
 	for _, r := range results {
+		ovalroot := oval.Root{}
+		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+			log.Errorf("Failed to unmarshal. url: %s, err: %s", r.URL, err)
+			return subcommands.ExitUsageError
+		}
 		log.Infof("Fetched: %s", r.URL)
-		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
+		log.Infof("  %d OVAL definitions", len(ovalroot.Definitions.Definitions))
 
-		defs := models.ConvertDebianToModel(r.Root)
+		defs := models.ConvertDebianToModel(&ovalroot)
 
 		var timeformat = "2006-01-02T15:04:05"
 		var t time.Time
-		t, err = time.Parse(timeformat, strings.Split(r.Root.Generator.Timestamp, ".")[0])
+		t, err = time.Parse(timeformat, strings.Split(ovalroot.Generator.Timestamp, ".")[0])
 		if err != nil {
-			panic(err)
+			log.Errorf("Failed to parse timestamp. url: %s, err: %s", r.URL, err)
+			return subcommands.ExitUsageError
 		}
 
 		root := models.Root{

@@ -3,7 +3,6 @@ package fetcher
 import (
 	"bytes"
 	"compress/bzip2"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,7 +17,6 @@ import (
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
 )
 
 type fetchRequest struct {
@@ -33,7 +31,7 @@ type fetchRequest struct {
 type FetchResult struct {
 	Target string
 	URL    string
-	Root   *oval.Root
+	Body   []byte
 }
 
 func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err error) {
@@ -45,7 +43,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 	defer close(errChan)
 
 	for _, r := range reqs {
-		log.Infof("Fetching... %s", r.url)
+		log.Infof("Fetching... %s\n", r.url)
 	}
 
 	// check pb pool's err. cron (or something has no terminal) returns err here.
@@ -82,7 +80,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		tasks <- func() {
 			select {
 			case req := <-reqChan:
-				root, err := fetchFeedFile(req)
+				body, err := fetchFile(req)
 				wg.Done()
 				if err != nil {
 					errChan <- err
@@ -91,7 +89,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 				resChan <- FetchResult{
 					Target: req.target,
 					URL:    req.url,
-					Root:   root,
+					Body:   body,
 				}
 			}
 			return
@@ -121,7 +119,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 	return results, nil
 }
 
-func fetchFeedFile(req fetchRequest) (root *oval.Root, err error) {
+func fetchFile(req fetchRequest) (body []byte, err error) {
 	//	var body string
 	var errs []error
 	var proxyURL *url.URL
@@ -165,11 +163,7 @@ func fetchFeedFile(req fetchRequest) (root *oval.Root, err error) {
 		bytesBody = buf.Bytes()
 	}
 
-	if err = xml.Unmarshal(bytesBody, &root); err != nil {
-		return nil, fmt.Errorf(
-			"Failed to unmarshal. url: %s, err: %s", req.url, err)
-	}
-	return
+	return bytesBody, nil
 }
 
 func getFileSize(req fetchRequest) int {

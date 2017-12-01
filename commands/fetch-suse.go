@@ -59,7 +59,7 @@ func (*FetchSUSECmd) Usage() string {
 		[-quiet]
 		[-log-dir=/path/to/log]
 
-For the first time, run the blow command to fetch data for all versions.
+For details, see https://github.com/kotakanbe/goval-dictionary#usage-fetch-oval-data-from-suse
 	$ goval-dictionary fetch-suse -opensuse 13.2
 
 `
@@ -116,13 +116,19 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		return subcommands.ExitUsageError
 	}
 
-	vers := []string{}
 	if len(f.Args()) == 0 {
 		log.Errorf("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
 		return subcommands.ExitUsageError
 	}
+
+	// Distinct
+	v := map[string]bool{}
+	vers := []string{}
 	for _, arg := range f.Args() {
-		vers = append(vers, arg)
+		v[arg] = true
+	}
+	for k := range v {
+		vers = append(vers, k)
 	}
 
 	suseType := ""
@@ -153,13 +159,8 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
-		var root *oval.Root
-		if err = xml.Unmarshal(dat, &root); err != nil {
-			log.Error(err)
-			return subcommands.ExitFailure
-		}
 		results = []fetcher.FetchResult{{
-			Root:   root,
+			Body:   dat,
 			Target: vers[0],
 		}}
 	}
@@ -172,11 +173,16 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	defer driver.CloseDB()
 
 	for _, r := range results {
+		ovalroot := oval.Root{}
+		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+			log.Errorf("Failed to unmarshal. url: %s, err: %s", r.URL, err)
+			return subcommands.ExitUsageError
+		}
 		log.Infof("Fetched: %s", r.URL)
-		log.Infof("  %d OVAL definitions", len(r.Root.Definitions.Definitions))
+		log.Infof("  %d OVAL definitions", len(ovalroot.Definitions.Definitions))
 
 		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, r.Root.Generator.Timestamp)
+		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
@@ -187,7 +193,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertSUSEToModel(r.Root, suseType)
+		roots := models.ConvertSUSEToModel(&ovalroot, suseType)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
 			if err := driver.InsertOval(&root, fmeta); err != nil {

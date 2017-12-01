@@ -86,10 +86,10 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		log.Fatal(`
 		Usage:
 		select OVAL by package name
-		./goval-dictionary select-redhat -by-package RedHat 7 java-1.7.0-openjdk
+		./goval-dictionary select -by-package RedHat 7 java-1.7.0-openjdk
 
 		select OVAL by CVE-ID
-		./goval-dictionary select-redhat -by-cveid RedHat 7 CVE-2015-1111
+		./goval-dictionary select -by-cveid RedHat 7 CVE-2015-1111
 		`)
 	}
 
@@ -99,7 +99,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 
 	var err error
 	var driver db.DB
-	if driver, err = db.NewDB(c.RedHat, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+	if driver, err = db.NewDB(f.Args()[0], c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}

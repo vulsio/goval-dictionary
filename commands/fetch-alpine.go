@@ -2,12 +2,13 @@ package commands
 
 import (
 	"context"
-	"encoding/xml"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 	"time"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/google/subcommands"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -16,11 +17,11 @@ import (
 	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
 )
 
-// FetchUbuntuCmd is Subcommand for fetch RedHat OVAL
-type FetchUbuntuCmd struct {
+// FetchAlpineCmd is Subcommand for fetch Alpine secdb
+// https://git.alpinelinux.org/cgit/alpine-secdb/
+type FetchAlpineCmd struct {
 	Debug     bool
 	DebugSQL  bool
 	Quiet     bool
@@ -31,15 +32,15 @@ type FetchUbuntuCmd struct {
 }
 
 // Name return subcommand name
-func (*FetchUbuntuCmd) Name() string { return "fetch-ubuntu" }
+func (*FetchAlpineCmd) Name() string { return "fetch-alpine" }
 
 // Synopsis return synopsis
-func (*FetchUbuntuCmd) Synopsis() string { return "Fetch Vulnerability dictionary from Ubuntu" }
+func (*FetchAlpineCmd) Synopsis() string { return "Fetch Vulnerability dictionary from Alpine secdb" }
 
 // Usage return usage
-func (*FetchUbuntuCmd) Usage() string {
-	return `fetch-ubuntu:
-	fetch-ubuntu
+func (*FetchAlpineCmd) Usage() string {
+	return `fetch-alpine:
+	fetch-alpine
 		[-dbtype=sqlite3|mysql|postgres|redis]
 		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-http-proxy=http://192.168.0.1:8080]
@@ -48,14 +49,14 @@ func (*FetchUbuntuCmd) Usage() string {
 		[-quiet]
 		[-log-dir=/path/to/log]
 
-For the first time, run the blow command to fetch data for all versions.
-	$ goval-dictionary fetch-ubuntu 12 14 16
+The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
+	$ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
 
 `
 }
 
 // SetFlags set flag
-func (p *FetchUbuntuCmd) SetFlags(f *flag.FlagSet) {
+func (p *FetchAlpineCmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.Debug, "debug", false, "debug mode")
 	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
 	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
@@ -79,7 +80,7 @@ func (p *FetchUbuntuCmd) SetFlags(f *flag.FlagSet) {
 }
 
 // Execute execute
-func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	c.Conf.Quiet = p.Quiet
 	if c.Conf.Quiet {
 		log.Initialize(p.LogDir, ioutil.Discard)
@@ -102,7 +103,8 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	if len(f.Args()) == 0 {
-		log.Errorf("Specify versions to fetch")
+		log.Errorf("Specify versions to fetch.")
+		log.Errorf(p.Usage())
 		return subcommands.ExitUsageError
 	}
 
@@ -116,58 +118,68 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchUbuntuFiles(vers)
+	results, err := fetcher.FetchAlpineFiles(vers)
 	if err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
 
+	// Join community.yaml, main.yaml
+	type T struct {
+		url  string
+		defs []models.Definition
+	}
+	m := map[string]T{}
+	for _, r := range results {
+		secdb, err := unmarshalYml(r.Body)
+		if err != nil {
+			log.Fatal(err)
+			return subcommands.ExitFailure
+		}
+
+		defs := models.ConvertAlpineToModel(secdb)
+		if t, ok := m[r.Target]; ok {
+			t.defs = append(t.defs, defs...)
+			m[r.Target] = t
+		} else {
+			m[r.Target] = T{
+				defs: defs,
+			}
+		}
+	}
+
+	// pp.Println(m)
+
 	var driver db.DB
-	if driver, err = db.NewDB(c.Ubuntu, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
+	if driver, err = db.NewDB(c.Alpine, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
 		log.Error(err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
 
-	for _, r := range results {
-		ovalroot := oval.Root{}
-		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log.Errorf("Failed to unmarshal. url: %s, err: %s", r.URL, err)
-			return subcommands.ExitUsageError
-		}
-		log.Infof("Fetched: %s", r.URL)
-		log.Infof("  %d OVAL definitions", len(ovalroot.Definitions.Definitions))
-
-		defs := models.ConvertUbuntuToModel(&ovalroot)
-
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
-		if err != nil {
-			panic(err)
-		}
-
+	for target, t := range m {
 		root := models.Root{
-			Family:      c.Ubuntu,
-			OSVersion:   r.Target,
-			Definitions: defs,
+			Family:      c.Alpine,
+			OSVersion:   target,
+			Definitions: t.defs,
 			Timestamp:   time.Now(),
 		}
 
-		ss := strings.Split(r.URL, "/")
-		fmeta := models.FetchMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
-
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			log.Error(err)
-			return subcommands.ExitFailure
-		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
+		log.Infof("  %d CVEs", len(t.defs))
+		if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
 			log.Error(err)
 			return subcommands.ExitFailure
 		}
 	}
 
 	return subcommands.ExitSuccess
+}
+
+func unmarshalYml(data []byte) (*models.AlpineSecDB, error) {
+	t := models.AlpineSecDB{}
+	err := yaml.Unmarshal([]byte(data), &t)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal: %s", err)
+	}
+	return &t, nil
 }

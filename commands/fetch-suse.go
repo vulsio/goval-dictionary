@@ -72,7 +72,7 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.OpenSUSELeap, "opensuse-leap", false, "OpenSUSE Leap")
 	f.BoolVar(&p.SUSEEnterpriseServer, "suse-enterprise-server", false, "SUSE Enterprise Server")
 	f.BoolVar(&p.SUSEEnterpriseDesktop, "suse-enterprise-desktop", false, "SUSE Enterprise Desktop")
-	f.BoolVar(&p.SUSEEnterpriseDesktop, "suse-openstack-cloud", false, "SUSE Openstack cloud")
+	f.BoolVar(&p.SUSEOpenstackCloud, "suse-openstack-cloud", false, "SUSE Openstack cloud")
 
 	f.BoolVar(&p.Debug, "debug", false, "debug mode")
 	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")

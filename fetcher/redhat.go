@@ -5,12 +5,12 @@ import (
 )
 
 func newRedHatFetchRequests(target []string) (reqs []fetchRequest) {
-	// TODO bz
-	const t = "https://www.redhat.com/security/data/oval/Red_Hat_Enterprise_Linux_%s.xml"
+	const t = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL%s.xml.bz2"
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target: v,
 			url:    fmt.Sprintf(t, v),
+			bzip2:  true,
 		})
 	}
 	return

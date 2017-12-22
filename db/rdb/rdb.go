@@ -69,7 +69,7 @@ func (d *Driver) NewOvalDB(family string) error {
 		d.ovaldb = NewDebian()
 	case c.Ubuntu:
 		d.ovaldb = NewUbuntu()
-	case c.RedHat, c.CentOS:
+	case c.RedHat, c.CentOS, c.Scientific:
 		d.ovaldb = NewRedHat()
 	case c.Oracle:
 		d.ovaldb = NewOracle()

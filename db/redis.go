@@ -71,7 +71,7 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 // NewOvalDB create a OvalDB client
 func (d *RedisDriver) NewOvalDB(family string) error {
 	switch family {
-	case c.CentOS:
+	case c.CentOS, c.Scientific:
 		d.ovaldb = c.RedHat
 	case c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
 		c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer,

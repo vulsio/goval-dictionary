@@ -12,6 +12,9 @@ const (
 	// CentOS is
 	CentOS = "centos"
 
+	// Scientific is
+	Scientific = "scientific"
+
 	// Debian is
 	Debian = "debian"
 

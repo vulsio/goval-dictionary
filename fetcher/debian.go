@@ -13,7 +13,7 @@ func newDebianFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		var name string
 		if name = debianName(v); name == "unknown" {
-			log.Warnf("Skip unknown ubuntu version : %s.", v)
+			log.Warnf("Skip unknown debian version : %s.", v)
 			continue
 		}
 		reqs = append(reqs, fetchRequest{

@@ -42,6 +42,10 @@ func debianName(major string) string {
 // FetchDebianFiles fetch OVAL from RedHat
 func FetchDebianFiles(versions []string) ([]FetchResult, error) {
 	reqs := newDebianFetchRequests(versions)
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

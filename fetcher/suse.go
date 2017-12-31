@@ -23,6 +23,10 @@ func newSUSEFetchRequests(suseType string, target []string) (reqs []fetchRequest
 // FetchSUSEFiles fetch OVAL from RedHat
 func FetchSUSEFiles(suseType string, versions []string) ([]FetchResult, error) {
 	reqs := newSUSEFetchRequests(suseType, versions)
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

@@ -39,6 +39,10 @@ func ubuntuName(major string) string {
 // FetchUbuntuFiles fetch OVAL from Ubuntu
 func FetchUbuntuFiles(versions []string) ([]FetchResult, error) {
 	reqs := newUbuntuFetchRequests(versions)
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

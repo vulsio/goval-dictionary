@@ -12,7 +12,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		var name string
 		if name = ubuntuName(v); name == "unknown" {
-			log.Warnf("Skip unkown ubuntu version : %s.", v)
+			log.Warnf("Skip unknown ubuntu version : %s.", v)
 			continue
 		}
 		reqs = append(reqs, fetchRequest{

@@ -24,6 +24,10 @@ func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 // https://git.alpinelinux.org/cgit/alpine-secdb/tree/
 func FetchAlpineFiles(versions []string) ([]FetchResult, error) {
 	reqs := newAlpineFetchRequests(versions)
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

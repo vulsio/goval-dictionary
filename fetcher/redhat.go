@@ -19,6 +19,10 @@ func newRedHatFetchRequests(target []string) (reqs []fetchRequest) {
 // FetchRedHatFiles fetch OVAL from RedHat
 func FetchRedHatFiles(versions []string) ([]FetchResult, error) {
 	reqs := newRedHatFetchRequests(versions)
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

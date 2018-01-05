@@ -12,7 +12,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		var name string
 		if name = ubuntuName(v); name == "unknown" {
-			log.Warnf("Skip unkown ubuntu version : %s.", v)
+			log.Warnf("Skip unknown ubuntu version : %s.", v)
 			continue
 		}
 		reqs = append(reqs, fetchRequest{
@@ -39,6 +39,10 @@ func ubuntuName(major string) string {
 // FetchUbuntuFiles fetch OVAL from Ubuntu
 func FetchUbuntuFiles(versions []string) ([]FetchResult, error) {
 	reqs := newUbuntuFetchRequests(versions)
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

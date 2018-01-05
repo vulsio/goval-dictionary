@@ -16,6 +16,10 @@ func newOracleFetchRequests() (reqs []fetchRequest) {
 // FetchOracleFiles fetch OVAL from Oracle
 func FetchOracleFiles() ([]FetchResult, error) {
 	reqs := newOracleFetchRequests()
+	if len(reqs) == 0 {
+		return nil,
+			fmt.Errorf("There are no versions to fetch")
+	}
 	results, err := fetchFeedFileConcurrently(reqs)
 	if err != nil {
 		return nil,

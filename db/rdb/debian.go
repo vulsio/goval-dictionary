@@ -106,8 +106,7 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit().Error
 }
 
 // GetByPackName select definitions by packName

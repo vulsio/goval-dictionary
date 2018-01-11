@@ -10,49 +10,39 @@ import (
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-// Ubuntu is a struct for DBAccess
-type Ubuntu struct {
+// Amazon is a struct for DBAccess
+type Amazon struct {
 	Family string
 }
 
-// NewUbuntu creates DBAccess
-func NewUbuntu() *Ubuntu {
-	return &Ubuntu{Family: config.Ubuntu}
+// NewAmazon creates DBAccess
+func NewAmazon() *Amazon {
+	return &Amazon{Family: config.Amazon}
 }
 
 // Name return family name
-func (o *Ubuntu) Name() string {
+func (o *Amazon) Name() string {
 	return o.Family
 }
 
-// InsertOval inserts Ubuntu OVAL
-func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
-	log.Debugf("in Ubuntu")
+// InsertOval inserts Amazon ALAS information as OVAL format
+func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in Amazon")
 	tx := driver.Begin()
 
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.OSVersion)
-		return nil
-	}
-	log.Infof("  Refreshing %s %s...", root.Family, root.OSVersion)
-
 	old := models.Root{}
-	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
+	r := tx.Where(&models.Root{Family: root.Family}).First(&old)
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
 		driver.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
-			deb := models.Debian{}
-			driver.Model(&def).Related(&deb, "Debian ")
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
+			adv := models.Advisory{}
+			driver.Model(&def).Related(&adv, "Advisory")
+			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
-			adv := models.Advisory{}
-			driver.Model(&def).Related(&adv, "Advisory")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
@@ -86,8 +76,8 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Ubuntu) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = major(osVer)
+func (o *Amazon) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+	osVer = majorMinor(osVer)
 	packs := []models.Package{}
 	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
 		return nil, err
@@ -105,53 +95,59 @@ func (o *Ubuntu) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 			return nil, err
 		}
 
-		if root.Family == config.Ubuntu && major(root.OSVersion) == osVer {
+		// Amazon has no version information
+		if root.Family == config.Amazon {
 			defs = append(defs, def)
 		}
-	}
 
-	for i, def := range defs {
-		deb := models.Debian{}
-		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
-			return nil, err
-		}
-		defs[i].Debian = deb
+		for i, def := range defs {
+			adv := models.Advisory{}
+			if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+				return nil, err
+			}
 
-		adv := models.Advisory{}
-		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
-			return nil, err
-		}
-		defs[i].Advisory = adv
+			cves := []models.Cve{}
+			if err := driver.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+				return nil, err
+			}
 
-		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
+			adv.Cves = cves
+			defs[i].Advisory = adv
 
-		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
-			return nil, err
+			packs := []models.Package{}
+			if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+				return nil, err
+			}
+			defs[i].AffectedPacks = packs
+
+			refs := []models.Reference{}
+			if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+				return nil, err
+			}
+			defs[i].References = refs
 		}
-		defs[i].References = refs
 	}
 
 	return defs, nil
 }
 
 // GetByCveID select definitions by CveID
-func (o *Ubuntu) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = major(osVer)
-
-	refs := []models.Reference{}
-	if err := driver.Where(&models.Reference{Source: "CVE", RefID: cveID}).Find(&refs).Error; err != nil {
+func (o *Amazon) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
+	osVer = majorMinor(osVer)
+	cves := []models.Cve{}
+	if err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
-	for _, ref := range refs {
+	for _, cve := range cves {
+		adv := models.Advisory{}
+		if err := driver.Where("id = ?", cve.AdvisoryID).Find(&adv).Error; err != nil {
+			return nil, err
+		}
+
 		def := models.Definition{}
-		if err := driver.Where("id = ?", ref.DefinitionID).Find(&def).Error; err != nil {
+		if err := driver.Where("id = ?", adv.DefinitionID).Find(&def).Error; err != nil {
 			return nil, err
 		}
 
@@ -159,22 +155,25 @@ func (o *Ubuntu) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.Ubuntu && major(root.OSVersion) == osVer {
+
+		// Amazon has no version information
+		if root.Family == config.Amazon {
 			defs = append(defs, def)
 		}
 	}
 
 	for i, def := range defs {
-		deb := models.Debian{}
-		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
-			return nil, err
-		}
-		defs[i].Debian = deb
-
 		adv := models.Advisory{}
 		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
 			return nil, err
 		}
+
+		cves := []models.Cve{}
+		if err := driver.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+			return nil, err
+		}
+		adv.Cves = cves
+
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
@@ -189,5 +188,6 @@ func (o *Ubuntu) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 		}
 		defs[i].References = refs
 	}
+
 	return defs, nil
 }

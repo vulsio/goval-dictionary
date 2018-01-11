@@ -2,19 +2,15 @@ package fetcher
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 )
 
 func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 	const t = "https://people.canonical.com/~ubuntu-security/oval/com.ubuntu.%s.cve.oval.xml"
 	for _, v := range target {
-		var name string
-		if name = ubuntuName(v); name == "unknown" {
-			log.Warnf("Skip unknown ubuntu version : %s.", v)
-			continue
-		}
+		name := ubuntuName(v)
 		reqs = append(reqs, fetchRequest{
 			target: v,
 			url:    fmt.Sprintf(t, name),
@@ -31,8 +27,10 @@ func ubuntuName(major string) string {
 		return config.Ubuntu14
 	case "16":
 		return config.Ubuntu16
+	case "18":
+		return config.Ubuntu18
 	default:
-		return "unknown"
+		return strings.ToLower(major)
 	}
 }
 

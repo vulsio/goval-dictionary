@@ -17,7 +17,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
-// FetchAmazonCmd is Subcommand for fetch Alpine secdb
+// FetchAmazonCmd is Subcommand for fetch Amazon ALAS RSS
 // https://alas.aws.amazon.com/alas.rss
 type FetchAmazonCmd struct {
 	Debug     bool
@@ -120,6 +120,7 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 	root := models.Root{
 		Family:      c.Amazon,
+		OSVersion:   "0",
 		Definitions: defs,
 		Timestamp:   time.Now(),
 	}

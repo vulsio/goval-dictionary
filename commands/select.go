@@ -37,7 +37,7 @@ func (*SelectCmd) Synopsis() string { return "Select from DB" }
 // Usage return usage
 func (*SelectCmd) Usage() string {
 	return `select:
-	fetch-redhat
+	select
 		[-dbtype=sqlite3|mysql|postgres|redis]
 		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-debug-sql]

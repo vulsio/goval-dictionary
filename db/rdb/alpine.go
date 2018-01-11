@@ -51,6 +51,10 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
+			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("Failed to delete: %s", err)
+			}
 		}
 		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
 			tx.Rollback()
@@ -115,6 +119,11 @@ func (o *Alpine) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 			}
 			defs[i].AffectedPacks = packs
 
+			refs := []models.Reference{}
+			if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+				return nil, err
+			}
+			defs[i].References = refs
 		}
 	}
 
@@ -169,7 +178,12 @@ func (o *Alpine) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
-		// defs[i].AffectedPacks = filterByMajor(packs, osVer)
+
+		refs := []models.Reference{}
+		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+			return nil, err
+		}
+		defs[i].References = refs
 	}
 
 	return defs, nil

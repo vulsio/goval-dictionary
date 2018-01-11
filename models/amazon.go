@@ -46,14 +46,13 @@ func parseTitle(title string) (alas, severity string, packNames []string) {
 func ConvertAmazonToModel(data *AmazonRSS) (defs []Definition) {
 	for _, item := range data.Items {
 
-		Cves := []Cve{}
+		cves := []Cve{}
 		cveIDs := descToCveIDs(item.Description)
 		for _, id := range cveIDs {
-			Cves = append(Cves, Cve{CveID: id})
+			cves = append(cves, Cve{CveID: id})
 		}
 
 		packs := []Package{}
-		_, severity, names := parseTitle(item.Title)
 		alas, severity, names := parseTitle(item.Title)
 		for _, n := range names {
 			packs = append(packs, Package{
@@ -63,17 +62,25 @@ func ConvertAmazonToModel(data *AmazonRSS) (defs []Definition) {
 
 		issued, _ := time.Parse(time.RFC1123, item.PubDate)
 
+		refs := []Reference{}
+		for _, id := range cveIDs {
+			refs = append(refs, Reference{
+				Source: "CVE",
+				RefID:  id,
+				RefURL: item.Link,
+			})
+		}
+
 		defs = append(defs, Definition{
+			DefinitionID:  "def-" + alas,
 			Title:         alas,
 			AffectedPacks: packs,
 			Advisory: Advisory{
-				Cves:     Cves,
+				Cves:     cves,
 				Severity: severity,
 				Issued:   issued,
 			},
-			References: []Reference{
-				{RefURL: item.Link},
-			},
+			References: refs,
 		})
 	}
 	return

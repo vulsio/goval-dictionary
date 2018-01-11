@@ -77,6 +77,8 @@ func (d *Driver) NewOvalDB(family string) error {
 		d.ovaldb = NewSUSE(family)
 	case c.Alpine:
 		d.ovaldb = NewAlpine()
+	case c.Amazon:
+		d.ovaldb = NewAmazon()
 	default:
 		if strings.Contains(family, "suse") {
 			suses := []string{

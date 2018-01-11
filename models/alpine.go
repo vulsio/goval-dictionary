@@ -47,8 +47,15 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 
 	for cveID, packs := range cveIDPacks {
 		def := Definition{
+			DefinitionID: "def-" + cveID,
 			Advisory: Advisory{
 				Cves: []Cve{{CveID: cveID}},
+			},
+			References: []Reference{
+				{
+					Source: "CVE",
+					RefID:  cveID,
+				},
 			},
 			AffectedPacks: packs,
 		}

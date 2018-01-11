@@ -59,6 +59,9 @@ const (
 
 	// Alpine is
 	Alpine = "alpine"
+
+	// Amazon is
+	Amazon = "amazon"
 )
 
 // Conf has Configuration

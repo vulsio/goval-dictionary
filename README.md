@@ -40,6 +40,9 @@ Subcommands:
 Subcommands for fetch-alpine:
         fetch-alpine     Fetch Vulnerability dictionary from Alpine secdb
 
+Subcommands for fetch-amazon:
+        fetch-amazon     Fetch Vulnerability dictionary from Amazon ALAS
+
 Subcommands for fetch-debian:
         fetch-debian     Fetch Vulnerability dictionary from Debian
 
@@ -330,6 +333,46 @@ The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
  $ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
 ```
 See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of supported alpines.
+
+### Usage: Fetch Amazon ALAS as OVAL data type
+
+- [Amazon Linux AMI Security Bulletins](https://alas.aws.amazon.com/alas.rss)
+Amazon ALAS provideis in RSS format and not OVAL, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
+
+```bash
+fetch-amazon:
+        fetch-amazon
+                [-dbtype=sqlite3|mysql|postgres|redis]
+                [-dbpath=$PWD/oval.sqlite3 or connection string]
+                [-http-proxy=http://192.168.0.1:8080]
+                [-debug]
+                [-debug-sql]
+                [-quiet]
+                [-log-dir=/path/to/log]
+
+        $ goval-dictionary fetch-amazon
+
+  -dbpath string
+        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
+  -dbtype string
+        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+  -debug
+        debug mode
+  -debug-sql
+        SQL debug mode
+  -http-proxy string
+        http://proxy-url:port (default: empty)
+  -log-dir string
+        /path/to/log (default "/var/log/vuls")
+  -quiet
+        quiet mode (no output)
+```
+
+- Import Amazon ALAS from Internet
+
+```bash
+ $ goval-dictionary fetch-amazon
+```
 
 ### Usage: select oval by package name
 
@@ -794,6 +837,13 @@ server:
 
 ----
 
+## Tips
+
+- How to use Redis as DB backend
+see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
+
+----
+
 ## Data Source
 
 - [RedHat](https://www.redhat.com/security/data/oval/)
@@ -802,6 +852,7 @@ server:
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
 - [Alpine-secdb](https://git.alpinelinux.org/cgit/alpine-secdb/)
+- [Amazon](https://alas.aws.amazon.com/alas.rss)
 
 ----
 

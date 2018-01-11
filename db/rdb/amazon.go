@@ -10,28 +10,28 @@ import (
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-// Alpine is a struct for DBAccess
-type Alpine struct {
+// Amazon is a struct for DBAccess
+type Amazon struct {
 	Family string
 }
 
-// NewAlpine creates DBAccess
-func NewAlpine() *Alpine {
-	return &Alpine{Family: config.Alpine}
+// NewAmazon creates DBAccess
+func NewAmazon() *Amazon {
+	return &Amazon{Family: config.Amazon}
 }
 
 // Name return family name
-func (o *Alpine) Name() string {
+func (o *Amazon) Name() string {
 	return o.Family
 }
 
-// InsertOval inserts Alpine secdb information as OVAL format
-func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
-	log.Debugf("in alpine")
+// InsertOval inserts Amazon ALAS information as OVAL format
+func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+	log.Debugf("in Amazon")
 	tx := driver.Begin()
 
 	old := models.Root{}
-	r := tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
+	r := tx.Where(&models.Root{Family: root.Family}).First(&old)
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
@@ -76,7 +76,7 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Alpine) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+func (o *Amazon) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = majorMinor(osVer)
 	packs := []models.Package{}
 	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
@@ -95,7 +95,8 @@ func (o *Alpine) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 			return nil, err
 		}
 
-		if root.Family == config.Alpine && root.OSVersion == osVer {
+		// Amazon has no version information
+		if root.Family == config.Amazon {
 			defs = append(defs, def)
 		}
 
@@ -131,7 +132,7 @@ func (o *Alpine) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 }
 
 // GetByCveID select definitions by CveID
-func (o *Alpine) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
+func (o *Amazon) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = majorMinor(osVer)
 	cves := []models.Cve{}
 	if err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
@@ -154,7 +155,9 @@ func (o *Alpine) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
 			return nil, err
 		}
-		if root.Family == config.Alpine && root.OSVersion == osVer {
+
+		// Amazon has no version information
+		if root.Family == config.Amazon {
 			defs = append(defs, def)
 		}
 	}

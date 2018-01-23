@@ -71,7 +71,7 @@
   branch = "master"
   name = "github.com/kotakanbe/logrus-prefixed-formatter"
   packages = ["."]
-  revision = "75edb2e85a38873f0318be05a458446681d1022f"
+  revision = "928f7356cb964637e2489a6ef37eee55181676c5"
 
 [[projects]]
   name = "github.com/labstack/echo"

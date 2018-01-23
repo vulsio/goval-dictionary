@@ -76,7 +76,7 @@ func (d *RedisDriver) NewOvalDB(family string) error {
 	case c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
 		c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer,
 		c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud,
-		c.Alpine:
+		c.Alpine, c.Amazon:
 
 		d.ovaldb = family
 	default:
@@ -130,7 +130,10 @@ func (d *RedisDriver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
 func (d *RedisDriver) GetByPackName(osVer, packName string) (defs []models.Definition, err error) {
-	osVer = major(osVer)
+	// Alpne provides vulnerability file for each major.minor
+	if d.ovaldb != c.Alpine {
+		osVer = major(osVer)
+	}
 	defs = []models.Definition{}
 	var result *redis.StringSliceCmd
 	if result = d.conn.ZRange(hashKeyPrefix+packName, 0, -1); result.Err() != nil {

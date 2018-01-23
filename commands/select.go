@@ -36,16 +36,16 @@ func (*SelectCmd) Synopsis() string { return "Select from DB" }
 
 // Usage return usage
 func (*SelectCmd) Usage() string {
-	return `fetch-redhat:
-	fetch-redhat
-		[-dbtype=mysql|sqlite3]
+	return `select:
+	select
+		[-dbtype=sqlite3|mysql|postgres|redis]
 		[-dbpath=$PWD/oval.sqlite3 or connection string]
 		[-debug-sql]
 		[-quiet]
 		[-log-dir=/path/to/log]
 
-		[-by-package]
-		[-by-cveid]
+		[-by-package] redhat 7 bind
+		[-by-cveid] redhat 7 CVE-2017-6009
 
 `
 }

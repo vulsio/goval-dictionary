@@ -80,10 +80,7 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 			pp.Sprintf("%v", root), err)
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-	return nil
+	return tx.Commit().Error
 }
 
 // GetByPackName select definitions by packName

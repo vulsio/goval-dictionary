@@ -15,7 +15,7 @@ import (
 const Name string = "goval-dictionary"
 
 // Version ... Version
-var version = "0.0.2"
+var version = "0.0.3"
 
 // Revision of Git
 var revision string
@@ -31,6 +31,7 @@ func main() {
 	subcommands.Register(&commands.FetchSUSECmd{}, "fetch-suse")
 	subcommands.Register(&commands.FetchOracleCmd{}, "fetch-oracle")
 	subcommands.Register(&commands.FetchAlpineCmd{}, "fetch-alpine")
+	subcommands.Register(&commands.FetchAmazonCmd{}, "fetch-amazon")
 	subcommands.Register(&commands.SelectCmd{}, "select")
 	subcommands.Register(&commands.ServerCmd{}, "server")
 

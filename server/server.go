@@ -21,7 +21,7 @@ func Start(logDir string, driver db.DB) error {
 	e.SetDebug(config.Conf.Debug)
 
 	// Middleware
-	//  e.Use(middleware.Logger())
+	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	// setup access logger

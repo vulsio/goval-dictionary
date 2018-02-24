@@ -115,8 +115,8 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	v := map[string]bool{}
 	for _, arg := range f.Args() {
 		ver, err := strconv.Atoi(arg)
-		if err != nil || ver < 5 {
-			log.Errorf("Specify version to fetch (from 5 to latest RHEL version), arg: %s", arg)
+		if err != nil || ver < 3 {
+			log.Errorf("Specify version to fetch (from 3 to latest RHEL version), arg: %s", arg)
 			return subcommands.ExitUsageError
 		}
 		v[arg] = true

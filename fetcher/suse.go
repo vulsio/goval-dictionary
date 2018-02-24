@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"fmt"
+	c "github.com/kotakanbe/goval-dictionary/config"
 )
 
 // http://ftp.suse.com/pub/projects/security/oval/opensuse.leap.42.2.xml
@@ -10,8 +11,12 @@ import (
 // http://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.12.xml
 // http://ftp.suse.com/pub/projects/security/oval/suse.openstack.cloud.7.xml
 func newSUSEFetchRequests(suseType string, target []string) (reqs []fetchRequest) {
-	const t = "http://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
 	for _, v := range target {
+		t := "https://support.novell.com/security/oval/%s.%s.xml"
+		if suseType == c.OpenSUSELeap && v == "42.3" {
+			// Measures against "Access Forbidden"
+			t = "http://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
+		}
 		reqs = append(reqs, fetchRequest{
 			target: v,
 			url:    fmt.Sprintf(t, suseType, v),

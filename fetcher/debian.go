@@ -2,20 +2,16 @@ package fetcher
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 )
 
 // https://www.debian.org/security/oval/
 func newDebianFetchRequests(target []string) (reqs []fetchRequest) {
 	const t = "https://www.debian.org/security/oval/oval-definitions-%s.xml"
 	for _, v := range target {
-		var name string
-		if name = debianName(v); name == "unknown" {
-			log.Warnf("Skip unknown debian version : %s.", v)
-			continue
-		}
+		name := debianName(v)
 		reqs = append(reqs, fetchRequest{
 			target: v,
 			url:    fmt.Sprintf(t, name),
@@ -34,8 +30,10 @@ func debianName(major string) string {
 		return config.Debian9
 	case "10":
 		return config.Debian10
+	case "11":
+		return config.Debian11
 	default:
-		return "unknown"
+		return strings.ToLower(major)
 	}
 }
 

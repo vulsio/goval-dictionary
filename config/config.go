@@ -27,6 +27,9 @@ const (
 	// Ubuntu16 is Ubuntu Xenial
 	Ubuntu16 = "xenial"
 
+	// Ubuntu18 is Ubuntu Bionic
+	Ubuntu18 = "bionic"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 
@@ -38,6 +41,9 @@ const (
 
 	// Debian10 is buster
 	Debian10 = "buster"
+
+	// Debian11 is bullseye
+	Debian11 = "bullseye"
 
 	// OpenSUSE is
 	OpenSUSE = "opensuse"

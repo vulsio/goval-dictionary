@@ -38,9 +38,11 @@ func Initialize(logDir string, output ...io.Writer) {
 	}
 
 	// File output
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		if err := os.Mkdir(logDir, 0700); err != nil {
-			logrus.Errorf("Failed to create log directory: %s", err)
+	if logDir != "" {
+		if _, err := os.Stat(logDir); os.IsNotExist(err) {
+			if err := os.Mkdir(logDir, 0700); err != nil {
+				logrus.Errorf("Failed to create log directory: %s", err)
+			}
 		}
 	}
 

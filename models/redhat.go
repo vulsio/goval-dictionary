@@ -1,11 +1,14 @@
 package models
 
 import (
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ymomoi/goval-parser/oval"
 )
+
+var cveIDPattern = regexp.MustCompile(`(CVE-\d{4}-\d{4,})`)
 
 // ConvertRedHatToModel Convert OVAL to models
 func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
@@ -46,6 +49,15 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				URL:        b.URL,
 				Title:      b.Title,
 			})
+		}
+
+		if len(cves) == 0 {
+			for _, b := range d.Advisory.Bugzillas {
+				fields := strings.Fields(b.Title)
+				if len(fields) > 0 && cveIDPattern.MatchString(fields[0]) {
+					cves = append(cves, Cve{CveID: fields[0]})
+				}
+			}
 		}
 
 		const timeformat = "2006-01-02"

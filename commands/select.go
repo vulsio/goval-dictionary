@@ -4,14 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/google/subcommands"
+	"github.com/inconshreveable/log15"
 	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
@@ -75,15 +74,9 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 
-	c.Conf.Quiet = p.Quiet
-	if c.Conf.Quiet {
-		log.Initialize(p.LogDir, ioutil.Discard)
-	} else {
-		log.Initialize(p.LogDir, os.Stderr)
-	}
-
+	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug)
 	if f.NArg() != 3 {
-		log.Fatal(`
+		log15.Crit(`
 		Usage:
 		select OVAL by package name
 		./goval-dictionary select -by-package RedHat 7 java-1.7.0-openjdk
@@ -94,13 +87,13 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	}
 
 	if !p.ByPackage && !p.ByCveID {
-		log.Fatal("Specify -by-package or -by-cveid")
+		log15.Crit("Specify -by-package or -by-cveid")
 	}
 
 	var err error
 	var driver db.DB
 	if driver, err = db.NewDB(f.Args()[0], c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log.Error(err)
+		log15.Error("Failed to new db.", "err", err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
@@ -113,7 +106,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		dfs, err = driver.GetByPackName(f.Args()[1], f.Args()[2])
 		if err != nil {
 			//TODO Logger
-			log.Fatal(err)
+			log15.Crit("Failed to get cve by package.", "err", err)
 		}
 
 		for _, d := range dfs {
@@ -132,7 +125,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	if p.ByCveID {
 		dfs, err = driver.GetByCveID(f.Args()[1], f.Args()[2])
 		if err != nil {
-			log.Fatal(err)
+			log15.Crit("Failed to get cve by cveID", "err", err)
 		}
 
 		for _, d := range dfs {

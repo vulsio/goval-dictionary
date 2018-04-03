@@ -4,17 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/google/subcommands"
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
@@ -82,29 +81,20 @@ func (p *FetchAlpineCmd) SetFlags(f *flag.FlagSet) {
 // Execute execute
 func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	c.Conf.Quiet = p.Quiet
-	if c.Conf.Quiet {
-		log.Initialize(p.LogDir, ioutil.Discard)
-	} else {
-		log.Initialize(p.LogDir, os.Stderr)
-	}
-
 	c.Conf.DebugSQL = p.DebugSQL
 	c.Conf.Debug = p.Debug
-	if c.Conf.Debug {
-		log.SetDebug()
-	}
-
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 	c.Conf.HTTPProxy = p.HTTPProxy
 
+	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
 	}
 
 	if len(f.Args()) == 0 {
-		log.Errorf("Specify versions to fetch.")
-		log.Errorf(p.Usage())
+		log15.Error("Specify versions to fetch.")
+		log15.Error(p.Usage())
 		return subcommands.ExitUsageError
 	}
 
@@ -120,7 +110,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 	results, err := fetcher.FetchAlpineFiles(vers)
 	if err != nil {
-		log.Error(err)
+		log15.Error("Failed to fetch files.", "err", err)
 		return subcommands.ExitFailure
 	}
 
@@ -133,7 +123,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	for _, r := range results {
 		secdb, err := unmarshalYml(r.Body)
 		if err != nil {
-			log.Fatal(err)
+			log15.Crit("Failed to unmarshal yml.", "err", err)
 			return subcommands.ExitFailure
 		}
 
@@ -152,7 +142,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 	var driver db.DB
 	if driver, err = db.NewDB(c.Alpine, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log.Error(err)
+		log15.Error("Failed to new db.", "err", err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
@@ -165,9 +155,9 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Timestamp:   time.Now(),
 		}
 
-		log.Infof("  %d CVEs", len(t.defs))
+		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
 		if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
-			log.Error(err)
+			log15.Error("Failed to insert meta.", "err", err)
 			return subcommands.ExitFailure
 		}
 	}

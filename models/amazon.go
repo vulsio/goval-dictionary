@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kotakanbe/goval-dictionary/log"
+	"github.com/inconshreveable/log15"
 )
 
 // AmazonRSS is a struct of alpine secdb
@@ -31,7 +31,7 @@ func descToCveIDs(description string) (cveIDs []string) {
 func parseTitle(title string) (alas, severity string, packNames []string) {
 	ss := strings.Fields(title)
 	if len(ss) < 3 {
-		log.Infof("Unknown format : %s", title)
+		log15.Info("Unknown format", "title", title)
 	}
 	alas = ss[0]
 	severity = strings.TrimRight(strings.TrimLeft(ss[1], "("), ":)")

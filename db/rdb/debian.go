@@ -3,10 +3,10 @@ package rdb
 import (
 	"fmt"
 
+	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
@@ -27,16 +27,16 @@ func (o *Debian) Name() string {
 
 // InsertOval inserts Debian OVAL
 func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
-	log.Debugf("in Debian")
+	log15.Debug("in Debian")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log.Infof("  Skip %s %s (Same Timestamp)", root.Family, root.OSVersion)
+		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
 		return nil
 	}
-	log.Infof("  Refreshing...  %s %s ", root.Family, root.OSVersion)
+	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
 	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
@@ -70,7 +70,7 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 					continue
 				}
 
-				log.Debugf("delete defid:", olddef.ID)
+				log15.Debug("delete", "defid", olddef.ID)
 
 				if err := tx.Unscoped().Where("definition_id= ?", olddef.ID).Delete(&models.Package{}).Error; err != nil {
 					tx.Rollback()

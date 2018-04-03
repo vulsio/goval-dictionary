@@ -3,8 +3,8 @@ package fetcher
 import (
 	"fmt"
 
+	"github.com/inconshreveable/log15"
 	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 )
 
 func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
@@ -12,7 +12,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		var name string
 		if name = ubuntuName(v); name == "unknown" {
-			log.Warnf("Skip unknown ubuntu version : %s.", v)
+			log15.Warn("Skip unknown ubuntu.", "version", v)
 			continue
 		}
 		reqs = append(reqs, fetchRequest{

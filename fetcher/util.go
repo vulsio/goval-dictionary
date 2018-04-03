@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
@@ -43,7 +43,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 	defer close(errChan)
 
 	for _, r := range reqs {
-		log.Infof("Fetching... %s\n", r.url)
+		log15.Info("Fetching... ", "URL", r.url)
 	}
 
 	// check pb pool's err. cron (or something has no terminal) returns err here.
@@ -112,7 +112,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 			return results, fmt.Errorf("Timeout Fetching")
 		}
 	}
-	log.Info("Finished to fetch OVAL definitions.")
+	log15.Info("Finished to fetch OVAL definitions.")
 	if 0 < len(errs) {
 		return results, fmt.Errorf("%s", errs)
 	}
@@ -185,12 +185,12 @@ func getFileSize(req fetchRequest) int {
 	defer resp.Body.Close()
 
 	if resp.Header.Get("Accept-Ranges") != "bytes" {
-		log.Warn("Not supported range access.")
+		log15.Warn("Not supported range access.")
 	}
 
 	// the value -1 indicates that the length is unknown.
 	if resp.ContentLength <= 0 {
-		log.Info("Failed to get content length.")
+		log15.Info("Failed to get content length.")
 		return 0
 	}
 	return int(resp.ContentLength)

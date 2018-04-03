@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
@@ -60,7 +60,7 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 		}
 	}
 
-	log.Debugf("Opening DB (%s).", driver.Name())
+	log15.Debug("Opening DB.", "db", driver.Name())
 	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return
 	}
@@ -109,7 +109,7 @@ func (d *RedisDriver) OvalDB() string {
 func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 	var option *redis.Options
 	if option, err = redis.ParseURL(dbPath); err != nil {
-		log.Error(err)
+		log15.Error("Failed to parse url", "err", err)
 		return fmt.Errorf("Failed to Parse Redis URL. dbpath: %s, err: %s", dbPath, err)
 	}
 	d.conn = redis.NewClient(option)
@@ -122,7 +122,7 @@ func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 // CloseDB close Database
 func (d *RedisDriver) CloseDB() (err error) {
 	if err = d.conn.Close(); err != nil {
-		log.Errorf("Failed to close DB. Type: %s. err: %s", d.name, err)
+		log15.Error("Failed to close DB.", "Type", d.name, "err", err)
 		return
 	}
 	return
@@ -138,7 +138,7 @@ func (d *RedisDriver) GetByPackName(osVer, packName string) (defs []models.Defin
 	var result *redis.StringSliceCmd
 	if result = d.conn.ZRange(hashKeyPrefix+packName, 0, -1); result.Err() != nil {
 		err = result.Err()
-		log.Error(result.Err())
+		log15.Error("Failed to get definition from package", "err", result.Err())
 		return
 	}
 
@@ -234,14 +234,14 @@ func getByHashKey(hashKey string, driver *redis.Client) (defs []models.Definitio
 	var result *redis.StringStringMapCmd
 	if result = driver.HGetAll(hashKey); result.Err() != nil {
 		err = result.Err()
-		log.Error(result.Err())
+		log15.Error("Failed to get definition.", "err", result.Err())
 		return
 	}
 
 	for _, v := range result.Val() {
 		var def models.Definition
 		if err = json.Unmarshal([]byte(v), &def); err != nil {
-			log.Errorf("Failed to Unmarshal json. err : %s", err)
+			log15.Error("Failed to Unmarshal json.", "err", err)
 			return
 		}
 		defs = append(defs, def)

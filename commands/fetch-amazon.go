@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/xml"
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/google/subcommands"
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
@@ -78,42 +78,33 @@ func (p *FetchAmazonCmd) SetFlags(f *flag.FlagSet) {
 // Execute execute
 func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	c.Conf.Quiet = p.Quiet
-	if c.Conf.Quiet {
-		log.Initialize(p.LogDir, ioutil.Discard)
-	} else {
-		log.Initialize(p.LogDir, os.Stderr)
-	}
-
 	c.Conf.DebugSQL = p.DebugSQL
 	c.Conf.Debug = p.Debug
-	if c.Conf.Debug {
-		log.SetDebug()
-	}
-
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 	c.Conf.HTTPProxy = p.HTTPProxy
 
+	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
 	}
 
 	result, err := fetcher.FetchAmazonFile()
 	if err != nil {
-		log.Error(err)
+		log15.Error("Failed to fetch files.", "err", err)
 		return subcommands.ExitFailure
 	}
 
 	amazonRSS := models.AmazonRSS{}
 	if err = xml.Unmarshal(result.Body, &amazonRSS); err != nil {
-		log.Errorf("Failed to unmarshal. err: %s", err)
+		log15.Error("Failed to unmarshal.", "url", result.URL, "err", err)
 		return subcommands.ExitUsageError
 	}
 	defs := models.ConvertAmazonToModel(&amazonRSS)
 
 	var driver db.DB
 	if driver, err = db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log.Error(err)
+		log15.Error("Failed to new db.", "err", err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
@@ -125,9 +116,9 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		Timestamp:   time.Now(),
 	}
 
-	log.Infof("  %d CVEs", len(defs))
+	log15.Info(fmt.Sprintf("%d CVEs", len(defs)))
 	if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
-		log.Error(err)
+		log15.Error("Failed to insert meta.", "err", err)
 		return subcommands.ExitFailure
 	}
 

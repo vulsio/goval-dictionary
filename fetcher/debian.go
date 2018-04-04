@@ -3,8 +3,8 @@ package fetcher
 import (
 	"fmt"
 
+	"github.com/inconshreveable/log15"
 	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 )
 
 // https://www.debian.org/security/oval/
@@ -13,7 +13,7 @@ func newDebianFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		var name string
 		if name = debianName(v); name == "unknown" {
-			log.Warnf("Skip unknown debian version : %s.", v)
+			log15.Warn("Skip unknown debian.", "version", v)
 			continue
 		}
 		reqs = append(reqs, fetchRequest{

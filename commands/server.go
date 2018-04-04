@@ -3,13 +3,12 @@ package commands
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"os"
 
 	"github.com/google/subcommands"
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
-	log "github.com/kotakanbe/goval-dictionary/log"
 	server "github.com/kotakanbe/goval-dictionary/server"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
@@ -76,23 +75,14 @@ func (p *ServerCmd) SetFlags(f *flag.FlagSet) {
 // Execute execute
 func (p *ServerCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	c.Conf.Quiet = p.quiet
-	if c.Conf.Quiet {
-		log.Initialize(p.logDir, ioutil.Discard)
-	} else {
-		log.Initialize(p.logDir, os.Stderr)
-	}
-
 	c.Conf.DebugSQL = p.debugSQL
 	c.Conf.Debug = p.debug
-	if c.Conf.Debug {
-		log.SetDebug()
-	}
-
 	c.Conf.Bind = p.bind
 	c.Conf.Port = p.port
 	c.Conf.DBPath = p.dbpath
 	c.Conf.DBType = p.dbtype
 
+	util.SetLogger(p.logDir, c.Conf.Quiet, c.Conf.Debug)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
 	}
@@ -100,14 +90,14 @@ func (p *ServerCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	var err error
 	var driver db.DB
 	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log.Error(err)
+		log15.Error("Failed to new db.", "err", err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
 
-	log.Info("Starting HTTP Server...")
+	log15.Info("Starting HTTP Server...")
 	if err = server.Start(p.logDir, driver); err != nil {
-		log.Error(err)
+		log15.Error("Failed to start server.", "err", err)
 		return subcommands.ExitFailure
 	}
 	return subcommands.ExitSuccess

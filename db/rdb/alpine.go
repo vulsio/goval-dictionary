@@ -3,10 +3,10 @@ package rdb
 import (
 	"fmt"
 
+	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
@@ -27,7 +27,7 @@ func (o *Alpine) Name() string {
 
 // InsertOval inserts Alpine secdb information as OVAL format
 func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
-	log.Debugf("in alpine")
+	log15.Debug("in alpine")
 	tx := driver.Begin()
 
 	old := models.Root{}

@@ -2,7 +2,7 @@ package config
 
 import (
 	valid "github.com/asaskevich/govalidator"
-	log "github.com/kotakanbe/goval-dictionary/log"
+	"github.com/inconshreveable/log15"
 )
 
 const (
@@ -83,14 +83,14 @@ type Config struct {
 func (p *Config) Validate() bool {
 	if p.DBType == "sqlite3" {
 		if ok, _ := valid.IsFilePath(p.DBPath); !ok {
-			log.Errorf("SQLite3 DB path must be a *Absolute* file path. dbpath: %s", p.DBPath)
+			log15.Error("SQLite3 DB path must be a *Absolute* file path.", "dbpath", p.DBPath)
 			return false
 		}
 	}
 
 	_, err := valid.ValidateStruct(p)
 	if err != nil {
-		log.Errorf("error: " + err.Error())
+		log15.Error("Invalid Struct", "err", err)
 		return false
 	}
 	return true

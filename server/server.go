@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/inconshreveable/log15"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
-	log "github.com/kotakanbe/goval-dictionary/log"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
@@ -49,7 +49,7 @@ func Start(logDir string, driver db.DB) error {
 	//  e.Post("/cpes", getByPackName())
 
 	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
-	log.Infof("Listening on %s", bindURL)
+	log15.Info("Listening...", "URL", bindURL)
 
 	e.Run(standard.New(bindURL))
 	return nil
@@ -68,11 +68,11 @@ func getByCveID(driver db.DB) echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		cveID := c.Param("id")
-		log.Debugf("%s %s %s", family, release, cveID)
+		log15.Debug("Params", "Family", family, "Release", release, "CveID", cveID)
 		driver.NewOvalDB(family)
 		defs, err := driver.GetByCveID(release, cveID)
 		if err != nil {
-			log.Errorf("Failed to get by CveID: %s", err)
+			log15.Error("Failed to get by CveID.", "err", err)
 		}
 		return c.JSON(http.StatusOK, defs)
 	}
@@ -83,11 +83,11 @@ func getByPackName(driver db.DB) echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		pack := c.Param("pack")
-		log.Debugf("%s %s %s", family, release, pack)
+		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack)
 		driver.NewOvalDB(family)
 		defs, err := driver.GetByPackName(release, pack)
 		if err != nil {
-			log.Errorf("Failed to get by CveID: %s", err)
+			log15.Error("Failed to get by CveID.", "err", err)
 		}
 		return c.JSON(http.StatusOK, defs)
 	}
@@ -97,11 +97,12 @@ func countOvalDefs(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
-		log.Debugf("count: %s %s %s", family, release)
+		log15.Debug("Params", "Family", family, "Release", release)
 		driver.NewOvalDB(family)
 		count, err := driver.CountDefs(family, release)
+		log15.Debug("Count", "Count", count)
 		if err != nil {
-			log.Errorf("Failed to count OVAL defs: %s", err)
+			log15.Error("Failed to count OVAL defs.", "err", err)
 		}
 		return c.JSON(http.StatusOK, count)
 	}
@@ -111,7 +112,7 @@ func getLastModified(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
-		log.Debugf("getLastModified: %s %s %s", family, release)
+		log15.Debug("getLastModified", "Family", family, "Release", release)
 		driver.NewOvalDB(family)
 		t := driver.GetLastModified(family, release)
 		return c.JSON(http.StatusOK, t)

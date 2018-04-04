@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/log"
 	"github.com/kotakanbe/goval-dictionary/models"
 
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
@@ -50,12 +50,12 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, err e
 		}
 	}
 
-	log.Debugf("Opening DB (%s).", driver.Name())
+	log15.Debug("Opening DB.", "db", driver.Name())
 	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return
 	}
 
-	log.Debugf("Migrating DB (%s).", driver.Name())
+	log15.Debug("Migrating DB.", "db", driver.Name())
 	if err = driver.MigrateDB(); err != nil {
 		return
 	}
@@ -181,7 +181,7 @@ func (d *Driver) MigrateDB() error {
 // CloseDB close Database
 func (d *Driver) CloseDB() (err error) {
 	if err = d.conn.Close(); err != nil {
-		log.Errorf("Failed to close DB. Type: %s. err: %s", d.name, err)
+		log15.Error("Failed to close DB.", "Type", d.name, " err", err)
 		return
 	}
 	return

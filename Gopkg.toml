@@ -1,16 +1,6 @@
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/sirupsen/logrus"
-
 [[constraint]]
   branch = "master"
   name = "github.com/k0kubun/pp"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/kotakanbe/logrus-prefixed-formatter"
-
 [[constraint]]
   branch = "master"
   name = "github.com/ymomoi/goval-parser"

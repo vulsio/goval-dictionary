@@ -5,15 +5,12 @@ import (
 	"compress/bzip2"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/util"
@@ -23,8 +20,6 @@ type fetchRequest struct {
 	target string
 	url    string
 	bzip2  bool
-	pbErr  error
-	bar    *pb.ProgressBar
 }
 
 //FetchResult has url and OVAL definitions
@@ -46,28 +41,8 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		log15.Info("Fetching... ", "URL", r.url)
 	}
 
-	// check pb pool's err. cron (or something has no terminal) returns err here.
-	_, pbErr := pb.StartPool()
-	var pool *pb.Pool
 	go func() {
 		for _, r := range reqs {
-			r.pbErr = pbErr
-			prefix := filepath.Base(r.url) + ":"
-			r.bar = pb.New(getFileSize(r)).SetUnits(pb.U_BYTES).Prefix(prefix)
-
-			if pool == nil && pbErr == nil {
-				if pool, pbErr = pb.StartPool(r.bar); pbErr == nil {
-					if c.Conf.Quiet {
-						pool.Output = ioutil.Discard
-					} else {
-						pool.Output = os.Stderr
-					}
-				}
-			} else {
-				if pbErr == nil {
-					pool.Add(r.bar)
-				}
-			}
 			reqChan <- r
 		}
 	}()
@@ -96,9 +71,6 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		}
 	}
 	wg.Wait()
-	if pbErr == nil {
-		pool.Stop()
-	}
 
 	errs := []error{}
 	timeout := time.After(10 * 60 * time.Second)
@@ -140,13 +112,7 @@ func fetchFile(req fetchRequest) (body []byte, err error) {
 	defer resp.Body.Close()
 
 	buf := bytes.NewBuffer(nil)
-	if req.pbErr == nil {
-		req.bar.Start()
-		rd := req.bar.NewProxyReader(resp.Body)
-		io.Copy(buf, rd)
-	} else {
-		io.Copy(buf, resp.Body)
-	}
+	io.Copy(buf, resp.Body)
 
 	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
 		return nil, fmt.Errorf(

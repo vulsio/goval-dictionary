@@ -380,11 +380,11 @@ Select from DB where package name is golang.
 
 <details>
 <summary> 
-`$ goval-dictionary select -by-package RedHat 7 golang`
+`$ goval-dictionary select -by-package redhat 7 golang`
 </summary>
 
 ```bash
-$ goval-dictionary select -by-package RedHat 7 golang
+$ goval-dictionary select -by-package redhat 7 golang
 [Apr 10 10:22:43]  INFO Opening DB (sqlite3).
 CVE-2015-5739
     {3399 319 golang 0:1.6.3-1.el7_2.1}
@@ -605,7 +605,7 @@ CVE-2016-5386
 </summary>
 
 ```bash
-$ goval-dictionary select -by-cveid RedHat 7 CVE-2017-6009
+$ goval-dictionary select -by-cveid redhat 7 CVE-2017-6009
 [Apr 12 12:12:36]  INFO Opening DB (sqlite3).
 RHSA-2017:0837: icoutils security update (Important)
 Important

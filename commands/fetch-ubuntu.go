@@ -24,6 +24,7 @@ type FetchUbuntuCmd struct {
 	DebugSQL  bool
 	Quiet     bool
 	LogDir    string
+	LogJSON   bool
 	DBPath    string
 	DBType    string
 	HTTPProxy string
@@ -46,6 +47,7 @@ func (*FetchUbuntuCmd) Usage() string {
 		[-debug-sql]
 		[-quiet]
 		[-log-dir=/path/to/log]
+		[-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
 	$ goval-dictionary fetch-ubuntu 12 14 16
@@ -61,6 +63,7 @@ func (p *FetchUbuntuCmd) SetFlags(f *flag.FlagSet) {
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
+	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
 	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
@@ -86,7 +89,7 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	c.Conf.DBType = p.DBType
 	c.Conf.HTTPProxy = p.HTTPProxy
 
-	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug)
+	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
 	}

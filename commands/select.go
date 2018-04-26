@@ -22,6 +22,7 @@ type SelectCmd struct {
 	DBType   string
 	Quiet    bool
 	LogDir   string
+	LogJSON  bool
 
 	ByPackage bool
 	ByCveID   bool
@@ -42,6 +43,7 @@ func (*SelectCmd) Usage() string {
 		[-debug-sql]
 		[-quiet]
 		[-log-dir=/path/to/log]
+		[-log-json]
 
 		[-by-package] redhat 7 bind
 		[-by-cveid] redhat 7 CVE-2017-6009
@@ -56,6 +58,7 @@ func (p *SelectCmd) SetFlags(f *flag.FlagSet) {
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
+	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
 	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
@@ -74,7 +77,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 
-	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug)
+	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if f.NArg() != 3 {
 		log15.Crit(`
 		Usage:

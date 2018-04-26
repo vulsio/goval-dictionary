@@ -19,6 +19,7 @@ type ServerCmd struct {
 	debugSQL bool
 	quiet    bool
 	logDir   string
+	logJSON  bool
 
 	dbpath string
 	dbtype string
@@ -44,6 +45,7 @@ func (*ServerCmd) Usage() string {
 		[-debug-sql]
 		[-quiet]
 		[-log-dir=/path/to/log]
+		[-log-json]
 
 `
 }
@@ -56,6 +58,7 @@ func (p *ServerCmd) SetFlags(f *flag.FlagSet) {
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.logDir, "log-dir", defaultLogDir, "/path/to/log")
+	f.BoolVar(&p.logJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
 	f.StringVar(&p.dbpath, "dbpath", pwd+"/oval.sqlite3",
@@ -82,7 +85,7 @@ func (p *ServerCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	c.Conf.DBPath = p.dbpath
 	c.Conf.DBType = p.dbtype
 
-	util.SetLogger(p.logDir, c.Conf.Quiet, c.Conf.Debug)
+	util.SetLogger(p.logDir, c.Conf.Quiet, c.Conf.Debug, p.logJSON)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
 	}

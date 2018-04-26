@@ -83,6 +83,7 @@ fetch-redhat:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
     $ goval-dictionary fetch-redhat 5 6 7
@@ -103,6 +104,8 @@ For the first time, run the blow command to fetch data for all versions.
         quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
 ```
 
 - Import OVAL data from Internet
@@ -126,6 +129,7 @@ fetch-debian:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
     $ goval-dictionary fetch-debian 7 8 9 10
@@ -144,6 +148,8 @@ For the first time, run the blow command to fetch data for all versions.
         quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
 ```
 
 - Import OVAL data from Internet
@@ -167,6 +173,7 @@ fetch-ubuntu:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
     $ goval-dictionary fetch-ubuntu 12 14 16
@@ -185,6 +192,8 @@ For the first time, run the blow command to fetch data for all versions.
         quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
 ```
 
 - Import OVAL data from Internet
@@ -213,6 +222,7 @@ fetch-suse:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
     $ goval-dictionary fetch-suse -opensuse 13.2
@@ -231,6 +241,8 @@ For the first time, run the blow command to fetch data for all versions.
         quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
   -opensuse
         OpenSUSE
   -opensuse-leap
@@ -265,6 +277,7 @@ fetch-oracle:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
     $ goval-dictionary fetch-oracle
@@ -283,6 +296,8 @@ For the first time, run the blow command to fetch data for all versions.
         quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
 ```
 
 - Import OVAL data from Internet
@@ -307,6 +322,7 @@ fetch-alpine:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
 The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
         $ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
@@ -323,6 +339,8 @@ The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
         http://proxy-url:port (default: empty)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
   -quiet
         quiet mode (no output)
 ```
@@ -349,6 +367,7 @@ fetch-amazon:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
         $ goval-dictionary fetch-amazon
 
@@ -364,6 +383,8 @@ fetch-amazon:
         http://proxy-url:port (default: empty)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
   -quiet
         quiet mode (no output)
 ```
@@ -815,6 +836,7 @@ server:
                 [-debug-sql]
                 [-quiet]
                 [-log-dir=/path/to/log]
+                [-log-json]
 
   -bind string
         HTTP server bind to IP address (default: loop back interface) (default "127.0.0.1")
@@ -830,6 +852,8 @@ server:
         quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
+  -log-json
+        output log as JSON
   -port string
         HTTP server port number (default: 1324)
 

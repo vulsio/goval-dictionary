@@ -30,6 +30,7 @@ type FetchSUSECmd struct {
 	DebugSQL              bool
 	Quiet                 bool
 	LogDir                string
+	LogJSON               bool
 	DBPath                string
 	DBType                string
 	HTTPProxy             string
@@ -58,6 +59,7 @@ func (*FetchSUSECmd) Usage() string {
 		[-debug-sql]
 		[-quiet]
 		[-log-dir=/path/to/log]
+		[-log-json]
 
 For details, see https://github.com/kotakanbe/goval-dictionary#usage-fetch-oval-data-from-suse
 	$ goval-dictionary fetch-suse -opensuse 13.2
@@ -80,6 +82,7 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
+	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
 	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
@@ -102,7 +105,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	c.Conf.DBType = p.DBType
 	c.Conf.HTTPProxy = p.HTTPProxy
 
-	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug)
+	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
 	}

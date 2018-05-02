@@ -27,6 +27,9 @@ const (
 	// Ubuntu16 is Ubuntu Xenial
 	Ubuntu16 = "xenial"
 
+	// Ubuntu18 is Ubuntu Bionic
+	Ubuntu18 = "bionic"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

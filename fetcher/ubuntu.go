@@ -31,6 +31,8 @@ func ubuntuName(major string) string {
 		return config.Ubuntu14
 	case "16":
 		return config.Ubuntu16
+	case "18":
+		return config.Ubuntu18
 	default:
 		return "unknown"
 	}

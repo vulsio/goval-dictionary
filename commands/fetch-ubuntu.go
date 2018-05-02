@@ -50,7 +50,7 @@ func (*FetchUbuntuCmd) Usage() string {
 		[-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
-	$ goval-dictionary fetch-ubuntu 12 14 16
+	$ goval-dictionary fetch-ubuntu 12 14 16 18
 
 `
 }

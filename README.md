@@ -859,6 +859,74 @@ server:
 
 ```
 
+#### cURL
+
+```
+$ curl http://127.0.0.1:1324/cves/ubuntu/16/CVE-2017-15400 | jq
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  1237  100  1237    0     0  81365      0 --:--:-- --:--:-- --:--:-- 82466
+[
+  {
+    "ID": 10582,
+    "DefinitionID": "oval:com.ubuntu.xenial:def:201715400000",
+    "Title": "CVE-2017-15400 on Ubuntu 16.04 LTS (xenial) - medium.",
+    "Description": "Insufficient restriction of IPP filters in CUPS in Google Chrome OS prior to 62.0.3202.74 allowed a remote attacker to execute a command with the same privileges as the cups daemon via a crafted PPD file, aka a printer zeroconfig CRLF issue.",
+    "Advisory": {
+      "ID": 10575,
+      "Severity": "Medium",
+      "Cves": null,
+      "Bugzillas": null,
+      "AffectedCPEList": null,
+      "Issued": "0001-01-01T00:00:00Z",
+      "Updated": "0001-01-01T00:00:00Z"
+    },
+    "Debian": {
+      "ID": 9330,
+      "CveID": "CVE-2017-15400",
+      "MoreInfo": "",
+      "Date": "0001-01-01T00:00:00Z"
+    },
+    "AffectedPacks": [
+      {
+        "ID": 16117,
+        "Name": "cups",
+        "Version": "",
+        "NotFixedYet": true
+      }
+    ],
+    "References": [
+      {
+        "ID": 48602,
+        "Source": "CVE",
+        "RefID": "CVE-2017-15400",
+        "RefURL": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-15400"
+      },
+      {
+        "ID": 48603,
+        "Source": "Ref",
+        "RefID": "",
+        "RefURL": "http://people.canonical.com/~ubuntu-security/cve/2017/CVE-2017-15400.html"
+      },
+      {
+        "ID": 48604,
+        "Source": "Ref",
+        "RefID": "",
+        "RefURL": "https://chromereleases.googleblog.com/2017/10/stable-channel-update-for-chrome-os_27.html"
+      },
+      {
+        "ID": 48605,
+        "Source": "Bug",
+        "RefID": "",
+        "RefURL": "https://bugs.chromium.org/p/chromium/issues/detail?id=777215"
+      }
+    ]
+  }
+]
+```
+
+For details, see https://github.com/kotakanbe/goval-dictionary/blob/master/server/server.go#L44
+
 ----
 
 ## Tips

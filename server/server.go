@@ -16,7 +16,7 @@ import (
 )
 
 // Start starts CVE dictionary HTTP Server.
-func Start(logDir string, driver db.DB) error {
+func Start(logDir string) error {
 	e := echo.New()
 	e.SetDebug(config.Conf.Debug)
 
@@ -42,10 +42,10 @@ func Start(logDir string, driver db.DB) error {
 
 	// Routes
 	e.Get("/health", health())
-	e.Get("/cves/:family/:release/:id", getByCveID(driver))
-	e.Get("/packs/:family/:release/:pack", getByPackName(driver))
-	e.Get("/count/:family/:release", countOvalDefs(driver))
-	e.Get("/lastmodified/:family/:release", getLastModified(driver))
+	e.Get("/cves/:family/:release/:id", getByCveID())
+	e.Get("/packs/:family/:release/:pack", getByPackName())
+	e.Get("/count/:family/:release", countOvalDefs())
+	e.Get("/lastmodified/:family/:release", getLastModified())
 	//  e.Post("/cpes", getByPackName())
 
 	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
@@ -63,12 +63,18 @@ func health() echo.HandlerFunc {
 }
 
 // Handler
-func getByCveID(driver db.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
+func getByCveID() echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		cveID := c.Param("id")
 		log15.Debug("Params", "Family", family, "Release", release, "CveID", cveID)
+
+		var driver db.DB
+		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
+			return err
+		}
+		defer driver.CloseDB()
 		driver.NewOvalDB(family)
 		defs, err := driver.GetByCveID(release, cveID)
 		if err != nil {
@@ -78,13 +84,18 @@ func getByCveID(driver db.DB) echo.HandlerFunc {
 	}
 }
 
-func getByPackName(driver db.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
+func getByPackName() echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		pack := c.Param("pack")
 		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack)
-		driver.NewOvalDB(family)
+
+		var driver db.DB
+		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
+			return err
+		}
+		defer driver.CloseDB()
 		defs, err := driver.GetByPackName(release, pack)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
@@ -93,12 +104,16 @@ func getByPackName(driver db.DB) echo.HandlerFunc {
 	}
 }
 
-func countOvalDefs(driver db.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
+func countOvalDefs() echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("Params", "Family", family, "Release", release)
-		driver.NewOvalDB(family)
+		var driver db.DB
+		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
+			return err
+		}
+		defer driver.CloseDB()
 		count, err := driver.CountDefs(family, release)
 		log15.Debug("Count", "Count", count)
 		if err != nil {
@@ -108,12 +123,16 @@ func countOvalDefs(driver db.DB) echo.HandlerFunc {
 	}
 }
 
-func getLastModified(driver db.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
+func getLastModified() echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("getLastModified", "Family", family, "Release", release)
-		driver.NewOvalDB(family)
+		var driver db.DB
+		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
+			return err
+		}
+		defer driver.CloseDB()
 		t := driver.GetLastModified(family, release)
 		return c.JSON(http.StatusOK, t)
 	}

@@ -8,7 +8,6 @@ import (
 	"github.com/google/subcommands"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/db"
 	server "github.com/kotakanbe/goval-dictionary/server"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
@@ -90,16 +89,8 @@ func (p *ServerCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		return subcommands.ExitUsageError
 	}
 
-	var err error
-	var driver db.DB
-	if driver, err = db.NewDB(c.Debian, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log15.Error("Failed to new db.", "err", err)
-		return subcommands.ExitFailure
-	}
-	defer driver.CloseDB()
-
 	log15.Info("Starting HTTP Server...")
-	if err = server.Start(p.logDir, driver); err != nil {
+	if err := server.Start(p.logDir); err != nil {
 		log15.Error("Failed to start server.", "err", err)
 		return subcommands.ExitFailure
 	}

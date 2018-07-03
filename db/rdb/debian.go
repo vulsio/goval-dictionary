@@ -34,7 +34,7 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
-		return nil
+		return tx.Rollback().Error
 	}
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 

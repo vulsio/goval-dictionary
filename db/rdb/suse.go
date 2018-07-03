@@ -77,19 +77,22 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 // http: //ftp.suse.com/pub/projects/security/oval/
 func (o *SUSE) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	packs := []models.Package{}
-	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		if err := driver.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		err = driver.Where("id = ?", def.RootID).Find(&root).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
@@ -100,13 +103,15 @@ func (o *SUSE) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.
 
 	for i, def := range defs {
 		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].References = refs
@@ -123,7 +128,8 @@ func (o *SUSE) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models.D
 	driver.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
 		root := models.Root{}
-		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		err := driver.Where("id = ?", def.RootID).Find(&root).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		if root.Family != o.Family || root.OSVersion != osVer {
@@ -131,13 +137,15 @@ func (o *SUSE) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models.D
 		}
 
 		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		def.AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		def.References = refs

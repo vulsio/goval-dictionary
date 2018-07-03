@@ -113,19 +113,22 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 func (o *Debian) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
-	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		if err := driver.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		err = driver.Where("id = ?", def.RootID).Find(&root).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
@@ -136,19 +139,22 @@ func (o *Debian) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 
 	for i, def := range defs {
 		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].References = refs
 
 		deb := models.Debian{}
-		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
+		err = driver.Model(&def).Related(&deb, "Debian").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].Debian = deb
@@ -164,7 +170,8 @@ func (o *Debian) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models
 	driver.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
 	for _, def := range tmpdefs {
 		root := models.Root{}
-		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		err := driver.Where("id = ?", def.RootID).Find(&root).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		if root.Family != config.Debian || major(root.OSVersion) != osVer {
@@ -172,19 +179,22 @@ func (o *Debian) GetByCveID(osVer, cveID string, driver *gorm.DB) (defs []models
 		}
 
 		deb := models.Debian{}
-		if err := driver.Model(&def).Related(&deb, "Debian").Error; err != nil {
+		err = driver.Model(&def).Related(&deb, "Debian").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		def.Debian = deb
 
 		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		def.AffectedPacks = packs
 
 		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		def.References = refs

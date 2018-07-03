@@ -95,19 +95,22 @@ func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 func (o *RedHat) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
-	if err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error; err != nil {
+	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
-		if err := driver.Where("id = ?", p.DefinitionID).Find(&def).Error; err != nil {
+		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		err = driver.Where("id = ?", def.RootID).Find(&root).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
@@ -118,24 +121,28 @@ func (o *RedHat) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+		err = driver.Model(&def).Related(&adv, "Advisory").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		cves := []models.Cve{}
-		if err := driver.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+		err = driver.Model(&adv).Related(&cves, "Cves").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.Cves = cves
 
 		bugs := []models.Bugzilla{}
-		if err := driver.Model(&adv).Related(&bugs, "Bugzillas").Error; err != nil {
+		err = driver.Model(&adv).Related(&bugs, "Bugzillas").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.Bugzillas = bugs
 
 		cpes := []models.Cpe{}
-		if err := driver.Model(&adv).Related(&cpes, "AffectedCPEList").Error; err != nil {
+		err = driver.Model(&adv).Related(&cpes, "AffectedCPEList").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.AffectedCPEList = cpes
@@ -143,13 +150,15 @@ func (o *RedHat) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].AffectedPacks = filterByMajor(packs, osVer)
 
 		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].References = refs
@@ -162,24 +171,28 @@ func (o *RedHat) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 func (o *RedHat) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
 	osVer = major(osVer)
 	cves := []models.Cve{}
-	if err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error; err != nil {
+	err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
 	for _, cve := range cves {
 		adv := models.Advisory{}
-		if err := driver.Where("id = ?", cve.AdvisoryID).Find(&adv).Error; err != nil {
+		err = driver.Where("id = ?", cve.AdvisoryID).Find(&adv).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		def := models.Definition{}
-		if err := driver.Where("id = ?", adv.DefinitionID).Find(&def).Error; err != nil {
+		err = driver.Where("id = ?", adv.DefinitionID).Find(&def).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		root := models.Root{}
-		if err := driver.Where("id = ?", def.RootID).Find(&root).Error; err != nil {
+		err = driver.Where("id = ?", def.RootID).Find(&root).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		if root.Family == config.RedHat && major(root.OSVersion) == osVer {
@@ -189,24 +202,28 @@ func (o *RedHat) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		if err := driver.Model(&def).Related(&adv, "Advisory").Error; err != nil {
+		err = driver.Model(&def).Related(&adv, "Advisory").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		cves := []models.Cve{}
-		if err := driver.Model(&adv).Related(&cves, "Cves").Error; err != nil {
+		err = driver.Model(&adv).Related(&cves, "Cves").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.Cves = cves
 
 		bugs := []models.Bugzilla{}
-		if err := driver.Model(&adv).Related(&bugs, "Bugzillas").Error; err != nil {
+		err = driver.Model(&adv).Related(&bugs, "Bugzillas").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.Bugzillas = bugs
 
 		cpes := []models.Cpe{}
-		if err := driver.Model(&adv).Related(&cpes, "AffectedCPEList").Error; err != nil {
+		err = driver.Model(&adv).Related(&cpes, "AffectedCPEList").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.AffectedCPEList = cpes
@@ -214,13 +231,15 @@ func (o *RedHat) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		if err := driver.Model(&def).Related(&packs, "AffectedPacks").Error; err != nil {
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].AffectedPacks = filterByMajor(packs, osVer)
 
 		refs := []models.Reference{}
-		if err := driver.Model(&def).Related(&refs, "References").Error; err != nil {
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].References = refs

@@ -209,7 +209,7 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
 	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		return nil
+		return tx.Rollback().Error
 	}
 
 	if r.RecordNotFound() {

@@ -43,7 +43,7 @@
   branch = "master"
   name = "github.com/google/subcommands"
   packages = ["."]
-  revision = "a3682377147edf596d303faabd89f81977b3f678"
+  revision = "5bae204cdfb2d92dcc333d56014bae6a2f6c58b1"
 
 [[projects]]
   name = "github.com/inconshreveable/log15"
@@ -145,7 +145,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
+  revision = "151529c776cdc58ddbe7963ba9af779f3577b419"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -162,6 +162,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "32ff03c409bdca349230a032f55d4f2d8197090b2c9a898e8802c1ef4b26fc20"
+  inputs-digest = "826f715e739badb6368ebc8b40c083d9fa951364354cab331195c279e5ac4733"
   solver-name = "gps-cdcl"
   solver-version = 1

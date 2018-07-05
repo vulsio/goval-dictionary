@@ -95,11 +95,15 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 
 	var err error
 	var driver db.DB
-	if driver, err = db.NewDB(f.Args()[0], c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log15.Error("Failed to new db.", "err", err)
+	driver, locked, err := db.NewDB(f.Args()[0], c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	if err != nil {
+		if locked {
+			log15.Error("Failed to Open DB. Close DB connection before select: %s", err)
+			return subcommands.ExitFailure
+		}
+		log15.Error("%s", err)
 		return subcommands.ExitFailure
 	}
-	defer driver.CloseDB()
 
 	// count, err := driver.CountDefs("redhat", "7")
 	// pp.Println("count: ", count, err)

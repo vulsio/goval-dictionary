@@ -111,6 +111,17 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		vers = append(vers, k)
 	}
 
+	driver, locked, err := db.NewDB(c.Alpine, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	if err != nil {
+		if locked {
+			log15.Error("Failed to Open DB. Close DB connection before fetching", "err", err)
+			return subcommands.ExitFailure
+		}
+		log15.Error("%s", err)
+		return subcommands.ExitFailure
+	}
+	defer driver.CloseDB()
+
 	results, err := fetcher.FetchAlpineFiles(vers)
 	if err != nil {
 		log15.Error("Failed to fetch files.", "err", err)
@@ -142,13 +153,6 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	// pp.Println(m)
-
-	var driver db.DB
-	if driver, err = db.NewDB(c.Alpine, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log15.Error("Failed to new db.", "err", err)
-		return subcommands.ExitFailure
-	}
-	defer driver.CloseDB()
 
 	for target, t := range m {
 		root := models.Root{

@@ -70,9 +70,14 @@ func getByCveID() echo.HandlerFunc {
 		cveID := c.Param("id")
 		log15.Debug("Params", "Family", family, "Release", release, "CveID", cveID)
 
-		var driver db.DB
-		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
-			return err
+		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to Open DB: %s", err)
+			if locked {
+				msg += " Close DB connection"
+			}
+			log15.Error(msg)
+			return c.JSON(http.StatusInternalServerError, nil)
 		}
 		defer driver.CloseDB()
 		driver.NewOvalDB(family)
@@ -91,9 +96,14 @@ func getByPackName() echo.HandlerFunc {
 		pack := c.Param("pack")
 		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack)
 
-		var driver db.DB
-		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
-			return err
+		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to Open DB: %s", err)
+			if locked {
+				msg += " Close DB connection"
+			}
+			log15.Error(msg)
+			return c.JSON(http.StatusInternalServerError, nil)
 		}
 		defer driver.CloseDB()
 		defs, err := driver.GetByPackName(release, pack)
@@ -109,9 +119,14 @@ func countOvalDefs() echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("Params", "Family", family, "Release", release)
-		var driver db.DB
-		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
-			return err
+		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to Open DB: %s", err)
+			if locked {
+				msg += " Close DB connection"
+			}
+			log15.Error(msg)
+			return c.JSON(http.StatusInternalServerError, nil)
 		}
 		defer driver.CloseDB()
 		count, err := driver.CountDefs(family, release)
@@ -128,9 +143,14 @@ func getLastModified() echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("getLastModified", "Family", family, "Release", release)
-		var driver db.DB
-		if driver, err = db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL); err != nil {
-			return err
+		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to Open DB: %s", err)
+			if locked {
+				msg += " Close DB connection"
+			}
+			log15.Error(msg)
+			return c.JSON(http.StatusInternalServerError, nil)
 		}
 		defer driver.CloseDB()
 		t := driver.GetLastModified(family, release)

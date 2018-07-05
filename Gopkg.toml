@@ -54,6 +54,10 @@
   version = "2.2.0"
 
 [[constraint]]
+  name = "github.com/mattn/go-sqlite3"
+  version = "1.9.0"
+
+[[constraint]]
   branch = "master"
   name = "github.com/ymomoi/goval-parser"
 

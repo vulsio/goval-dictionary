@@ -103,6 +103,16 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
+	driver, locked, err := db.NewDB(c.RedHat, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	if err != nil {
+		if locked {
+			log15.Error("Failed to Open DB. Close DB connection before fetching", "err", err)
+			return subcommands.ExitFailure
+		}
+		log15.Error("%s", err)
+		return subcommands.ExitFailure
+	}
+
 	// Distinct
 	vers := []string{}
 	v := map[string]bool{}
@@ -123,13 +133,6 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to fetch files.", "err", err)
 		return subcommands.ExitFailure
 	}
-
-	var driver db.DB
-	if driver, err = db.NewDB(c.RedHat, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL); err != nil {
-		log15.Error("Failed to new db.", "err", err)
-		return subcommands.ExitFailure
-	}
-	defer driver.CloseDB()
 
 	for _, r := range results {
 		ovalroot := oval.Root{}

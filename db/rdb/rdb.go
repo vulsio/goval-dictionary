@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	sqlite3 "github.com/mattn/go-sqlite3"
 
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -39,27 +40,27 @@ type OvalDB interface {
 }
 
 // NewRDB return RDB driver
-func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, err error) {
+func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locked bool, err error) {
 	driver = &Driver{
 		name: dbType,
 	}
 	// when using server command, family is empty.
 	if 0 < len(family) {
 		if err = driver.NewOvalDB(family); err != nil {
-			return
+			return nil, false, err
 		}
 	}
 
 	log15.Debug("Opening DB.", "db", driver.Name())
-	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
-		return
+	if locked, err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
+		return nil, locked, err
 	}
 
 	log15.Debug("Migrating DB.", "db", driver.Name())
 	if err = driver.MigrateDB(); err != nil {
-		return
+		return nil, false, err
 	}
-	return
+	return driver, false, nil
 }
 
 // NewOvalDB create a OvalDB client
@@ -101,18 +102,25 @@ func (d *Driver) Name() string {
 }
 
 // OpenDB opens Database
-func (d *Driver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
+func (d *Driver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
 	d.conn, err = gorm.Open(dbType, dbPath)
 	if err != nil {
-		return fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
+		if dbType == DialectSqlite3 {
+			switch err.(sqlite3.Error).Code {
+			case sqlite3.ErrLocked, sqlite3.ErrBusy:
+				return true, err
+			}
+		}
+		return false, fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
 	d.conn.LogMode(debugSQL)
 
 	if dbType == DialectSqlite3 {
-		d.conn.Exec("PRAGMA journal_mode=WAL;")
+		if err := d.conn.Exec("PRAGMA journal_mode=WAL;").Error; err != nil {
+			return false, err
+		}
 	}
-
-	return
+	return false, nil
 }
 
 // MigrateDB migrates Database

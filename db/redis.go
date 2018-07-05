@@ -49,7 +49,7 @@ type RedisDriver struct {
 }
 
 // NewRedis return Redis driver
-func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver, err error) {
+func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver, locked bool, err error) {
 	driver = &RedisDriver{
 		name: dbType,
 	}

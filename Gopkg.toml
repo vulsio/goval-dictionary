@@ -25,46 +25,6 @@
 #   unused-packages = true
 
 
-[[constraint]]
-  name = "github.com/asaskevich/govalidator"
-  version = "9.0.0"
-
-[[constraint]]
-  name = "github.com/go-redis/redis"
-  version = "6.12.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/google/subcommands"
-
-[[constraint]]
-  name = "github.com/inconshreveable/log15"
-  version = "2.13.0"
-
-[[constraint]]
-  name = "github.com/jinzhu/gorm"
-  version = "1.9.1"
-
-[[constraint]]
-  name = "github.com/k0kubun/pp"
-  version = "2.3.0"
-
-[[constraint]]
-  name = "github.com/labstack/echo"
-  version = "2.2.0"
-
-[[constraint]]
-  name = "github.com/mattn/go-sqlite3"
-  version = "1.9.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/ymomoi/goval-parser"
-
-[[constraint]]
-  name = "gopkg.in/yaml.v2"
-  version = "2.2.1"
-
 [prune]
   go-tests = true
   unused-packages = true

@@ -51,12 +51,10 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locke
 		}
 	}
 
-	log15.Debug("Opening DB.", "db", driver.Name())
 	if locked, err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return nil, locked, err
 	}
 
-	log15.Debug("Migrating DB.", "db", driver.Name())
 	if err = driver.MigrateDB(); err != nil {
 		return nil, false, err
 	}

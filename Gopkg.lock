@@ -10,7 +10,8 @@
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  revision = "24c63f56522a87ec5339cc3567883f1039378fdb"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   name = "github.com/go-redis/redis"
@@ -95,7 +96,8 @@
     "log",
     "random"
   ]
-  revision = "f3b1a1b3bd4726161e1200863d278df7da5e66ff"
+  revision = "d6898124de917583f5ff5592ef931d1dfe0ddc05"
+  version = "0.2.6"
 
 [[projects]]
   branch = "master"
@@ -126,9 +128,16 @@
   version = "v1.9.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/valyala/bytebufferpool"
+  packages = ["."]
+  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+
+[[projects]]
+  branch = "master"
   name = "github.com/valyala/fasttemplate"
   packages = ["."]
-  revision = "3b874956e03f1636d171bda64b130f9135f42cff"
+  revision = "dcecefd839c4193db0d35b88ec65b4c12d360ab0"
 
 [[projects]]
   branch = "master"
@@ -137,15 +146,16 @@
   revision = "0a0be1dd9d0855b50be0be5a10ad3085382b6d59"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "daba796358cd2742b75aae05761f1b898c9f6a5c"
+  revision = "292b43bbf7cb8d35ddf40f8d5100ef3837cced3f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "151529c776cdc58ddbe7963ba9af779f3577b419"
+  revision = "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -162,6 +172,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "826f715e739badb6368ebc8b40c083d9fa951364354cab331195c279e5ac4733"
+  inputs-digest = "a54af01e89c89f0db20c054bc538dca1a5dff04160040da1bb3234197337ce83"
   solver-name = "gps-cdcl"
   solver-version = 1

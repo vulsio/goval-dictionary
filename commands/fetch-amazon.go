@@ -95,23 +95,23 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	driver, locked, err := db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
-			log15.Error("Failed to Open DB. Close DB connection before fetching", "err", err)
+			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
 			return subcommands.ExitFailure
 		}
-		log15.Error("%s", err)
+		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
 
 	result, err := fetcher.FetchAmazonFile()
 	if err != nil {
-		log15.Error("Failed to fetch files.", "err", err)
+		log15.Error("Failed to fetch files", "err", err)
 		return subcommands.ExitFailure
 	}
 
 	amazonRSS := models.AmazonRSS{}
 	if err = xml.Unmarshal(result.Body, &amazonRSS); err != nil {
-		log15.Error("Failed to unmarshal.", "url", result.URL, "err", err)
+		log15.Error("Failed to unmarshal", "url", result.URL, "err", err)
 		return subcommands.ExitUsageError
 	}
 	defs := models.ConvertAmazonToModel(&amazonRSS)
@@ -125,7 +125,7 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 	log15.Info(fmt.Sprintf("%d CVEs", len(defs)))
 	if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
-		log15.Error("Failed to insert meta.", "err", err)
+		log15.Error("Failed to insert meta", "err", err)
 		return subcommands.ExitFailure
 	}
 

@@ -142,10 +142,10 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	driver, locked, err := db.NewDB(suseType, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
-			log15.Error("Failed to Open DB. Close DB connection before fetching", "err", err)
+			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
 			return subcommands.ExitFailure
 		}
-		log15.Error("%s", err)
+		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
 
@@ -153,13 +153,13 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	if p.OVALPath == "" {
 		results, err = fetcher.FetchSUSEFiles(suseType, vers)
 		if err != nil {
-			log15.Error("Failed to fetch files.", "err", err)
+			log15.Error("Failed to fetch files", "err", err)
 			return subcommands.ExitFailure
 		}
 	} else {
 		dat, err := ioutil.ReadFile(p.OVALPath)
 		if err != nil {
-			log15.Error("Failed to read file.", "err", err)
+			log15.Error("Failed to read file", "err", err)
 			return subcommands.ExitFailure
 		}
 		results = []fetcher.FetchResult{{
@@ -171,7 +171,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal.", "url", r.URL, "err", err)
+			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
 			return subcommands.ExitUsageError
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
@@ -179,7 +179,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
-			log15.Error("Failed to parse time.", "err", err)
+			log15.Error("Failed to parse time", "err", err)
 			return subcommands.ExitFailure
 		}
 		ss := strings.Split(r.URL, "/")
@@ -192,13 +192,13 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		for _, root := range roots {
 			root.Timestamp = time.Now()
 			if err := driver.InsertOval(&root, fmeta); err != nil {
-				log15.Error("Failed to insert oval.", "err", err)
+				log15.Error("Failed to insert oval", "err", err)
 				return subcommands.ExitFailure
 			}
 		}
 
 		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta.", "err", err)
+			log15.Error("Failed to insert meta", "err", err)
 			return subcommands.ExitFailure
 		}
 	}

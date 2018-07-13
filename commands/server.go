@@ -91,7 +91,7 @@ func (p *ServerCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 
 	log15.Info("Starting HTTP Server...")
 	if err := server.Start(p.logDir); err != nil {
-		log15.Error("Failed to start server.", "err", err)
+		log15.Error("Failed to start server", "err", err)
 		return subcommands.ExitFailure
 	}
 	return subcommands.ExitSuccess

@@ -102,10 +102,10 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	driver, locked, err := db.NewDB(c.Ubuntu, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
-			log15.Error("Failed to Open DB. Close DB connection before fetching", "err", err)
+			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
 			return subcommands.ExitFailure
 		}
-		log15.Error("%s", err)
+		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
 
@@ -121,14 +121,14 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 	results, err := fetcher.FetchUbuntuFiles(vers)
 	if err != nil {
-		log15.Error("Failed to fetch files.", "err", err)
+		log15.Error("Failed to fetch files", "err", err)
 		return subcommands.ExitFailure
 	}
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal.", "url", r.URL, "err", err)
+			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
 			return subcommands.ExitUsageError
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
@@ -155,11 +155,11 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		}
 
 		if err := driver.InsertOval(&root, fmeta); err != nil {
-			log15.Error("Failed to insert oval.", "err", err)
+			log15.Error("Failed to insert OVAL", "err", err)
 			return subcommands.ExitFailure
 		}
 		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta.", "err", err)
+			log15.Error("Failed to insert meta", "err", err)
 			return subcommands.ExitFailure
 		}
 	}

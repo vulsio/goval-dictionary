@@ -84,7 +84,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 			return results, fmt.Errorf("Timeout Fetching")
 		}
 	}
-	log15.Info("Finished to fetch OVAL definitions.")
+	log15.Info("Finished to fetch OVAL definitions")
 	if 0 < len(errs) {
 		return results, fmt.Errorf("%s", errs)
 	}
@@ -151,12 +151,12 @@ func getFileSize(req fetchRequest) int {
 	defer resp.Body.Close()
 
 	if resp.Header.Get("Accept-Ranges") != "bytes" {
-		log15.Warn("Not supported range access.")
+		log15.Warn("Not supported range access")
 	}
 
 	// the value -1 indicates that the length is unknown.
 	if resp.ContentLength <= 0 {
-		log15.Info("Failed to get content length.")
+		log15.Info("Failed to get content length")
 		return 0
 	}
 	return int(resp.ContentLength)

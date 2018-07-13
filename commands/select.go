@@ -98,10 +98,10 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	driver, locked, err := db.NewDB(f.Args()[0], c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
-			log15.Error("Failed to Open DB. Close DB connection before select: %s", err)
+			log15.Error("Failed to open DB. Close DB connection before select", "err", err)
 			return subcommands.ExitFailure
 		}
-		log15.Error("%s", err)
+		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
 

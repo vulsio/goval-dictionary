@@ -96,7 +96,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 
 	if len(f.Args()) == 0 {
-		log15.Error("Specify versions to fetch.")
+		log15.Error("Specify versions to fetch")
 		log15.Error(p.Usage())
 		return subcommands.ExitUsageError
 	}
@@ -114,17 +114,17 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	driver, locked, err := db.NewDB(c.Alpine, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
-			log15.Error("Failed to Open DB. Close DB connection before fetching", "err", err)
+			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
 			return subcommands.ExitFailure
 		}
-		log15.Error("%s", err)
+		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
 	defer driver.CloseDB()
 
 	results, err := fetcher.FetchAlpineFiles(vers)
 	if err != nil {
-		log15.Error("Failed to fetch files.", "err", err)
+		log15.Error("Failed to fetch files", "err", err)
 		return subcommands.ExitFailure
 	}
 

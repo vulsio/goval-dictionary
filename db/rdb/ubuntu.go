@@ -43,16 +43,16 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		driver.Model(&old).Related(&defs, "Definitions")
+		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
 			deb := models.Debian{}
-			driver.Model(&def).Related(&deb, "Debian ")
+			tx.Model(&def).Related(&deb, "Debian ")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
 			}
 			adv := models.Advisory{}
-			driver.Model(&def).Related(&adv, "Advisory")
+			tx.Model(&def).Related(&adv, "Advisory")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)

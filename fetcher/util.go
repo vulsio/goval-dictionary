@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"sync"
 	"time"
 
+	"github.com/htcat/htcat"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/util"
@@ -55,7 +54,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		tasks <- func() {
 			select {
 			case req := <-reqChan:
-				body, err := fetchFile(req)
+				body, err := fetchFile(req, 40/len(reqs))
 				wg.Done()
 				if err != nil {
 					errChan <- err
@@ -91,12 +90,8 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 	return results, nil
 }
 
-func fetchFile(req fetchRequest) (body []byte, err error) {
-	//	var body string
-	var errs []error
+func fetchFile(req fetchRequest, parallelism int) (body []byte, err error) {
 	var proxyURL *url.URL
-	var resp *http.Response
-
 	httpCilent := &http.Client{}
 	if c.Conf.HTTPProxy != "" {
 		if proxyURL, err = url.Parse(c.Conf.HTTPProxy); err != nil {
@@ -105,59 +100,26 @@ func fetchFile(req fetchRequest) (body []byte, err error) {
 		httpCilent = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 	}
 
-	if resp, err = httpCilent.Get(req.url); err != nil {
-		fmt.Fprintf(os.Stderr, "Download failed: %v\n", err)
-		os.Exit(1)
+	u, err := url.Parse(req.url)
+	if err != nil {
+		return nil, fmt.Errorf("aborting: could not parse given URL: %v", err)
 	}
-	defer resp.Body.Close()
 
-	buf := bytes.NewBuffer(nil)
-	io.Copy(buf, resp.Body)
-
-	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
-		return nil, fmt.Errorf(
-			"HTTP error. errs: %v, url: %s", errs, req.url)
+	buf := bytes.Buffer{}
+	htc := htcat.New(httpCilent, u, parallelism)
+	if _, err := htc.WriteTo(&buf); err != nil {
+		return nil, fmt.Errorf("aborting: could not write to output stream: %v",
+			err)
 	}
 
 	var bytesBody []byte
 	if req.bzip2 {
-		bz := bzip2.NewReader(buf)
 		var b bytes.Buffer
-		b.ReadFrom(bz)
+		b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes())))
 		bytesBody = b.Bytes()
 	} else {
 		bytesBody = buf.Bytes()
 	}
 
 	return bytesBody, nil
-}
-
-func getFileSize(req fetchRequest) int {
-	var proxyURL *url.URL
-	var resp *http.Response
-	var err error
-
-	httpCilent := &http.Client{}
-	if c.Conf.HTTPProxy != "" {
-		if proxyURL, err = url.Parse(c.Conf.HTTPProxy); err != nil {
-			return 0
-		}
-		httpCilent = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
-	}
-
-	if resp, err = httpCilent.Head(req.url); err != nil {
-		return 0
-	}
-	defer resp.Body.Close()
-
-	if resp.Header.Get("Accept-Ranges") != "bytes" {
-		log15.Warn("Not supported range access")
-	}
-
-	// the value -1 indicates that the length is unknown.
-	if resp.ContentLength <= 0 {
-		log15.Info("Failed to get content length")
-		return 0
-	}
-	return int(resp.ContentLength)
 }

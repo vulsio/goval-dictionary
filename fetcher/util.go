@@ -77,6 +77,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		select {
 		case res := <-resChan:
 			results = append(results, res)
+			log15.Info("Fetched... ", "URL", res.URL)
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:

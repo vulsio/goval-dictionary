@@ -11,7 +11,7 @@ goval-dictionary requires the following packages.
 - SQLite3, MySQL, PostgreSQL or Redis
 - git
 - gcc
-- go v1.8 or later
+- lastest version of go
     - https://golang.org/doc/install
 
 ### Install

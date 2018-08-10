@@ -62,7 +62,7 @@ func walkDebian(cri oval.Criteria, osVer string, acc []distroPackage) []distroPa
 		}
 
 		// "0" means notyetfixed or erroneous information.
-		// Not available because "0" inclues erroneous info...
+		// Not available because "0" includes erroneous info...
 		if ss[1] == "0" {
 			continue
 		}

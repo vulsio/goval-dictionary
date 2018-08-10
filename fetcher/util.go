@@ -54,7 +54,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 		tasks <- func() {
 			select {
 			case req := <-reqChan:
-				body, err := fetchFile(req, 40/len(reqs))
+				body, err := fetchFile(req, 30/len(reqs))
 				wg.Done()
 				if err != nil {
 					errChan <- err

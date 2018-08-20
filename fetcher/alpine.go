@@ -28,7 +28,7 @@ func FetchAlpineFiles(versions []string) ([]FetchResult, error) {
 		return nil,
 			fmt.Errorf("There are no versions to fetch")
 	}
-	results, err := fetchFeedFileConcurrently(reqs)
+	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)

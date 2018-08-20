@@ -84,7 +84,7 @@ func fetchFeedFileConcurrently(reqs []fetchRequest) (results []FetchResult, err 
 			return results, fmt.Errorf("Timeout Fetching")
 		}
 	}
-	log15.Info("Finished to fetch OVAL definitions")
+	log15.Info("Finished fetching OVAL definitions")
 	if 0 < len(errs) {
 		return results, fmt.Errorf("%s", errs)
 	}

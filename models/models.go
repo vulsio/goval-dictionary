@@ -109,6 +109,7 @@ type Debian struct {
 	DefinitionID uint `json:"-" xml:"-"`
 
 	CveID    string
-	MoreInfo string
-	Date     time.Time
+	MoreInfo string `sql:"type:text"` // https://github.com/jinzhu/gorm/issues/510#issuecomment-180669092
+
+	Date time.Time
 }

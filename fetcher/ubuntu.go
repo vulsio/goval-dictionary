@@ -16,8 +16,9 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 			continue
 		}
 		reqs = append(reqs, fetchRequest{
-			target: v,
-			url:    fmt.Sprintf(t, name),
+			target:       v,
+			url:          fmt.Sprintf(t, name),
+			concurrently: true,
 		})
 	}
 	return
@@ -45,7 +46,7 @@ func FetchUbuntuFiles(versions []string) ([]FetchResult, error) {
 		return nil,
 			fmt.Errorf("There are no versions to fetch")
 	}
-	results, err := fetchFeedFileConcurrently(reqs)
+	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)

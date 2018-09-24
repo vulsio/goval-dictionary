@@ -57,12 +57,12 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 			// Delete old records
 			for _, olddeb := range olddebs {
 				olddef := models.Definition{}
-				if r := driver.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
+				if r := tx.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
 					continue
 				}
 
 				oldroot := models.Root{}
-				if r := driver.First(&oldroot, olddef.RootID); r.RecordNotFound() {
+				if r := tx.First(&oldroot, olddef.RootID); r.RecordNotFound() {
 					continue
 				}
 

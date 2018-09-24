@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-const community = "https://git.alpinelinux.org/cgit/alpine-secdb/plain/v%s/community.yaml"
-const main = "https://git.alpinelinux.org/cgit/alpine-secdb/plain/v%s/main.yaml"
+const community = "https://raw.githubusercontent.com/alpinelinux/alpine-secdb/master/v%s/community.yaml"
+const main = "https://raw.githubusercontent.com/alpinelinux/alpine-secdb/master/v%s/main.yaml"
 
 func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
@@ -28,7 +28,7 @@ func FetchAlpineFiles(versions []string) ([]FetchResult, error) {
 		return nil,
 			fmt.Errorf("There are no versions to fetch")
 	}
-	results, err := fetchFeedFileConcurrently(reqs)
+	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)

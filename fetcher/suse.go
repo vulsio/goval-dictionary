@@ -13,8 +13,9 @@ func newSUSEFetchRequests(suseType string, target []string) (reqs []fetchRequest
 	const t = "http://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
-			target: v,
-			url:    fmt.Sprintf(t, suseType, v),
+			target:       v,
+			url:          fmt.Sprintf(t, suseType, v),
+			concurrently: true,
 		})
 	}
 	return
@@ -27,7 +28,7 @@ func FetchSUSEFiles(suseType string, versions []string) ([]FetchResult, error) {
 		return nil,
 			fmt.Errorf("There are no versions to fetch")
 	}
-	results, err := fetchFeedFileConcurrently(reqs)
+	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)

@@ -29,7 +29,7 @@ type Definition struct {
 
 	DefinitionID  string
 	Title         string
-	Description   string `gorm:"type:text"`
+	Description   string `gorm:"size:8192"`
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package
@@ -109,6 +109,7 @@ type Debian struct {
 	DefinitionID uint `json:"-" xml:"-"`
 
 	CveID    string
-	MoreInfo string
-	Date     time.Time
+	MoreInfo string `sql:"type:text"` // https://github.com/jinzhu/gorm/issues/510#issuecomment-180669092
+
+	Date time.Time
 }

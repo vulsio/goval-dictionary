@@ -8,9 +8,10 @@ func newRedHatFetchRequests(target []string) (reqs []fetchRequest) {
 	const t = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL%s.xml.bz2"
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
-			target: v,
-			url:    fmt.Sprintf(t, v),
-			bzip2:  true,
+			target:       v,
+			url:          fmt.Sprintf(t, v),
+			bzip2:        true,
+			concurrently: false,
 		})
 	}
 	return
@@ -23,7 +24,7 @@ func FetchRedHatFiles(versions []string) ([]FetchResult, error) {
 		return nil,
 			fmt.Errorf("There are no versions to fetch")
 	}
-	results, err := fetchFeedFileConcurrently(reqs)
+	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)

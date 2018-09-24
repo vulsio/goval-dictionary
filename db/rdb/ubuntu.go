@@ -46,7 +46,7 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
 			deb := models.Debian{}
-			tx.Model(&def).Related(&deb, "Debian ")
+			tx.Model(&def).Related(&deb, "Debian")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)

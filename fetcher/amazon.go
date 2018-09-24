@@ -16,7 +16,7 @@ func newAmazonFetchRequest() (reqs fetchRequest) {
 // https://alas.aws.amazon.com/alas.rss
 func FetchAmazonFile() (*FetchResult, error) {
 	req := newAmazonFetchRequest()
-	results, err := fetchFeedFileConcurrently([]fetchRequest{req})
+	results, err := fetchFeedFiles([]fetchRequest{req})
 	if err != nil || len(results) != 1 {
 		return nil,
 			fmt.Errorf("Failed to fetch. err: %s", err)

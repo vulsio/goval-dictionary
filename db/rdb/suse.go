@@ -42,7 +42,7 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		driver.Model(&old).Related(&defs, "Definitions")
+		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
 			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
 				tx.Rollback()

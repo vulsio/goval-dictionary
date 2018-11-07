@@ -616,6 +616,13 @@ CVE-2016-5386
 
 ```
 
+Upper part format:
+```
+CVE-YYYY-NNNN
+    {ID DefinitionID PackageName PackageVersion NotFixedYet}
+```
+
+
 </details>
 
 ### Usage: select oval by CVE-ID
@@ -820,6 +827,13 @@ Important
 
 ```
 
+Upper part format:
+```
+[
+  {ID AdvisoryID CveID Cvss2 Cvss3 CWE Impact ReferenceURL PublishedDate}
+  ...
+]
+```
 </details>
 
 ### Usage: Start goval-dictionary as server mode

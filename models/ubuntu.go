@@ -3,6 +3,7 @@ package models
 import (
 	"regexp"
 
+	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -48,6 +49,14 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			AffectedPacks: collectUbuntuPacks(d.Criteria),
 			References:    rs,
 		}
+
+		if c.Conf.NoDetails {
+			def.Title = ""
+			def.Description = ""
+			def.Advisory = Advisory{}
+			def.References = []Reference{}
+		}
+
 		defs = append(defs, def)
 	}
 	return

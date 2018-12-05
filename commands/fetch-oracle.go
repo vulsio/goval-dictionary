@@ -23,6 +23,7 @@ type FetchOracleCmd struct {
 	Debug     bool
 	DebugSQL  bool
 	Quiet     bool
+	NoDetails bool
 	LogDir    string
 	LogJSON   bool
 	DBPath    string
@@ -46,6 +47,7 @@ func (*FetchOracleCmd) Usage() string {
 		[-debug]
 		[-debug-sql]
 		[-quiet]
+		[-no-details]
 		[-log-dir=/path/to/log]
 		[-log-json]
 
@@ -60,6 +62,7 @@ func (p *FetchOracleCmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.Debug, "debug", false, "debug mode")
 	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
 	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
+	f.BoolVar(&p.NoDetails, "no-details", false, "without vulnerability details")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
@@ -88,6 +91,7 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 	c.Conf.HTTPProxy = p.HTTPProxy
+	c.Conf.NoDetails = p.NoDetails
 
 	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if !c.Conf.Validate() {

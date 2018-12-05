@@ -3,8 +3,10 @@ package models
 import (
 	"strings"
 
-	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
+
+	"github.com/kotakanbe/goval-dictionary/config"
+	c "github.com/kotakanbe/goval-dictionary/config"
 )
 
 // ConvertOracleToModel Convert OVAL to models
@@ -40,6 +42,12 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 				},
 				AffectedPacks: []Package{distPack.pack},
 				References:    rs,
+			}
+
+			if c.Conf.NoDetails {
+				def.Title = ""
+				def.Description = ""
+				def.References = []Reference{}
 			}
 
 			root, ok := m[distPack.osVer]

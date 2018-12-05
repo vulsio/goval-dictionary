@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -79,6 +80,18 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			AffectedPacks: collectRedHatPacks(d.Criteria),
 			References:    rs,
 		}
+
+		if c.Conf.NoDetails {
+			def.Title = ""
+			def.Description = ""
+			def.Advisory.Severity = ""
+			def.Advisory.AffectedCPEList = nil
+			def.Advisory.Bugzillas = nil
+			def.Advisory.Issued = time.Time{}
+			def.Advisory.Updated = time.Time{}
+			def.References = []Reference{}
+		}
+
 		defs = append(defs, def)
 	}
 	return

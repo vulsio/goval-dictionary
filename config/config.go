@@ -75,6 +75,7 @@ type Config struct {
 	Debug     bool
 	DebugSQL  bool
 	Quiet     bool
+	NoDetails bool
 	DBPath    string
 	DBType    string
 	Bind      string `valid:"ipv4"`

@@ -144,9 +144,8 @@ func (d *RedisDriver) GetByPackName(osVer, packName string) (defs []models.Defin
 
 	encountered := map[string]bool{}
 	for _, v := range result.Val() {
-		keyWithoutPrefix := v[len(hashKeyPrefix):]
-		keys := strings.Split(keyWithoutPrefix, hashKeySeparator)
-		if keys[0] != d.OvalDB() || keys[1] != osVer {
+		family, ver, _ := splitHashKey(v)
+		if family != d.OvalDB() || ver != osVer {
 			continue
 		}
 		var tmpdefs []models.Definition
@@ -179,11 +178,18 @@ func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err 
 			if dj, err = json.Marshal(c); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
+			cveIDs := map[string]bool{}
 			for _, ref := range c.References {
 				if ref.Source != "CVE" || ref.RefID == "" {
 					continue
 				}
-				hashKey := getHashKey(root.Family, root.OSVersion, ref.RefID)
+				cveIDs[ref.RefID] = true
+			}
+			for _, cve := range c.Advisory.Cves {
+				cveIDs[cve.CveID] = true
+			}
+			for cveID := range cveIDs {
+				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
 				if result := pipe.HSet(hashKey, c.DefinitionID, string(dj)); result.Err() != nil {
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
@@ -244,6 +250,10 @@ func getByHashKey(hashKey string, driver *redis.Client) (defs []models.Definitio
 			log15.Error("Failed to Unmarshal json.", "err", err)
 			return
 		}
+		osFamily, osVer, _ := splitHashKey(hashKey)
+		if osFamily == c.RedHat {
+			def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, osVer)
+		}
 		defs = append(defs, def)
 	}
 	return
@@ -251,6 +261,15 @@ func getByHashKey(hashKey string, driver *redis.Client) (defs []models.Definitio
 
 func getHashKey(family, osVer, cveID string) string {
 	return hashKeyPrefix + family + hashKeySeparator + osVer + hashKeySeparator + cveID
+}
+
+func splitHashKey(hashKey string) (osFamily, osVer, cveID string) {
+	keyWithoutPrefix := hashKey[len(hashKeyPrefix):]
+	keys := strings.Split(keyWithoutPrefix, hashKeySeparator)
+	if len(keys) != 3 {
+		return "", "", ""
+	}
+	return keys[0], keys[1], keys[2]
 }
 
 // CountDefs counts the number of definitions specified by args
@@ -263,4 +282,13 @@ func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
 func (d *RedisDriver) GetLastModified(osFamily, osVer string) time.Time {
 	// TODO not implemented yet
 	return time.Now()
+}
+
+func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
+	for _, p := range packs {
+		if strings.Contains(p.Version, ".el"+majorVer) {
+			filtered = append(filtered, p)
+		}
+	}
+	return
 }

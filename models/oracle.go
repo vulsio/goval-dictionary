@@ -32,16 +32,23 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 		}
 
 		for _, distPack := range collectOraclePacks(ovaldef.Criteria) {
+			// If the same slice is used, it will only be stored once in the DB
+			copyRs := make([]Reference, len(rs))
+			copy(copyRs, rs)
+
+			copyCves := make([]Cve, len(cves))
+			copy(copyCves, cves)
+
 			def := Definition{
 				DefinitionID: ovaldef.ID,
 				Title:        ovaldef.Title,
 				Description:  ovaldef.Description,
 				Advisory: Advisory{
-					Cves:     cves,
+					Cves:     copyCves,
 					Severity: ovaldef.Advisory.Severity,
 				},
 				AffectedPacks: []Package{distPack.pack},
-				References:    rs,
+				References:    copyRs,
 			}
 
 			if c.Conf.NoDetails {

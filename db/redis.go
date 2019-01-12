@@ -170,7 +170,8 @@ func (d *RedisDriver) GetByCveID(osVer, cveID string) ([]models.Definition, erro
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err error) {
-	for chunked := range chunkSlice(root.Definitions, 10) {
+	definitions := aggregateAffectedPackages(root.Definitions)
+	for chunked := range chunkSlice(definitions, 10) {
 		var pipe redis.Pipeliner
 		pipe = d.conn.Pipeline()
 		for _, c := range chunked {
@@ -216,6 +217,23 @@ func (d *RedisDriver) InsertFetchMeta(meta models.FetchMeta) error {
 
 func major(osVer string) (majorVersion string) {
 	return strings.Split(osVer, ".")[0]
+}
+
+func aggregateAffectedPackages(rootDefinitions []models.Definition) []models.Definition {
+	defMap := map[string]models.Definition{}
+	for _, def := range rootDefinitions {
+		if d, ok := defMap[def.DefinitionID]; ok {
+			d.AffectedPacks = append(d.AffectedPacks, def.AffectedPacks...)
+			defMap[def.DefinitionID] = d
+			continue
+		}
+		defMap[def.DefinitionID] = def
+	}
+	definitions := []models.Definition{}
+	for _, def := range defMap {
+		definitions = append(definitions, def)
+	}
+	return definitions
 }
 
 func chunkSlice(l []models.Definition, n int) chan []models.Definition {

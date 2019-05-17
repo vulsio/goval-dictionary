@@ -54,9 +54,9 @@ func (*FetchRedHatCmd) Usage() string {
 
 
 For details, see https://github.com/kotakanbe/goval-dictionary#usage-fetch-oval-data-from-redhat
-	$ goval-dictionary fetch-redhat 5 6 7
+	$ goval-dictionary fetch-redhat 5 6 7 8
     	or
-	$ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
+	$ for i in {5..8}; do goval-dictionary fetch-redhat $i; done
 
 `
 }

@@ -86,9 +86,9 @@ fetch-redhat:
                 [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
-    $ goval-dictionary fetch-redhat 5 6 7
+    $ goval-dictionary fetch-redhat 5 6 7 8
         or
-    $ for i in {5..7}; do goval-dictionary fetch-redhat $i; done
+    $ for i in {5..8}; do goval-dictionary fetch-redhat $i; done
 
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
@@ -111,7 +111,7 @@ For the first time, run the blow command to fetch data for all versions.
 - Import OVAL data from Internet
 
 ```bash
-$ goval-dictionary fetch-redhat 5 6 7
+$ goval-dictionary fetch-redhat 5 6 7 8
 ```
 
 ### Usage: Fetch OVAL data from Debian
@@ -400,7 +400,7 @@ fetch-amazon:
 Select from DB where package name is golang.
 
 <details>
-<summary> 
+<summary>
 `$ goval-dictionary select -by-package redhat 7 golang`
 </summary>
 

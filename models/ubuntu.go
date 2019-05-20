@@ -66,49 +66,26 @@ func collectUbuntuPacks(cri oval.Criteria) []Package {
 	return walkUbuntu(cri, []Package{})
 }
 
-var reFixed = regexp.MustCompile(`^The '(.+)' package in .* was vulnerable but has been fixed \(note: '(.+)'\).$`)
-var reNotFixed = regexp.MustCompile(`^The '(.+)' package in .* is affected and needs fixing.$`)
-var reNotDecided = regexp.MustCompile(`^The '(.+)' package in .* is affected, but a decision has been made to defer addressing it.*$`)
-
 func walkUbuntu(cri oval.Criteria, acc []Package) []Package {
 	for _, c := range cri.Criterions {
 		if c.Negate {
 			continue
 		}
 
-		// <criterion comment="The 'linux-flo' package in xenial is affected and needs fixing." />
-		//  ss := strings.Split(c.Comment, " is earlier than ")
-		res := reNotFixed.FindStringSubmatch(c.Comment)
-		if len(res) == 2 {
-			acc = append(acc, Package{
-				Name:        res[1],
-				NotFixedYet: true,
-			})
-			continue
+		if pkg, ok := parseNotFixedYet(c.Comment); ok {
+			acc = append(acc, *pkg)
+		}
+		if pkg, ok := parseNotDecided(c.Comment); ok {
+			acc = append(acc, *pkg)
+		}
+		if pkg, ok := parseFixed(c.Comment); ok {
+			acc = append(acc, *pkg)
 		}
 
-		// <criterion comment="The 'tiff' package in xenial is affected, but a decision has been made to defer addressing it (note: '2017-02-24')." />
-		res = reNotDecided.FindStringSubmatch(c.Comment)
-		if len(res) == 2 {
-			acc = append(acc, Package{
-				Name:        res[1],
-				NotFixedYet: true,
-			})
-			continue
-		}
-
-		// <criterion comment="The 'poppler' package in xenial was vulnerable but has been fixed (note: '0.12.2-2.1ubuntu1')." />
-		res = reFixed.FindStringSubmatch(c.Comment)
-		if len(res) == 3 {
-			acc = append(acc, Package{
-				Name:    res[1],
-				Version: res[2],
-			})
-			continue
-		}
-
-		// <criterion test_ref="oval:com.ubuntu.xenial:tst:10" comment="The vulnerability of the 'brotli' package in xenial is not known (status: 'needs-triage'). It is pending evaluation." />
 		// nop for now
+		// <criterion test_ref="oval:com.ubuntu.xenial:tst:10" comment="The vulnerability of the 'brotli' package in xenial is not known (status: 'needs-triage'). It is pending evaluation." />
+		// <criterion test_ref="oval:com.ubuntu.bionic:tst:201211480000000" comment="apache2: while related to the CVE in some way, a decision has been made to ignore this issue (note: 'code-not-compiled')." />
+
 	}
 
 	if len(cri.Criterias) == 0 {
@@ -118,4 +95,46 @@ func walkUbuntu(cri oval.Criteria, acc []Package) []Package {
 		acc = walkUbuntu(c, acc)
 	}
 	return acc
+}
+
+var reNotFixed = regexp.MustCompile(`^(.+) package in .+ affected and needs fixing.$`)
+
+func parseNotFixedYet(comment string) (*Package, bool) {
+	// <criterion test_ref="oval:com.ubuntu.bionic:tst:200702550000000" comment="xine-console package in bionic is affected and needs fixing." />
+	res := reNotFixed.FindStringSubmatch(comment)
+	if len(res) == 2 {
+		return &Package{
+			Name:        res[1],
+			NotFixedYet: true,
+		}, true
+	}
+	return nil, false
+}
+
+var reNotDecided = regexp.MustCompile(`^(.+) package in .+ is affected, but a decision has been made to defer addressing it .+$`)
+
+func parseNotDecided(comment string) (*Package, bool) {
+	// <criterion test_ref="oval:com.ubuntu.bionic:tst:201208800000000" comment="libxerces-c-samples package in bionic is affected, but a decision has been made to defer addressing it (note: '2019-01-01')." />
+	res := reNotDecided.FindStringSubmatch(comment)
+	if len(res) == 2 {
+		return &Package{
+			Name:        res[1],
+			NotFixedYet: true,
+		}, true
+	}
+	return nil, false
+}
+
+var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '(.+)'\).$`)
+
+func parseFixed(comment string) (*Package, bool) {
+	// <criterion test_ref="oval:com.ubuntu.bionic:tst:201210880000000" comment="iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2')." />
+	res := reFixed.FindStringSubmatch(comment)
+	if len(res) == 3 {
+		return &Package{
+			Name:    res[1],
+			Version: res[2],
+		}, true
+	}
+	return nil, false
 }

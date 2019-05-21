@@ -30,7 +30,7 @@ const (
 	// Ubuntu18 is Ubuntu Bionic
 	Ubuntu18 = "bionic"
 
-	// Ubuntu 19 is Disco Dingo
+	// Ubuntu19 is Disco Dingo
 	Ubuntu19 = "disco"
 
 	// Debian7 is wheezy

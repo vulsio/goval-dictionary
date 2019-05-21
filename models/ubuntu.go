@@ -2,6 +2,7 @@ package models
 
 import (
 	"regexp"
+	"strings"
 
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
@@ -100,11 +101,15 @@ func walkUbuntu(cri oval.Criteria, acc []Package) []Package {
 var reNotFixed = regexp.MustCompile(`^(.+) package in .+ affected and needs fixing.$`)
 
 func parseNotFixedYet(comment string) (*Package, bool) {
-	// <criterion test_ref="oval:com.ubuntu.bionic:tst:200702550000000" comment="xine-console package in bionic is affected and needs fixing." />
+	// Ubuntu 14
+	// The 'php-openid' package in trusty is affected and needs fixing.
+
+	// Ubuntu 16, 18
+	// xine-console package in bionic is affected and needs fixing. />
 	res := reNotFixed.FindStringSubmatch(comment)
 	if len(res) == 2 {
 		return &Package{
-			Name:        res[1],
+			Name:        trimPkgName(res[1]),
 			NotFixedYet: true,
 		}, true
 	}
@@ -114,11 +119,15 @@ func parseNotFixedYet(comment string) (*Package, bool) {
 var reNotDecided = regexp.MustCompile(`^(.+) package in .+ is affected, but a decision has been made to defer addressing it .+$`)
 
 func parseNotDecided(comment string) (*Package, bool) {
-	// <criterion test_ref="oval:com.ubuntu.bionic:tst:201208800000000" comment="libxerces-c-samples package in bionic is affected, but a decision has been made to defer addressing it (note: '2019-01-01')." />
+	// Ubuntu 14
+	// The 'ruby1.9.1' package in trusty is affected, but a decision has been made to defer addressing it (note: '2019-04-10').
+
+	// Ubuntu 16, 18
+	// libxerces-c-samples package in bionic is affected, but a decision has been made to defer addressing it (note: '2019-01-01').
 	res := reNotDecided.FindStringSubmatch(comment)
 	if len(res) == 2 {
 		return &Package{
-			Name:        res[1],
+			Name:        trimPkgName(res[1]),
 			NotFixedYet: true,
 		}, true
 	}
@@ -128,13 +137,22 @@ func parseNotDecided(comment string) (*Package, bool) {
 var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '(.+)'\).$`)
 
 func parseFixed(comment string) (*Package, bool) {
-	// <criterion test_ref="oval:com.ubuntu.bionic:tst:201210880000000" comment="iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2')." />
+	// Ubuntu 14
+	// The 'poppler' package in trusty was vulnerable but has been fixed (note: '0.10.5-1ubuntu2').
+
+	// Ubuntu 16, 18
+	// iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2').
 	res := reFixed.FindStringSubmatch(comment)
 	if len(res) == 3 {
 		return &Package{
-			Name:    res[1],
+			Name:    trimPkgName(res[1]),
 			Version: res[2],
 		}, true
 	}
 	return nil, false
+}
+
+func trimPkgName(name string) string {
+	name = strings.TrimPrefix(name, "The '")
+	return strings.TrimSuffix(name, "'")
 }

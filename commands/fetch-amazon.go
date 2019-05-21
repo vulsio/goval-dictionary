@@ -2,18 +2,15 @@ package commands
 
 import (
 	"context"
-	"encoding/xml"
 	"flag"
-	"fmt"
 	"os"
-	"time"
 
 	"github.com/google/subcommands"
 	"github.com/inconshreveable/log15"
+	"github.com/k0kubun/pp"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
 )
 
@@ -103,31 +100,38 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 	defer driver.CloseDB()
 
-	result, err := fetcher.FetchAmazonFile()
+	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
+		log15.Error("Failed to fetch updateinfo for Amazon Linux1", "err", err)
 		return subcommands.ExitFailure
 	}
+	pp.Println(uinfo)
 
-	amazonRSS := models.AmazonRSS{}
-	if err = xml.Unmarshal(result.Body, &amazonRSS); err != nil {
-		log15.Error("Failed to unmarshal", "url", result.URL, "err", err)
-		return subcommands.ExitUsageError
-	}
-	defs := models.ConvertAmazonToModel(&amazonRSS)
-
-	root := models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "0",
-		Definitions: defs,
-		Timestamp:   time.Now(),
-	}
-
-	log15.Info(fmt.Sprintf("%d CVEs", len(defs)))
-	if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
-		log15.Error("Failed to insert meta", "err", err)
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
+	if err != nil {
+		log15.Error("Failed to fetch updateinfo for Amazon Linux2", "err", err)
 		return subcommands.ExitFailure
 	}
+	pp.Println(uinfo)
+	// amazonRSS := models.AmazonRSS{}
+	// if err = xml.Unmarshal(result.Body, &amazonRSS); err != nil {
+	// 	log15.Error("Failed to unmarshal", "url", result.URL, "err", err)
+	// 	return subcommands.ExitUsageError
+	// }
+	// defs := models.ConvertAmazonToModel(&amazonRSS)
+
+	// root := models.Root{
+	// 	Family:      c.Amazon,
+	// 	OSVersion:   "0",
+	// 	Definitions: defs,
+	// 	Timestamp:   time.Now(),
+	// }
+
+	// log15.Info(fmt.Sprintf("%d CVEs", len(defs)))
+	// if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
+	// 	log15.Error("Failed to insert meta", "err", err)
+	// 	return subcommands.ExitFailure
+	// }
 
 	return subcommands.ExitSuccess
 }

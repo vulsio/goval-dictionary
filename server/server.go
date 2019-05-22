@@ -43,7 +43,7 @@ func Start(logDir string) error {
 	// Routes
 	e.Get("/health", health())
 	e.Get("/cves/:family/:release/:id", getByCveID())
-	e.Get("/packs/:family/:release/:pack", getByPackName())
+	e.Get("/packs/:family/:release/:pack/:arch", getByPackName())
 	e.Get("/count/:family/:release", countOvalDefs())
 	e.Get("/lastmodified/:family/:release", getLastModified())
 	//  e.Post("/cpes", getByPackName())
@@ -94,7 +94,8 @@ func getByPackName() echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		pack := c.Param("pack")
-		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack)
+		arch := c.Param("arch")
+		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack, "arch", arch)
 
 		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
 		if err != nil {
@@ -106,7 +107,7 @@ func getByPackName() echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
 		defer driver.CloseDB()
-		defs, err := driver.GetByPackName(release, pack)
+		defs, err := driver.GetByPackName(release, pack, arch)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
 		}

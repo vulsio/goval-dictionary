@@ -43,6 +43,7 @@ type Package struct {
 
 	Name        string
 	Version     string // affected earlier than this version
+	Arch        string // Used for Amazon Linux
 	NotFixedYet bool   // Ubuntu Only
 }
 

@@ -84,7 +84,7 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Oracle) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error

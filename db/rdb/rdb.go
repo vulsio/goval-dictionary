@@ -34,7 +34,7 @@ type Driver struct {
 // OvalDB is a interface of RedHat, Debian
 type OvalDB interface {
 	Name() string
-	GetByPackName(string, string, *gorm.DB) ([]models.Definition, error)
+	GetByPackName(*gorm.DB, string, string, string) ([]models.Definition, error)
 	GetByCveID(string, string, *gorm.DB) ([]models.Definition, error)
 	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
 }
@@ -188,8 +188,8 @@ func (d *Driver) CloseDB() (err error) {
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
-func (d *Driver) GetByPackName(osVer, packName string) ([]models.Definition, error) {
-	return d.ovaldb.GetByPackName(osVer, packName, d.conn)
+func (d *Driver) GetByPackName(osVer, packName, arch string) ([]models.Definition, error) {
+	return d.ovaldb.GetByPackName(d.conn, osVer, packName, arch)
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
@@ -281,5 +281,8 @@ func major(osVer string) (majorVersion string) {
 
 func majorMinor(osVer string) (majorMinorVersion string) {
 	ss := strings.Split(osVer, ".")
+	if len(ss) == 1 {
+		return osVer
+	}
 	return strings.Join(ss[:len(ss)-1], ".")
 }

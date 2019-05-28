@@ -2,7 +2,6 @@ package rdb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
@@ -24,15 +23,6 @@ func NewAmazon() *Amazon {
 // Name return family name
 func (o *Amazon) Name() string {
 	return o.Family
-}
-
-// isAmazonLinux2 returns AmazonLinux1 or 2
-func (o *Amazon) getAmazonLinux1or2(osVersion string) string {
-	ss := strings.Fields(osVersion)
-	if ss[0] == "2" {
-		return "2"
-	}
-	return "1"
 }
 
 // InsertOval inserts Amazon ALAS information as OVAL format
@@ -116,7 +106,7 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 			return nil, err
 		}
 
-		if root.Family == config.Amazon && root.OSVersion == o.getAmazonLinux1or2(osVer) {
+		if root.Family == config.Amazon && root.OSVersion == getAmazonLinux1or2(osVer) {
 			uniqDefs[def.DefinitionID] = def
 		}
 	}
@@ -187,7 +177,7 @@ func (o *Amazon) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 			return nil, err
 		}
 
-		if root.Family == config.Amazon && major(root.OSVersion) == o.getAmazonLinux1or2(osVer) {
+		if root.Family == config.Amazon && major(root.OSVersion) == getAmazonLinux1or2(osVer) {
 			defs = append(defs, def)
 		}
 	}

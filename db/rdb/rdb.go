@@ -238,6 +238,8 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 		osVer = majorMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
+	case c.Amazon:
+		osVer = getAmazonLinux1or2(osVer)
 	default:
 		osVer = major(osVer)
 	}
@@ -285,4 +287,13 @@ func majorMinor(osVer string) (majorMinorVersion string) {
 		return osVer
 	}
 	return strings.Join(ss[:len(ss)-1], ".")
+}
+
+// isAmazonLinux2 returns AmazonLinux1 or 2
+func getAmazonLinux1or2(osVersion string) string {
+	ss := strings.Fields(osVersion)
+	if ss[0] == "2" {
+		return "2"
+	}
+	return "1"
 }

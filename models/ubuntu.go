@@ -134,7 +134,7 @@ func parseNotDecided(comment string) (*Package, bool) {
 	return nil, false
 }
 
-var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '(.+)'\).$`)
+var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '([^\s]+).*'\).$`)
 
 func parseFixed(comment string) (*Package, bool) {
 	// Ubuntu 14

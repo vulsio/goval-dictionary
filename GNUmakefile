@@ -41,11 +41,11 @@ install: main.go dep
 all: test
 
 lint:
-	@ go get -v github.com/golang/lint/golint
-	$(foreach file,$(SRCS),golint $(file) || exit;)
+	@ go get -v golang.org/x/lint/golint
+	golint $(PKGS)
 
 vet:
-	$(foreach pkg,$(PKGS),go vet $(pkg);)
+	go vet ./... || exit;
 
 fmt:
 	gofmt -w $(SRCS)

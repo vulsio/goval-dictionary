@@ -100,6 +100,13 @@ func TestParseFixed(t *testing.T) {
 				Version: "3.12.0-2",
 			},
 		},
+		{
+			comment: `iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2 ').`,
+			expected: Package{
+				Name:    "iproute2",
+				Version: "3.12.0-2",
+			},
+		},
 	}
 
 	for i, tt := range tests {

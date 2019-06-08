@@ -43,6 +43,9 @@ Subcommands for fetch-alpine:
 Subcommands for fetch-amazon:
         fetch-amazon     Fetch Vulnerability dictionary from Amazon ALAS
 
+Subcommands for fetch-cisco:
+        fetch-cisco      Fetch Vulnerability dictionary from Cisco
+
 Subcommands for fetch-debian:
         fetch-debian     Fetch Vulnerability dictionary from Debian
 

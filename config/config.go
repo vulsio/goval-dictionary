@@ -68,6 +68,9 @@ const (
 
 	// Amazon is
 	Amazon = "amazon"
+
+	// Cisco is
+	Cisco = "cisco"
 )
 
 // Conf has Configuration

@@ -118,7 +118,10 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitFailure
 	}
 	log15.Info("Success")
-	driver.CloseDB()
+	if err := driver.CloseDB(); err != nil {
+		log15.Crit("Failed to close DB", "err", err)
+		return subcommands.ExitFailure
+	}
 
 	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
 	if err != nil {
@@ -142,7 +145,12 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
-	defer driver2.CloseDB()
+	defer func() {
+		err := driver2.CloseDB()
+		if err != nil {
+			log15.Crit("Failed to close DB", "err", err)
+		}
+	}()
 	if err := driver2.InsertOval(&root, models.FetchMeta{}); err != nil {
 		log15.Error("Failed to insert OVAL", "err", err)
 		return subcommands.ExitFailure

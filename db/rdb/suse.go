@@ -75,7 +75,7 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 // GetByPackName select definitions by packName
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
-func (o *SUSE) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {

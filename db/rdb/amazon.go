@@ -31,14 +31,17 @@ func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	tx := driver.Begin()
 
 	old := models.Root{}
-	r := tx.Where(&models.Root{Family: root.Family}).First(&old)
+	r := tx.Where(&models.Root{
+		Family:    root.Family,
+		OSVersion: root.OSVersion,
+	}).First(&old)
 	if !r.RecordNotFound() {
-		// Delete data related to root passed in arg
+		// Delete data related to root passed via arg
 		defs := []models.Definition{}
-		driver.Model(&old).Related(&defs, "Definitions")
+		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
 			adv := models.Advisory{}
-			driver.Model(&def).Related(&adv, "Advisory")
+			tx.Model(&def).Related(&adv, "Advisory")
 			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
@@ -76,15 +79,20 @@ func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Amazon) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = majorMinor(osVer)
+func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([]models.Definition, error) {
+	if arch == "" {
+		return nil, fmt.Errorf("Arch have to be passed via arg for fileter packages")
+	}
 	packs := []models.Package{}
-	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
+	err := driver.Where(&models.Package{
+		Name: packName,
+		Arch: arch,
+	}).Find(&packs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
-	defs := []models.Definition{}
+	uniqDefs := map[string]models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
 		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
@@ -98,41 +106,44 @@ func (o *Amazon) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 			return nil, err
 		}
 
-		// Amazon has no version information
-		if root.Family == config.Amazon {
-			defs = append(defs, def)
+		if root.Family == config.Amazon && root.OSVersion == getAmazonLinux1or2(osVer) {
+			uniqDefs[def.DefinitionID] = def
+		}
+	}
+
+	defs := []models.Definition{}
+	for _, def := range uniqDefs {
+		defs = append(defs, def)
+	}
+	for i, def := range defs {
+		adv := models.Advisory{}
+		err = driver.Model(&def).Related(&adv, "Advisory").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
 		}
 
-		for i, def := range defs {
-			adv := models.Advisory{}
-			err = driver.Model(&def).Related(&adv, "Advisory").Error
-			if err != nil && err != gorm.ErrRecordNotFound {
-				return nil, err
-			}
-
-			cves := []models.Cve{}
-			err = driver.Model(&adv).Related(&cves, "Cves").Error
-			if err != nil && err != gorm.ErrRecordNotFound {
-				return nil, err
-			}
-
-			adv.Cves = cves
-			defs[i].Advisory = adv
-
-			packs := []models.Package{}
-			err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-			if err != nil && err != gorm.ErrRecordNotFound {
-				return nil, err
-			}
-			defs[i].AffectedPacks = packs
-
-			refs := []models.Reference{}
-			err = driver.Model(&def).Related(&refs, "References").Error
-			if err != nil && err != gorm.ErrRecordNotFound {
-				return nil, err
-			}
-			defs[i].References = refs
+		cves := []models.Cve{}
+		err = driver.Model(&adv).Related(&cves, "Cves").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
 		}
+
+		adv.Cves = cves
+		defs[i].Advisory = adv
+
+		packs := []models.Package{}
+		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		defs[i].AffectedPacks = packs
+
+		refs := []models.Reference{}
+		err = driver.Model(&def).Related(&refs, "References").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		defs[i].References = refs
 	}
 
 	return defs, nil
@@ -140,7 +151,6 @@ func (o *Amazon) GetByPackName(osVer, packName string, driver *gorm.DB) ([]model
 
 // GetByCveID select definitions by CveID
 func (o *Amazon) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = majorMinor(osVer)
 	cves := []models.Cve{}
 	err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -167,8 +177,7 @@ func (o *Amazon) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defi
 			return nil, err
 		}
 
-		// Amazon has no version information
-		if root.Family == config.Amazon {
+		if root.Family == config.Amazon && major(root.OSVersion) == getAmazonLinux1or2(osVer) {
 			defs = append(defs, def)
 		}
 	}

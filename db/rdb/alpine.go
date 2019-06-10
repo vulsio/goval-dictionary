@@ -35,10 +35,10 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		driver.Model(&old).Related(&defs, "Definitions")
+		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
 			adv := models.Advisory{}
-			driver.Model(&def).Related(&adv, "Advisory")
+			tx.Model(&def).Related(&adv, "Advisory")
 			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("Failed to delete: %s", err)
@@ -76,7 +76,7 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Alpine) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
 	osVer = majorMinor(osVer)
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error

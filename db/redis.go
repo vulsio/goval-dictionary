@@ -30,7 +30,9 @@ import (
   └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
   ┌───┬────────────────┬─────────────┬────────────────┬──────────────────┐
   │ 2 │  $PACKAGENAME  │      0      │OVAL#$OSFAMILY::│TO GET []CVEID&OS │
-  │   │                │             │$VERSION::$CVEID│  BY PACKAGENAME  │
+  │   │      or        │             │$VERSION::$CVEID│  BY PACKAGENAME  │
+  │   │  $PACKAGENAME::│             │                │                  │
+  │   │  $ARCH         │             │                │For Amazon Linux  │
   └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
 **/
 
@@ -128,15 +130,26 @@ func (d *RedisDriver) CloseDB() (err error) {
 	return
 }
 
-// GetByPackName select OVAL definition related to OS Family, osVer, packName
-func (d *RedisDriver) GetByPackName(osVer, packName string) (defs []models.Definition, err error) {
+// GetByPackName select OVAL definition related to OS Family, osVer, packName, arch
+func (d *RedisDriver) GetByPackName(osVer, packName, arch string) (defs []models.Definition, err error) {
 	// Alpne provides vulnerability file for each major.minor
 	if d.ovaldb != c.Alpine {
-		osVer = major(osVer)
+		if d.ovaldb == c.Amazon {
+			osVer = getAmazonLinux1or2(osVer)
+		} else {
+			osVer = major(osVer)
+		}
 	}
 	defs = []models.Definition{}
 	var result *redis.StringSliceCmd
-	if result = d.conn.ZRange(hashKeyPrefix+packName, 0, -1); result.Err() != nil {
+
+	zkey := hashKeyPrefix + packName
+	if d.ovaldb == c.Amazon {
+		// affected packages for Amazon OVAL needs to consider arch
+		zkey = hashKeyPrefix + packName + hashKeySeparator + arch
+	}
+
+	if result = d.conn.ZRange(zkey, 0, -1); result.Err() != nil {
 		err = result.Err()
 		log15.Error("Failed to get definition from package", "err", result.Err())
 		return
@@ -174,29 +187,38 @@ func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err 
 	for chunked := range chunkSlice(definitions, 10) {
 		var pipe redis.Pipeliner
 		pipe = d.conn.Pipeline()
-		for _, c := range chunked {
+		for _, def := range chunked {
 			var dj []byte
-			if dj, err = json.Marshal(c); err != nil {
+			if dj, err = json.Marshal(def); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 			cveIDs := map[string]bool{}
-			for _, ref := range c.References {
+			for _, ref := range def.References {
 				if ref.Source != "CVE" || ref.RefID == "" {
 					continue
 				}
 				cveIDs[ref.RefID] = true
 			}
-			for _, cve := range c.Advisory.Cves {
+			for _, cve := range def.Advisory.Cves {
 				cveIDs[cve.CveID] = true
 			}
 			for cveID := range cveIDs {
 				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
-				if result := pipe.HSet(hashKey, c.DefinitionID, string(dj)); result.Err() != nil {
+				if result := pipe.HSet(hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
-				for _, pack := range c.AffectedPacks {
-					if result := pipe.ZAdd(hashKeyPrefix+pack.Name,
-						redis.Z{Score: 0, Member: hashKey}); result.Err() != nil {
+				for _, pack := range def.AffectedPacks {
+					zkey := hashKeyPrefix + pack.Name
+					if d.ovaldb == c.Amazon {
+						// affected packages for Amazon OVAL needs to consider arch
+						zkey = hashKeyPrefix + pack.Name + hashKeySeparator + pack.Arch
+					}
+					if result := pipe.ZAdd(
+						zkey,
+						redis.Z{
+							Score:  0,
+							Member: hashKey,
+						}); result.Err() != nil {
 						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
 					}
 				}
@@ -309,4 +331,13 @@ func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []mo
 		}
 	}
 	return
+}
+
+// getAmazonLinux2 returns AmazonLinux1 or 2
+func getAmazonLinux1or2(osVersion string) string {
+	ss := strings.Fields(osVersion)
+	if ss[0] == "2" {
+		return "2"
+	}
+	return "1"
 }

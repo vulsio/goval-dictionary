@@ -34,7 +34,7 @@ type Driver struct {
 // OvalDB is a interface of RedHat, Debian
 type OvalDB interface {
 	Name() string
-	GetByPackName(string, string, *gorm.DB) ([]models.Definition, error)
+	GetByPackName(*gorm.DB, string, string, string) ([]models.Definition, error)
 	GetByCveID(string, string, *gorm.DB) ([]models.Definition, error)
 	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
 }
@@ -188,8 +188,8 @@ func (d *Driver) CloseDB() (err error) {
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
-func (d *Driver) GetByPackName(osVer, packName string) ([]models.Definition, error) {
-	return d.ovaldb.GetByPackName(osVer, packName, d.conn)
+func (d *Driver) GetByPackName(osVer, packName, arch string) ([]models.Definition, error) {
+	return d.ovaldb.GetByPackName(d.conn, osVer, packName, arch)
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
@@ -238,6 +238,8 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 		osVer = majorMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
+	case c.Amazon:
+		osVer = getAmazonLinux1or2(osVer)
 	default:
 		osVer = major(osVer)
 	}
@@ -262,6 +264,8 @@ func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 		osVer = majorMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
+	case c.Amazon:
+		osVer = getAmazonLinux1or2(osVer)
 	default:
 		osVer = major(osVer)
 	}
@@ -281,5 +285,17 @@ func major(osVer string) (majorVersion string) {
 
 func majorMinor(osVer string) (majorMinorVersion string) {
 	ss := strings.Split(osVer, ".")
+	if len(ss) == 1 {
+		return osVer
+	}
 	return strings.Join(ss[:len(ss)-1], ".")
+}
+
+// getAmazonLinux2 returns AmazonLinux1 or 2
+func getAmazonLinux1or2(osVersion string) string {
+	ss := strings.Fields(osVersion)
+	if ss[0] == "2" {
+		return "2"
+	}
+	return "1"
 }

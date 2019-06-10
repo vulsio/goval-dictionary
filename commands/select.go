@@ -45,7 +45,7 @@ func (*SelectCmd) Usage() string {
 		[-log-dir=/path/to/log]
 		[-log-json]
 
-		[-by-package] redhat 7 bind
+		[-by-package] amazon 2 bind x86_64
 		[-by-cveid] redhat 7 CVE-2017-6009
 
 `
@@ -82,7 +82,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		log15.Crit(`
 		Usage:
 		select OVAL by package name
-		./goval-dictionary select -by-package RedHat 7 java-1.7.0-openjdk
+		./goval-dictionary select -by-package RedHat 7 java-1.7.0-openjdk x86_64
 
 		select OVAL by CVE-ID
 		./goval-dictionary select -by-cveid RedHat 7 CVE-2015-1111
@@ -110,7 +110,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 
 	var dfs []models.Definition
 	if p.ByPackage {
-		dfs, err = driver.GetByPackName(f.Args()[1], f.Args()[2])
+		dfs, err = driver.GetByPackName(f.Args()[1], f.Args()[2], f.Args()[3])
 		if err != nil {
 			//TODO Logger
 			log15.Crit("Failed to get cve by package.", "err", err)

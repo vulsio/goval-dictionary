@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/xml"
 	"flag"
 	"fmt"
 	"os"
@@ -92,6 +91,19 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		return subcommands.ExitUsageError
 	}
 
+	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
+	if err != nil {
+		log15.Error("Failed to fetch updateinfo for Amazon Linux1", "err", err)
+		return subcommands.ExitFailure
+	}
+	defs := models.ConvertAmazonToModel(uinfo)
+	root := models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "1",
+		Definitions: defs,
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(defs)))
 	driver, locked, err := db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
@@ -101,33 +113,49 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
-	defer driver.CloseDB()
-
-	result, err := fetcher.FetchAmazonFile()
-	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
+	if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
+		log15.Error("Failed to insert OVAL", "err", err)
+		return subcommands.ExitFailure
+	}
+	log15.Info("Success")
+	if err := driver.CloseDB(); err != nil {
+		log15.Crit("Failed to close DB", "err", err)
 		return subcommands.ExitFailure
 	}
 
-	amazonRSS := models.AmazonRSS{}
-	if err = xml.Unmarshal(result.Body, &amazonRSS); err != nil {
-		log15.Error("Failed to unmarshal", "url", result.URL, "err", err)
-		return subcommands.ExitUsageError
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
+	if err != nil {
+		log15.Error("Failed to fetch updateinfo for Amazon Linux2", "err", err)
+		return subcommands.ExitFailure
 	}
-	defs := models.ConvertAmazonToModel(&amazonRSS)
-
-	root := models.Root{
+	defs = models.ConvertAmazonToModel(uinfo)
+	root = models.Root{
 		Family:      c.Amazon,
-		OSVersion:   "0",
+		OSVersion:   "2",
 		Definitions: defs,
 		Timestamp:   time.Now(),
 	}
-
-	log15.Info(fmt.Sprintf("%d CVEs", len(defs)))
-	if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
-		log15.Error("Failed to insert meta", "err", err)
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(defs)))
+	driver2, locked, err := db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	if err != nil {
+		if locked {
+			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
+			return subcommands.ExitFailure
+		}
+		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
+	defer func() {
+		err := driver2.CloseDB()
+		if err != nil {
+			log15.Crit("Failed to close DB", "err", err)
+		}
+	}()
+	if err := driver2.InsertOval(&root, models.FetchMeta{}); err != nil {
+		log15.Error("Failed to insert OVAL", "err", err)
+		return subcommands.ExitFailure
+	}
+	log15.Info("Success")
 
 	return subcommands.ExitSuccess
 }

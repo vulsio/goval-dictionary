@@ -86,7 +86,7 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Ubuntu) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models.Definition, error) {
+func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error

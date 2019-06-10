@@ -174,9 +174,7 @@ func (o *Cisco) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defin
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
-
-		// Cisco has no version information
-		if root.Family == config.Cisco {
+		if root.Family == config.Cisco && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
 	}

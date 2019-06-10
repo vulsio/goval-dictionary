@@ -134,7 +134,11 @@ func (d *RedisDriver) CloseDB() (err error) {
 func (d *RedisDriver) GetByPackName(osVer, packName, arch string) (defs []models.Definition, err error) {
 	// Alpne provides vulnerability file for each major.minor
 	if d.ovaldb != c.Alpine {
-		osVer = major(osVer)
+		if d.ovaldb == c.Amazon {
+			osVer = getAmazonLinux1or2(osVer)
+		} else {
+			osVer = major(osVer)
+		}
 	}
 	defs = []models.Definition{}
 	var result *redis.StringSliceCmd
@@ -327,4 +331,13 @@ func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []mo
 		}
 	}
 	return
+}
+
+// getAmazonLinux2 returns AmazonLinux1 or 2
+func getAmazonLinux1or2(osVersion string) string {
+	ss := strings.Fields(osVersion)
+	if ss[0] == "2" {
+		return "2"
+	}
+	return "1"
 }

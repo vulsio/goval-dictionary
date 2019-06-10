@@ -354,8 +354,7 @@ See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of su
 
 ### Usage: Fetch Amazon ALAS as OVAL data type
 
-- [Amazon Linux AMI Security Bulletins](https://alas.aws.amazon.com/alas.rss)
-Amazon ALAS provideis in RSS format and not OVAL, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
+Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
 
 ```bash
 fetch-amazon:

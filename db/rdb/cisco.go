@@ -45,12 +45,6 @@ func (o *Cisco) InsertOval(root *models.Root, meta models.FetchMeta, driver *gor
 		defs := []models.Definition{}
 		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {
-			deb := models.Debian{}
-			tx.Model(&def).Related(&deb, "Debian")
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
 			adv := models.Advisory{}
 			tx.Model(&def).Related(&adv, "Advisory")
 			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
@@ -111,36 +105,42 @@ func (o *Cisco) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models
 		if root.Family == config.Cisco && major(root.OSVersion) == osVer {
 			defs = append(defs, def)
 		}
-	}
 
-	for i, def := range defs {
-		deb := models.Debian{}
-		err = driver.Model(&def).Related(&deb, "Debian").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
+		// Cisco has no version information
+		if root.Family == config.Cisco {
+			defs = append(defs, def)
 		}
-		defs[i].Debian = deb
 
-		adv := models.Advisory{}
-		err = driver.Model(&def).Related(&adv, "Advisory").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Advisory = adv
+		for i, def := range defs {
+			adv := models.Advisory{}
+			err = driver.Model(&def).Related(&adv, "Advisory").Error
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
 
-		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
+			cves := []models.Cve{}
+			err = driver.Model(&adv).Related(&cves, "Cves").Error
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
 
-		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
+			adv.Cves = cves
+			defs[i].Advisory = adv
+
+			packs := []models.Package{}
+			err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
+			defs[i].AffectedPacks = packs
+
+			refs := []models.Reference{}
+			err = driver.Model(&def).Related(&refs, "References").Error
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
+			defs[i].References = refs
 		}
-		defs[i].References = refs
 	}
 
 	return defs, nil
@@ -148,18 +148,23 @@ func (o *Cisco) GetByPackName(osVer, packName string, driver *gorm.DB) ([]models
 
 // GetByCveID select definitions by CveID
 func (o *Cisco) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = major(osVer)
-
-	refs := []models.Reference{}
-	err := driver.Where(&models.Reference{Source: "CVE", RefID: cveID}).Find(&refs).Error
+	osVer = majorMinor(osVer)
+	cves := []models.Cve{}
+	err := driver.Where(&models.Cve{CveID: cveID}).Find(&cves).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
 	defs := []models.Definition{}
-	for _, ref := range refs {
+	for _, cve := range cves {
+		adv := models.Advisory{}
+		err = driver.Where("id = ?", cve.AdvisoryID).Find(&adv).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+
 		def := models.Definition{}
-		err = driver.Where("id = ?", ref.DefinitionID).Find(&def).Error
+		err = driver.Where("id = ?", adv.DefinitionID).Find(&def).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
@@ -169,24 +174,27 @@ func (o *Cisco) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defin
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
-		if root.Family == config.Cisco && major(root.OSVersion) == osVer {
+
+		// Cisco has no version information
+		if root.Family == config.Cisco {
 			defs = append(defs, def)
 		}
 	}
 
 	for i, def := range defs {
-		deb := models.Debian{}
-		err = driver.Model(&def).Related(&deb, "Debian").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Debian = deb
-
 		adv := models.Advisory{}
 		err = driver.Model(&def).Related(&adv, "Advisory").Error
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
+
+		cves := []models.Cve{}
+		err = driver.Model(&adv).Related(&cves, "Cves").Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		adv.Cves = cves
+
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
@@ -203,5 +211,6 @@ func (o *Cisco) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Defin
 		}
 		defs[i].References = refs
 	}
+
 	return defs, nil
 }

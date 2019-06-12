@@ -87,121 +87,15 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 // GetByPackName select definitions by packName
 func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
-	osVer = major(osVer)
-	packs := []models.Package{}
-	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
-	}
-
 	defs := []models.Definition{}
-	for _, p := range packs {
-		def := models.Definition{}
-		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-
-		root := models.Root{}
-		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-
-		if root.Family == config.Ubuntu && major(root.OSVersion) == osVer {
-			defs = append(defs, def)
-		}
-	}
-
-	for i, def := range defs {
-		deb := models.Debian{}
-		err = driver.Model(&def).Related(&deb, "Debian").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Debian = deb
-
-		adv := models.Advisory{}
-		err = driver.Model(&def).Related(&adv, "Advisory").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].References = refs
-	}
-
-	return defs, nil
-}
-
-// GetByCveID select definitions by CveID
-func (o *Ubuntu) GetByCveID(osVer, cveID string, driver *gorm.DB) ([]models.Definition, error) {
-	osVer = major(osVer)
-
-	refs := []models.Reference{}
-	err := driver.Where(&models.Reference{Source: "CVE", RefID: cveID}).Find(&refs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
-	}
-
-	defs := []models.Definition{}
-	for _, ref := range refs {
-		def := models.Definition{}
-		err = driver.Where("id = ?", ref.DefinitionID).Find(&def).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-
-		root := models.Root{}
-		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		if root.Family == config.Ubuntu && major(root.OSVersion) == osVer {
-			defs = append(defs, def)
-		}
-	}
-
-	for i, def := range defs {
-		deb := models.Debian{}
-		err = driver.Model(&def).Related(&deb, "Debian").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Debian = deb
-
-		adv := models.Advisory{}
-		err = driver.Model(&def).Related(&adv, "Advisory").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].References = refs
-	}
+	driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+		config.Ubuntu, major(osVer)).
+		Joins("JOIN packages ON packages.definition_id = definitions.id").
+		Where("packages.name = ?", packName).
+		Preload("Debian").
+		Preload("Advisory").
+		Preload("AffectedPacks").
+		Preload("References").
+		Find(&defs)
 	return defs, nil
 }

@@ -14,7 +14,6 @@ type DB interface {
 	NewOvalDB(string) error
 	CloseDB() error
 	GetByPackName(string, string, string) ([]models.Definition, error)
-	GetByCveID(string, string) ([]models.Definition, error)
 	InsertOval(*models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
 	CountDefs(string, string) (int, error)

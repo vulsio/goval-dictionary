@@ -42,7 +42,6 @@ func Start(logDir string) error {
 
 	// Routes
 	e.Get("/health", health())
-	e.Get("/cves/:family/:release/:id", getByCveID())
 	e.Get("/packs/:family/:release/:pack/:arch", getByPackName())
 	e.Get("/count/:family/:release", countOvalDefs())
 	e.Get("/lastmodified/:family/:release", getLastModified())
@@ -59,33 +58,6 @@ func Start(logDir string) error {
 func health() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.String(http.StatusOK, "")
-	}
-}
-
-// Handler
-func getByCveID() echo.HandlerFunc {
-	return func(c echo.Context) (err error) {
-		family := strings.ToLower(c.Param("family"))
-		release := c.Param("release")
-		cveID := c.Param("id")
-		log15.Debug("Params", "Family", family, "Release", release, "CveID", cveID)
-
-		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
-		if err != nil {
-			msg := fmt.Sprintf("Failed to Open DB: %s", err)
-			if locked {
-				msg += " Close DB connection"
-			}
-			log15.Error(msg)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
-		defer driver.CloseDB()
-		driver.NewOvalDB(family)
-		defs, err := driver.GetByCveID(release, cveID)
-		if err != nil {
-			log15.Error("Failed to get by CveID.", "err", err)
-		}
-		return c.JSON(http.StatusOK, defs)
 	}
 }
 

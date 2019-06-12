@@ -1,17 +1,14 @@
 .PHONY: \
-	dep \
-	depup \
 	build \
 	install \
 	all \
 	vendor \
-	lint \
+ 	lint \
 	vet \
 	fmt \
 	fmtcheck \
 	pretest \
 	test \
-	integration \
 	cov \
 	clean
 
@@ -21,45 +18,43 @@ VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'main.version=$(VERSION)' \
 	-X 'main.revision=$(REVISION)'
+GO := GO111MODULE=on go
+GO_OFF := GO111MODULE=off go
 
-all: dep build test
+all: build
 
-dep:
-	go get -u github.com/golang/dep/...
-	dep ensure
+build: main.go pretest
+	$(GO) build -a -ldflags "$(LDFLAGS)" -o goval-dictionary $<
 
-depup:
-	go get -u github.com/golang/dep/...
-	dep ensure -update
+b: 	main.go pretest
+	$(GO) build -ldflags "$(LDFLAGS)" -o goval-dictionary $<
 
-build: main.go dep
-	go build -ldflags "$(LDFLAGS)" -o goval-dictionary $<
-
-install: main.go dep
-	go install -ldflags "$(LDFLAGS)"
-
-all: test
+install: main.go pretest
+	$(GO) install -ldflags "$(LDFLAGS)"
 
 lint:
-	@ go get -v golang.org/x/lint/golint
+	$(GO_OFF) get -u golang.org/x/lint/golint
 	golint $(PKGS)
 
 vet:
-	go vet ./... || exit;
+	echo $(PKGS) | xargs env $(GO) vet || exit;
 
 fmt:
-	gofmt -w $(SRCS)
+	gofmt -s -w $(SRCS)
+
+mlint:
+	$(foreach file,$(SRCS),gometalinter $(file) || exit;)
 
 fmtcheck:
-	$(foreach file,$(SRCS),gofmt -d $(file);)
+	$(foreach file,$(SRCS),gofmt -s -d $(file);)
 
 pretest: lint vet fmtcheck
 
-test: pretest
-	$(foreach pkg,$(PKGS),go test -v $(pkg) || exit;)
+test: 
+	$(GO) test -cover -v ./... || exit;
 
-integration:
-	go test -tags docker_integration -run TestIntegration -v
+unused:
+	$(foreach pkg,$(PKGS),unused $(pkg);)
 
 cov:
 	@ go get -v github.com/axw/gocov/gocov
@@ -67,5 +62,6 @@ cov:
 	gocov test | gocov report
 
 clean:
-	$(foreach pkg,$(PKGS),go clean $(pkg) || exit;)
+	echo $(PKGS) | xargs go clean || exit;
+	echo $(PKGS) | xargs go clean || exit;
 

@@ -111,54 +111,14 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 // GetByPackName select definitions by packName
 func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
-	osVer = major(osVer)
-	packs := []models.Package{}
-	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
-	}
-
 	defs := []models.Definition{}
-	for _, p := range packs {
-		def := models.Definition{}
-		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-
-		root := models.Root{}
-		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-
-		if root.Family == config.Debian && major(root.OSVersion) == osVer {
-			defs = append(defs, def)
-		}
-	}
-
-	for i, def := range defs {
-		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].References = refs
-
-		deb := models.Debian{}
-		err = driver.Model(&def).Related(&deb, "Debian").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		defs[i].Debian = deb
-	}
-
+	driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+		config.Debian, major(osVer)).
+		Joins("JOIN packages ON packages.definition_id = definitions.id").
+		Where("packages.name = ?", packName).
+		Preload("Debian").
+		Preload("AffectedPacks").
+		Preload("References").
+		Find(&defs)
 	return defs, nil
 }

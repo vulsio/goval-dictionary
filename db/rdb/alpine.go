@@ -78,11 +78,11 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 // GetByPackName select definitions by packName
 func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs []models.Definition, err error) {
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
-		config.Alpine, majorMinor(osVer)).
+		config.Alpine, majorDotMinor(osVer)).
 		Joins("JOIN packages ON packages.definition_id = definitions.id").
 		Where("packages.name = ?", packName).
-		Preload("Cves").
 		Preload("Advisory").
+		Preload("Advisory.Cves").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

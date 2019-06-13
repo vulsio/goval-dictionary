@@ -110,15 +110,18 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
-	defs := []models.Definition{}
-	driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs []models.Definition, err error) {
+	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Debian, major(osVer)).
 		Joins("JOIN packages ON packages.definition_id = definitions.id").
 		Where("packages.name = ?", packName).
 		Preload("Debian").
 		Preload("AffectedPacks").
 		Preload("References").
-		Find(&defs)
+		Find(&defs).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
 	return defs, nil
 }

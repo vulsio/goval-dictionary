@@ -229,7 +229,7 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {
 	case c.Alpine:
-		osVer = majorMinor(osVer)
+		osVer = majorDotMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
 	case c.Amazon:
@@ -255,7 +255,7 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 	switch osFamily {
 	case c.Alpine:
-		osVer = majorMinor(osVer)
+		osVer = majorDotMinor(osVer)
 	case c.SUSEEnterpriseServer:
 		// SUSE provides OVAL each major.minor
 	case c.Amazon:
@@ -277,12 +277,12 @@ func major(osVer string) (majorVersion string) {
 	return strings.Split(osVer, ".")[0]
 }
 
-func majorMinor(osVer string) (majorMinorVersion string) {
+func majorDotMinor(osVer string) (majorMinorVersion string) {
 	ss := strings.Split(osVer, ".")
-	if len(ss) == 1 {
+	if len(ss) < 3 {
 		return osVer
 	}
-	return strings.Join(ss[:len(ss)-1], ".")
+	return strings.Join(ss[:2], ".")
 }
 
 // getAmazonLinux2 returns AmazonLinux1 or 2

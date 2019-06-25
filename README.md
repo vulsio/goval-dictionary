@@ -82,6 +82,7 @@ fetch-redhat:
                 [-debug]
                 [-debug-sql]
                 [-quiet]
+                [-no-details]
                 [-log-dir=/path/to/log]
                 [-log-json]
 
@@ -100,12 +101,14 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
-  -quiet
-        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -log-json
         output log as JSON
+  -no-details
+        without vulnerability details
+  -quiet
+        quiet mode (no output)
 ```
 
 - Import OVAL data from Internet
@@ -172,6 +175,7 @@ fetch-ubuntu:
                 [-debug]
                 [-debug-sql]
                 [-quiet]
+                [-no-details]
                 [-log-dir=/path/to/log]
                 [-log-json]
 
@@ -188,12 +192,14 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
-  -quiet
-        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -log-json
         output log as JSON
+  -no-details
+        without vulnerability details
+  -quiet
+        quiet mode (no output)
 ```
 
 - Import OVAL data from Internet
@@ -276,6 +282,7 @@ fetch-oracle:
                 [-debug]
                 [-debug-sql]
                 [-quiet]
+                [-no-details]
                 [-log-dir=/path/to/log]
                 [-log-json]
 
@@ -292,12 +299,14 @@ For the first time, run the blow command to fetch data for all versions.
         SQL debug mode
   -http-proxy string
         http://proxy-url:port (default: empty)
-  -quiet
-        quiet mode (no output)
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -log-json
         output log as JSON
+  -no-details
+        without vulnerability details
+  -quiet
+        quiet mode (no output)
 ```
 
 - Import OVAL data from Internet
@@ -313,6 +322,7 @@ alpine-secdb is provided in YAML format and not OVAL, but it is supported by gov
 See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of supported alpines.
 
 ```bash
+$ goval-dictionary fetch-alpine -h
 fetch-alpine:
         fetch-alpine
                 [-dbtype=sqlite3|mysql|postgres|redis]
@@ -357,6 +367,7 @@ See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of su
 Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
 
 ```bash
+$ goval-dictionary fetch-amazon -h
 fetch-amazon:
         fetch-amazon
                 [-dbtype=sqlite3|mysql|postgres|redis]
@@ -365,6 +376,7 @@ fetch-amazon:
                 [-debug]
                 [-debug-sql]
                 [-quiet]
+                [-no-details]
                 [-log-dir=/path/to/log]
                 [-log-json]
 
@@ -384,6 +396,8 @@ fetch-amazon:
         /path/to/log (default "/var/log/vuls")
   -log-json
         output log as JSON
+  -no-details
+        without vulnerability details
   -quiet
         quiet mode (no output)
 ```

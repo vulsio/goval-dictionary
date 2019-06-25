@@ -66,7 +66,7 @@ func (p *FetchOracleCmd) SetFlags(f *flag.FlagSet) {
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
-	f.BoolVar(&p.LogJSON, "log-json", false, "output log as json")
+	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
 	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",

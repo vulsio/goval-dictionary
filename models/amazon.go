@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
 )
 
@@ -35,7 +36,7 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 			})
 		}
 
-		defs = append(defs, Definition{
+		def := Definition{
 			DefinitionID:  "def-" + alas.ID,
 			Title:         alas.ID,
 			Description:   alas.Description,
@@ -46,7 +47,14 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 				Updated:  updatedAt,
 			},
 			References: refs,
-		})
+		}
+
+		if c.Conf.NoDetails {
+			def.Description = ""
+			def.References = []Reference{}
+		}
+
+		defs = append(defs, def)
 	}
 	return
 }

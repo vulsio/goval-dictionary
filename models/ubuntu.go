@@ -55,7 +55,18 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			def.Title = ""
 			def.Description = ""
 			def.Advisory = Advisory{}
-			def.References = []Reference{}
+
+			var references []Reference
+			for _, ref := range def.References {
+				if ref.Source != "CVE" {
+					continue
+				}
+				references = append(references, Reference{
+					Source: ref.Source,
+					RefID:  ref.RefID,
+				})
+			}
+			def.References = references
 		}
 
 		defs = append(defs, def)

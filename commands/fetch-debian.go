@@ -158,7 +158,7 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			FileName:  ss[len(ss)-1],
 		}
 
-		if err := driver.InsertOval(&root, fmeta); err != nil {
+		if err := driver.InsertOval(c.Debian, &root, fmeta); err != nil {
 			log15.Error("Failed to insert oval", "err", err)
 			return subcommands.ExitFailure
 		}

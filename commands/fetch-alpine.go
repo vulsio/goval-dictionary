@@ -163,7 +163,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		}
 
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
-		if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
+		if err := driver.InsertOval(c.Alpine, &root, models.FetchMeta{}); err != nil {
 			log15.Error("Failed to insert meta.", "err", err)
 			return subcommands.ExitFailure
 		}

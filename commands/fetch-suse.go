@@ -191,7 +191,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		roots := models.ConvertSUSEToModel(&ovalroot, suseType)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
-			if err := driver.InsertOval(&root, fmeta); err != nil {
+			if err := driver.InsertOval(c.OpenSUSE, &root, fmeta); err != nil {
 				log15.Error("Failed to insert oval", "err", err)
 				return subcommands.ExitFailure
 			}

@@ -55,6 +55,13 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 		name: dbType,
 	}
 
+	// when using server command, family is empty.
+	if 0 < len(family) {
+		if err = driver.NewOvalDB(family); err != nil {
+			return
+		}
+	}
+
 	log15.Debug("Opening DB.", "db", driver.Name())
 	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return
@@ -85,7 +92,6 @@ func (d *RedisDriver) NewOvalDB(family string) error {
 		}
 		return fmt.Errorf("Unknown OS Type: %s", family)
 	}
-	return nil
 }
 
 // Name is driver name

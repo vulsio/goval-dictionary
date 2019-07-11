@@ -77,7 +77,6 @@ func (d *RedisDriver) NewOvalDB(family string) error {
 		c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer,
 		c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud,
 		c.Alpine, c.Amazon:
-		return nil
 
 	default:
 		if strings.Contains(family, "suse") {
@@ -92,6 +91,7 @@ func (d *RedisDriver) NewOvalDB(family string) error {
 		}
 		return fmt.Errorf("Unknown OS Type: %s", family)
 	}
+	return nil
 }
 
 // Name is driver name

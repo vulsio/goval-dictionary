@@ -64,8 +64,7 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locke
 
 // NewOvalDB create a OvalDB client
 func (d *Driver) NewOvalDB(family string) error {
-	_, ok := ovalMap[family]
-	if ok {
+	if _, ok := ovalMap[family]; ok {
 		return nil
 	}
 
@@ -195,11 +194,19 @@ func (d *Driver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
 func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
+	if _, ok := ovalMap[family]; !ok {
+		return nil, fmt.Errorf("Unsupport family: %s", family)
+	}
+
 	return ovalMap[family].GetByPackName(d.conn, osVer, packName, arch)
 }
 
 // InsertOval inserts OVAL
 func (d *Driver) InsertOval(family string, root *models.Root, meta models.FetchMeta) error {
+	if _, ok := ovalMap[family]; !ok {
+		return fmt.Errorf("Unsupport family: %s", family)
+	}
+
 	return ovalMap[family].InsertOval(root, meta, d.conn)
 }
 

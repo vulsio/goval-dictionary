@@ -19,10 +19,9 @@ import (
 
 // Supported DB dialects.
 const (
-	DialectSqlite3       = "sqlite3"
-	DialectMysql         = "mysql"
-	DialectPostgreSQL    = "postgres"
-	MaxDBOpenConnections = 50
+	DialectSqlite3    = "sqlite3"
+	DialectMysql      = "mysql"
+	DialectPostgreSQL = "postgres"
 )
 
 // Driver is Driver for RDB
@@ -117,7 +116,6 @@ func (d *Driver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err 
 		}
 		return false, fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
-	d.conn.DB().SetMaxOpenConns(MaxDBOpenConnections)
 	d.conn.LogMode(debugSQL)
 	return false, nil
 }

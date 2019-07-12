@@ -45,9 +45,8 @@ const (
 
 // RedisDriver is Driver for Redis
 type RedisDriver struct {
-	name   string
-	conn   *redis.Client
-	ovaldb string
+	name string
+	conn *redis.Client
 }
 
 // NewRedis return Redis driver
@@ -55,6 +54,7 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 	driver = &RedisDriver{
 		name: dbType,
 	}
+
 	// when using server command, family is empty.
 	if 0 < len(family) {
 		if err = driver.NewOvalDB(family); err != nil {
@@ -73,14 +73,11 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 // NewOvalDB create a OvalDB client
 func (d *RedisDriver) NewOvalDB(family string) error {
 	switch family {
-	case c.CentOS:
-		d.ovaldb = c.RedHat
-	case c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
+	case c.CentOS, c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
 		c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer,
 		c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud,
 		c.Alpine, c.Amazon:
 
-		d.ovaldb = family
 	default:
 		if strings.Contains(family, "suse") {
 			suses := []string{
@@ -100,11 +97,6 @@ func (d *RedisDriver) NewOvalDB(family string) error {
 // Name is driver name
 func (d *RedisDriver) Name() string {
 	return d.name
-}
-
-// OvalDB is OvalDB name
-func (d *RedisDriver) OvalDB() string {
-	return d.ovaldb
 }
 
 // OpenDB opens Database
@@ -131,10 +123,14 @@ func (d *RedisDriver) CloseDB() (err error) {
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName, arch
-func (d *RedisDriver) GetByPackName(osVer, packName, arch string) (defs []models.Definition, err error) {
+func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) (defs []models.Definition, err error) {
+	if family == c.CentOS {
+		family = c.RedHat
+	}
+
 	// Alpne provides vulnerability file for each major.minor
-	if d.ovaldb != c.Alpine {
-		if d.ovaldb == c.Amazon {
+	if family != c.Alpine {
+		if family == c.Amazon {
 			osVer = getAmazonLinux1or2(osVer)
 		} else {
 			osVer = major(osVer)
@@ -144,7 +140,7 @@ func (d *RedisDriver) GetByPackName(osVer, packName, arch string) (defs []models
 	var result *redis.StringSliceCmd
 
 	zkey := hashKeyPrefix + packName
-	if d.ovaldb == c.Amazon {
+	if family == c.Amazon {
 		// affected packages for Amazon OVAL needs to consider arch
 		zkey = hashKeyPrefix + packName + hashKeySeparator + arch
 	}
@@ -157,8 +153,8 @@ func (d *RedisDriver) GetByPackName(osVer, packName, arch string) (defs []models
 
 	encountered := map[string]bool{}
 	for _, v := range result.Val() {
-		family, ver, _ := splitHashKey(v)
-		if family != d.OvalDB() || ver != osVer {
+		f, ver, _ := splitHashKey(v)
+		if f != family || ver != osVer {
 			continue
 		}
 		var tmpdefs []models.Definition
@@ -176,13 +172,13 @@ func (d *RedisDriver) GetByPackName(osVer, packName, arch string) (defs []models
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
-func (d *RedisDriver) GetByCveID(osVer, cveID string) ([]models.Definition, error) {
-	hashKey := getHashKey(d.OvalDB(), osVer, cveID)
+func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definition, error) {
+	hashKey := getHashKey(family, osVer, cveID)
 	return getByHashKey(hashKey, d.conn)
 }
 
 // InsertOval inserts OVAL
-func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err error) {
+func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
 	definitions := aggregateAffectedPackages(root.Definitions)
 	for chunked := range chunkSlice(definitions, 10) {
 		var pipe redis.Pipeliner
@@ -209,7 +205,7 @@ func (d *RedisDriver) InsertOval(root *models.Root, meta models.FetchMeta) (err 
 				}
 				for _, pack := range def.AffectedPacks {
 					zkey := hashKeyPrefix + pack.Name
-					if d.ovaldb == c.Amazon {
+					if family == c.Amazon {
 						// affected packages for Amazon OVAL needs to consider arch
 						zkey = hashKeyPrefix + pack.Name + hashKeySeparator + pack.Arch
 					}

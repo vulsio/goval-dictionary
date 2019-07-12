@@ -110,7 +110,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 
 	var dfs []models.Definition
 	if p.ByPackage {
-		dfs, err = driver.GetByPackName(f.Args()[1], f.Args()[2], f.Args()[3])
+		dfs, err = driver.GetByPackName(f.Args()[0], f.Args()[1], f.Args()[2], f.Args()[3])
 		if err != nil {
 			//TODO Logger
 			log15.Crit("Failed to get cve by package.", "err", err)

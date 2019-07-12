@@ -26,9 +26,8 @@ const (
 
 // Driver is Driver for RDB
 type Driver struct {
-	name   string
-	conn   *gorm.DB
-	ovaldb OvalDB
+	name string
+	conn *gorm.DB
 }
 
 // OvalDB is a interface of RedHat, Debian
@@ -38,8 +37,11 @@ type OvalDB interface {
 	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
 }
 
+var ovalMap map[string]OvalDB
+
 // NewRDB return RDB driver
 func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locked bool, err error) {
+	ovalMap = map[string]OvalDB{}
 	driver = &Driver{
 		name: dbType,
 	}
@@ -62,21 +64,25 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locke
 
 // NewOvalDB create a OvalDB client
 func (d *Driver) NewOvalDB(family string) error {
+	if _, ok := ovalMap[family]; ok {
+		return nil
+	}
+
 	switch family {
 	case c.Debian:
-		d.ovaldb = NewDebian()
+		ovalMap[c.Debian] = NewDebian()
 	case c.Ubuntu:
-		d.ovaldb = NewUbuntu()
-	case c.RedHat, c.CentOS:
-		d.ovaldb = NewRedHat()
+		ovalMap[c.Ubuntu] = NewUbuntu()
 	case c.Oracle:
-		d.ovaldb = NewOracle()
-	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud:
-		d.ovaldb = NewSUSE(family)
+		ovalMap[c.Oracle] = NewOracle()
 	case c.Alpine:
-		d.ovaldb = NewAlpine()
+		ovalMap[c.Alpine] = NewAlpine()
 	case c.Amazon:
-		d.ovaldb = NewAmazon()
+		ovalMap[c.Amazon] = NewAmazon()
+	case c.RedHat, c.CentOS:
+		ovalMap[family] = NewRedHat()
+	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud:
+		ovalMap[family] = NewSUSE(family)
 	default:
 		if strings.Contains(family, "suse") {
 			suses := []string{
@@ -187,13 +193,21 @@ func (d *Driver) CloseDB() (err error) {
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
-func (d *Driver) GetByPackName(osVer, packName, arch string) ([]models.Definition, error) {
-	return d.ovaldb.GetByPackName(d.conn, osVer, packName, arch)
+func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
+	if _, ok := ovalMap[family]; !ok {
+		return nil, fmt.Errorf("Unsupport family: %s", family)
+	}
+
+	return ovalMap[family].GetByPackName(d.conn, osVer, packName, arch)
 }
 
 // InsertOval inserts OVAL
-func (d *Driver) InsertOval(root *models.Root, meta models.FetchMeta) error {
-	return d.ovaldb.InsertOval(root, meta, d.conn)
+func (d *Driver) InsertOval(family string, root *models.Root, meta models.FetchMeta) error {
+	if _, ok := ovalMap[family]; !ok {
+		return fmt.Errorf("Unsupport family: %s", family)
+	}
+
+	return ovalMap[family].InsertOval(root, meta, d.conn)
 }
 
 // InsertFetchMeta inserts FetchMeta

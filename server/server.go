@@ -79,7 +79,7 @@ func getByPackName() echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
 		defer driver.CloseDB()
-		defs, err := driver.GetByPackName(release, pack, arch)
+		defs, err := driver.GetByPackName(family, release, pack, arch)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
 		}

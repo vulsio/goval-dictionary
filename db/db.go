@@ -13,8 +13,8 @@ type DB interface {
 	Name() string
 	NewOvalDB(string) error
 	CloseDB() error
-	GetByPackName(string, string, string) ([]models.Definition, error)
-	InsertOval(*models.Root, models.FetchMeta) error
+	GetByPackName(string, string, string, string) ([]models.Definition, error)
+	InsertOval(string, *models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
 	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) time.Time

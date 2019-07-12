@@ -117,7 +117,7 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
-	if err := driver.InsertOval(&root, models.FetchMeta{}); err != nil {
+	if err := driver.InsertOval(c.Amazon, &root, models.FetchMeta{}); err != nil {
 		log15.Error("Failed to insert OVAL", "err", err)
 		return subcommands.ExitFailure
 	}
@@ -155,7 +155,7 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			log15.Crit("Failed to close DB", "err", err)
 		}
 	}()
-	if err := driver2.InsertOval(&root, models.FetchMeta{}); err != nil {
+	if err := driver2.InsertOval(c.Amazon, &root, models.FetchMeta{}); err != nil {
 		log15.Error("Failed to insert OVAL", "err", err)
 		return subcommands.ExitFailure
 	}

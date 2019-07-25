@@ -48,8 +48,7 @@ func Start(logDir string) error {
 
 	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
 	log15.Info("Listening...", "URL", bindURL)
-	e.Start(bindURL)
-	return nil
+	return e.Start(bindURL)
 }
 
 // Handler

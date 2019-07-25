@@ -194,7 +194,7 @@ func (d *Driver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
 func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
-	if family ==  c.CentOS {
+	if family == c.CentOS {
 		family = c.RedHat
 	}
 	if _, ok := ovalMap[family]; !ok {

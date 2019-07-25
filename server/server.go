@@ -11,14 +11,13 @@ import (
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
 )
 
 // Start starts CVE dictionary HTTP Server.
 func Start(logDir string) error {
 	e := echo.New()
-	e.SetDebug(config.Conf.Debug)
+	e.Debug = config.Conf.Debug
 
 	// Middleware
 	e.Use(middleware.Logger())
@@ -41,16 +40,15 @@ func Start(logDir string) error {
 	}))
 
 	// Routes
-	e.Get("/health", health())
-	e.Get("/packs/:family/:release/:pack/:arch", getByPackName())
-	e.Get("/count/:family/:release", countOvalDefs())
-	e.Get("/lastmodified/:family/:release", getLastModified())
+	e.GET("/health", health())
+	e.GET("/packs/:family/:release/:pack/:arch", getByPackName())
+	e.GET("/count/:family/:release", countOvalDefs())
+	e.GET("/lastmodified/:family/:release", getLastModified())
 	//  e.Post("/cpes", getByPackName())
 
 	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
 	log15.Info("Listening...", "URL", bindURL)
-
-	e.Run(standard.New(bindURL))
+	e.Start(bindURL)
 	return nil
 }
 

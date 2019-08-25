@@ -87,18 +87,27 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 // GetByPackName select definitions by packName
 func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs []models.Definition, err error) {
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
-		config.Ubuntu, major(osVer)).
-		Joins("JOIN packages ON packages.definition_id = definitions.id").
-		Where("packages.name = ?", packName).
-		Preload("Debian").
-		Preload("Advisory").
-		Preload("AffectedPacks").
-		Preload("References").
-		Find(&defs).Error
-
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+	// Specify limit number to avoid `too many SQL variable`.
+	// https://github.com/future-architect/vuls/issues/886
+	limit, tmpDefs := 998, []models.Definition{}
+	for i := 0; true; i++ {
+		err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+			config.Ubuntu, major(osVer)).
+			Joins("JOIN packages ON packages.definition_id = definitions.id").
+			Where("packages.name = ?", packName).
+			Limit(limit).Offset(i * limit).
+			Preload("Debian").
+			Preload("Advisory").
+			Preload("AffectedPacks").
+			Preload("References").
+			Find(&tmpDefs).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		if len(tmpDefs) == 0 {
+			break
+		}
+		defs = append(defs, tmpDefs...)
 	}
 	return defs, nil
 }

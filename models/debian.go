@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -40,6 +41,26 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 				AffectedPacks: []Package{distPack.pack},
 				References:    rs,
 			}
+
+			if c.Conf.NoDetails {
+				def.Title = ""
+				def.Description = ""
+				def.Advisory = Advisory{}
+
+				var references []Reference
+				for _, ref := range def.References {
+					if ref.Source != "CVE" {
+						continue
+					}
+					references = append(references, Reference{
+						Source: ref.Source,
+						RefID:  ref.RefID,
+					})
+				}
+				def.Debian.MoreInfo = ""
+				def.References = references
+			}
+
 			defs = append(defs, def)
 		}
 	}

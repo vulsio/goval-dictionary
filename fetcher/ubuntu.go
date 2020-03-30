@@ -8,7 +8,7 @@ import (
 )
 
 func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
-	const t = "https://people.canonical.com/~ubuntu-security/oval/com.ubuntu.%s.cve.oval.xml"
+	const t = "https://people.canonical.com/~ubuntu-security/oval/com.ubuntu.%s.cve.oval.xml.bz2"
 	for _, v := range target {
 		var name string
 		if name = ubuntuName(v); name == "unknown" {
@@ -19,6 +19,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 			target:       v,
 			url:          fmt.Sprintf(t, name),
 			concurrently: true,
+			bzip2:        true,
 		})
 	}
 	return

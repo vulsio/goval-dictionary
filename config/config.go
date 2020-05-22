@@ -36,6 +36,9 @@ const (
 	// Ubuntu19 is Disco Dingo
 	Ubuntu19 = "disco"
 
+	// Ubuntu20 is  Focal Fossa
+	Ubuntu20 = "focal"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

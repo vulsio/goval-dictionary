@@ -123,7 +123,9 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 	var bytesBody []byte
 	if req.bzip2 {
 		var b bytes.Buffer
-		b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes())))
+		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
+			return body, err
+		}
 		bytesBody = b.Bytes()
 	} else {
 		bytesBody = buf.Bytes()
@@ -158,7 +160,9 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	defer resp.Body.Close()
 
 	buf := bytes.NewBuffer(nil)
-	io.Copy(buf, resp.Body)
+	if _, err := io.Copy(buf, resp.Body); err != nil {
+		return nil, err
+	}
 	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
 		return nil, fmt.Errorf(
 			"HTTP error. errs: %v, url: %s", errs, req.url)
@@ -168,7 +172,9 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	if req.bzip2 {
 		bz := bzip2.NewReader(buf)
 		var b bytes.Buffer
-		b.ReadFrom(bz)
+		if _, err := b.ReadFrom(bz); err != nil {
+			return nil, err
+		}
 		bytesBody = b.Bytes()
 	} else {
 		bytesBody = buf.Bytes()

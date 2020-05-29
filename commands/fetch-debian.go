@@ -113,7 +113,9 @@ func (p *FetchDebianCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to open DB", "err", err)
 		return subcommands.ExitFailure
 	}
-	defer driver.CloseDB()
+	defer func() {
+		_ = driver.CloseDB()
+	}()
 
 	// Distinct
 	vers := []string{}

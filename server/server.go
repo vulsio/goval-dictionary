@@ -76,7 +76,9 @@ func getByPackName() echo.HandlerFunc {
 			log15.Error(msg)
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
-		defer driver.CloseDB()
+		defer func() {
+			_ = driver.CloseDB()
+		}()
 		defs, err := driver.GetByPackName(family, release, pack, arch)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
@@ -99,7 +101,9 @@ func countOvalDefs() echo.HandlerFunc {
 			log15.Error(msg)
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
-		defer driver.CloseDB()
+		defer func() {
+			_ = driver.CloseDB()
+		}()
 		count, err := driver.CountDefs(family, release)
 		log15.Debug("Count", "Count", count)
 		if err != nil {
@@ -123,7 +127,9 @@ func getLastModified() echo.HandlerFunc {
 			log15.Error(msg)
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
-		defer driver.CloseDB()
+		defer func() {
+			_ = driver.CloseDB()
+		}()
 		t := driver.GetLastModified(family, release)
 		return c.JSON(http.StatusOK, t)
 	}

@@ -3,6 +3,9 @@ name: golang-ci
 linters-settings:
   errcheck:
     #exclude: /path/to/file.txt
+    #  misspell:
+    #ignore-words:
+    #  - Criterias
 
 linters:
   disable-all: true
@@ -10,7 +13,7 @@ linters:
     - goimports
     - golint
     - govet
-    - misspell
+      #- misspell
     - errcheck
     - staticcheck
     - prealloc

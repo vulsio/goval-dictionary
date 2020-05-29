@@ -15,7 +15,7 @@ import (
 const Name string = "goval-dictionary"
 
 // Version ... Version
-var version = "0.1.0"
+var version = "0.1.1"
 
 // Revision of Git
 var revision string
@@ -38,7 +38,10 @@ func main() {
 	var v = flag.Bool("v", false, "Show version")
 
 	if envArgs := os.Getenv("GOVAL_DICTIONARY_ARGS"); 0 < len(envArgs) {
-		flag.CommandLine.Parse(strings.Fields(envArgs))
+		if err := flag.CommandLine.Parse(strings.Fields(envArgs)); err != nil {
+			fmt.Printf("Failed to get ENV VARs: %s", err)
+			os.Exit(int(subcommands.ExitUsageError))
+		}
 	} else {
 		flag.Parse()
 	}

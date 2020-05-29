@@ -125,7 +125,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			}
 		}
 		fmt.Println("------------------")
-		pp.Println(dfs)
+		_, _ = pp.Println(dfs)
 		return subcommands.ExitSuccess
 	}
 

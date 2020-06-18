@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-const community = "https://raw.githubusercontent.com/alpinelinux/alpine-secdb/master/v%s/community.yaml"
-const main = "https://raw.githubusercontent.com/alpinelinux/alpine-secdb/master/v%s/main.yaml"
+const community = "https://secdb.alpinelinux.org/v%s/community.yaml"
+const main = "https://secdb.alpinelinux.org/v%s/main.yaml"
 
 func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {

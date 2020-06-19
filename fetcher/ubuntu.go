@@ -14,7 +14,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 		if name = ubuntuName(v); name == "unknown" {
 			log15.Warn("Skip unknown ubuntu.", "version", v)
 			continue
-		} else if ubuntuName(v); name == "unsupported" {
+		} else if name = ubuntuName(v); name == "unsupported" {
 			log15.Warn("Skip unsupported ubuntu version.", "version", v)
 			log15.Warn("See https://wiki.ubuntu.com/Releases for supported versions")
 			continue

@@ -18,23 +18,17 @@ const (
 	// Ubuntu is
 	Ubuntu = "ubuntu"
 
-	// Ubuntu12 is Ubuntu Precise
-	Ubuntu12 = "precise"
-
 	// Ubuntu14 is Ubuntu Trusty
 	Ubuntu14 = "trusty"
 
 	// Ubuntu16 is Ubuntu Xenial
 	Ubuntu16 = "xenial"
 
-	// Ubuntu17 is Ubuntu Artful
-	Ubuntu17 = "artful"
-
 	// Ubuntu18 is Ubuntu Bionic
 	Ubuntu18 = "bionic"
 
-	// Ubuntu19 is Disco Dingo
-	Ubuntu19 = "disco"
+	// Ubuntu19 is Eoan Ermine
+	Ubuntu19 = "eoan"
 
 	// Ubuntu20 is  Focal Fossa
 	Ubuntu20 = "focal"

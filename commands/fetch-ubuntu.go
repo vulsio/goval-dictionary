@@ -51,8 +51,8 @@ func (*FetchUbuntuCmd) Usage() string {
 		[-log-dir=/path/to/log]
 		[-log-json]
 
-For the first time, run the blow command to fetch data for all versions.
-	$ goval-dictionary fetch-ubuntu 12 14 16 18
+For the first time, run the below command to fetch data for all versions.
+	$ goval-dictionary fetch-ubuntu 14 16 18 19 20
 
 `
 }

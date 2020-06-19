@@ -14,6 +14,10 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 		if name = ubuntuName(v); name == "unknown" {
 			log15.Warn("Skip unknown ubuntu.", "version", v)
 			continue
+		} else if name = ubuntuName(v); name == "unsupported" {
+			log15.Warn("Skip unsupported ubuntu version.", "version", v)
+			log15.Warn("See https://wiki.ubuntu.com/Releases for supported versions")
+			continue
 		}
 		reqs = append(reqs, fetchRequest{
 			target:       v,
@@ -28,13 +32,13 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 func ubuntuName(major string) string {
 	switch major {
 	case "12":
-		return config.Ubuntu12
+		return "unsupported"
 	case "14":
 		return config.Ubuntu14
 	case "16":
 		return config.Ubuntu16
 	case "17":
-		return config.Ubuntu17
+		return "unsupported"
 	case "18":
 		return config.Ubuntu18
 	case "19":

@@ -78,14 +78,18 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	c.Conf.DBType = p.DBType
 
 	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
-	if f.NArg() != 3 {
+	if p.ByPackage && f.NArg() != 4 {
 		log15.Crit(`
 		Usage:
 		select OVAL by package name
-		./goval-dictionary select -by-package RedHat 7 java-1.7.0-openjdk x86_64
+		./goval-dictionary select -by-package redhat 7 java-1.7.0-openjdk x86_64
+		`)
+	}
 
+	if p.ByCveID && f.NArg() != 3 {
+		log15.Crit(`
 		select OVAL by CVE-ID
-		./goval-dictionary select -by-cveid RedHat 7 CVE-2015-1111
+		./goval-dictionary select -by-cveid redhat 7 CVE-2015-1111
 		`)
 	}
 

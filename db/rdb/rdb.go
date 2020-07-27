@@ -197,6 +197,10 @@ func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.D
 	if family == c.CentOS {
 		family = c.RedHat
 	}
+	if family == c.Raspbian {
+		family = c.Debian
+	}
+
 	if _, ok := ovalMap[family]; !ok {
 		return nil, fmt.Errorf("Unsupport family: %s", family)
 	}

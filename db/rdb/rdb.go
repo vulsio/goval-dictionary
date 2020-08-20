@@ -194,9 +194,13 @@ func (d *Driver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName
 func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
-	if family == c.CentOS {
+	switch family {
+	case c.CentOS:
 		family = c.RedHat
+	case c.Raspbian:
+		family = c.Debian
 	}
+
 	if _, ok := ovalMap[family]; !ok {
 		return nil, fmt.Errorf("Unsupport family: %s", family)
 	}

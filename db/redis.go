@@ -124,8 +124,11 @@ func (d *RedisDriver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName, arch
 func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) (defs []models.Definition, err error) {
-	if family == c.CentOS {
+	switch family {
+	case c.CentOS:
 		family = c.RedHat
+	case c.Raspbian:
+		family = c.Debian
 	}
 
 	// Alpne provides vulnerability file for each major.minor

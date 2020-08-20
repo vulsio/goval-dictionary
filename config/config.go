@@ -18,6 +18,9 @@ const (
 	// Ubuntu is
 	Ubuntu = "ubuntu"
 
+	// Raspbian is
+	Raspbian = "raspbian"
+
 	// Ubuntu14 is Ubuntu Trusty
 	Ubuntu14 = "trusty"
 

@@ -414,11 +414,11 @@ Select from DB where package name is golang.
 
 <details>
 <summary>
-`$ goval-dictionary select -by-package redhat 7 golang`
+`$ goval-dictionary select -by-package redhat 7 golang x86_64`
 </summary>
 
 ```bash
-$ goval-dictionary select -by-package redhat 7 golang
+$ goval-dictionary select -by-package redhat 7 golang x86_64
 [Apr 10 10:22:43]  INFO Opening DB (sqlite3).
 CVE-2015-5739
     {3399 319 golang 0:1.6.3-1.el7_2.1}

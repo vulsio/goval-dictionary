@@ -58,10 +58,15 @@ func SetLogger(logDir string, quiet, debug, logJSON bool) {
 	var hundler log15.Handler
 	if _, err := os.Stat(logDir); err == nil {
 		logPath := filepath.Join(logDir, "goval-dictionary.log")
-		hundler = log15.MultiHandler(
-			log15.Must.FileHandler(logPath, logFormat),
-			lvlHundler,
-		)
+		if err := ioutil.WriteFile(logPath, []byte{}, 0700); err != nil {
+			log15.Error("Failed to create a log file", "err", err)
+			hundler = lvlHundler
+		} else {
+			hundler = log15.MultiHandler(
+				log15.Must.FileHandler(logPath, logFormat),
+				lvlHundler,
+			)
+		}
 	} else {
 		hundler = lvlHundler
 	}

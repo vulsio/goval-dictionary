@@ -133,5 +133,20 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		return subcommands.ExitSuccess
 	}
 
+	if p.ByCveID {
+		dfs, err = driver.GetByCveID(f.Args()[0], f.Args()[1], f.Args()[2])
+		if err != nil {
+			log15.Crit("Failed to get cve by cveID", "err", err)
+		}
+		for _, d := range dfs {
+			fmt.Printf("%s\n", d.Title)
+			fmt.Printf("%s\n", d.Advisory.Severity)
+			fmt.Printf("%v\n", d.Advisory.Cves)
+		}
+		fmt.Println("------------------")
+		_, _ = pp.Println(dfs)
+		return subcommands.ExitSuccess
+	}
+
 	return subcommands.ExitSuccess
 }

@@ -144,3 +144,8 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 
 	return defs, nil
 }
+
+// GetByCveID select definition by CveID
+func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	return defs, nil
+}

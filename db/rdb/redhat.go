@@ -175,3 +175,8 @@ func filterByMajor(packs []models.Package, majorVer string) (filtered []models.P
 	}
 	return
 }
+
+// GetByCveID select definition by CveID
+func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	return defs, nil
+}

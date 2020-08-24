@@ -34,6 +34,7 @@ type Driver struct {
 type OvalDB interface {
 	Name() string
 	GetByPackName(*gorm.DB, string, string, string) ([]models.Definition, error)
+	GetByCveID(*gorm.DB, string, string) ([]models.Definition, error)
 	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
 }
 
@@ -206,6 +207,15 @@ func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.D
 	}
 
 	return ovalMap[family].GetByPackName(d.conn, osVer, packName, arch)
+}
+
+// GetByCveID select OVAL definition related to OS Family, osVer, cveID
+func (d *Driver) GetByCveID(family, osVer, cveID string) ([]models.Definition, error) {
+	if _, ok := ovalMap[family]; !ok {
+		return nil, fmt.Errorf("Unsupport family: %s", family)
+	}
+
+	return ovalMap[family].GetByCveID(d.conn, osVer, cveID)
 }
 
 // InsertOval inserts OVAL

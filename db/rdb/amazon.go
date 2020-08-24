@@ -148,3 +148,8 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 
 	return defs, nil
 }
+
+// GetByCveID select definition by CveID
+func (o *Amazon) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	return defs, nil
+}

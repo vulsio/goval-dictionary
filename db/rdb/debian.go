@@ -135,3 +135,8 @@ func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 	}
 	return defs, nil
 }
+
+// GetByCveID select definition by CveID
+func (o *Debian) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	return defs, nil
+}

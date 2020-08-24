@@ -6,6 +6,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
@@ -124,33 +125,14 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
 func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
-	tmpdefs := []models.Definition{}
-	driver.Where(&models.Definition{Title: cveID}).Find(&tmpdefs)
-	for _, def := range tmpdefs {
-		root := models.Root{}
-		err := driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		if root.Family != o.Family || root.OSVersion != osVer {
-			continue
-		}
-
-		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		def.AffectedPacks = packs
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		def.References = refs
-
-		defs = append(defs, def)
+	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ?",
+		config.OpenSUSE).
+		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
+		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).
+		Preload("References").
+		Find(&defs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
 	}
-	return
+	return defs, nil
 }

@@ -140,7 +140,6 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		}
 		for _, d := range dfs {
 			fmt.Printf("%s\n", d.Title)
-			fmt.Printf("%s\n", d.Advisory.Severity)
 			fmt.Printf("%v\n", d.Advisory.Cves)
 		}
 		fmt.Println("------------------")

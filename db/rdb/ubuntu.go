@@ -116,9 +116,8 @@ func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 func (o *Ubuntu) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Ubuntu, major(osVer)).
-		Joins("JOIN packages ON packages.definition_id = definitions.id").
-		Joins("JOIN debians ON debians.definition_id = definitions.id").
-		Where("debians.cve_id = ?", cveID).
+		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
+		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).
 		Preload("Debian").
 		Preload("Advisory").
 		Preload("AffectedPacks").

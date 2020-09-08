@@ -185,6 +185,8 @@ func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models
 		Where("cves.cve_id = ?", cveID).
 		Preload("Advisory").
 		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

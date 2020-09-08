@@ -128,6 +128,7 @@ func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.D
 		o.Name(), osVer).
 		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
 		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).
+		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {

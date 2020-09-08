@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strings"
 
+	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
 // ConvertSUSEToModel Convert OVAL to models
-func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
-	m := map[string]Root{}
-	for _, ovaldef := range root.Definitions.Definitions {
+func ConvertSUSEToModel(root *oval.Root, suseType string) (defs []Definition) {
+	for _, d := range root.Definitions.Definitions {
 		rs := []Reference{}
-		for _, r := range ovaldef.References {
+		for _, r := range d.References {
 			rs = append(rs, Reference{
 				Source: r.Source,
 				RefID:  r.RefID,
@@ -20,57 +20,43 @@ func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
 			})
 		}
 
-		for _, distPack := range collectSUSEPacks(ovaldef.Criteria) {
-			def := Definition{
-				DefinitionID:  ovaldef.ID,
-				Title:         ovaldef.Title,
-				Description:   ovaldef.Description,
-				AffectedPacks: []Package{distPack.pack},
-				References:    rs,
-			}
-
-			root, ok := m[distPack.osVer]
-			if ok {
-				root.Definitions = append(root.Definitions, def)
-				m[distPack.osVer] = root
-			} else {
-				m[distPack.osVer] = Root{
-					Family:      suseType,
-					OSVersion:   distPack.osVer,
-					Definitions: []Definition{def},
-				}
-			}
+		def := Definition{
+			DefinitionID:  d.ID,
+			Title:         d.Title,
+			Description:   d.Description,
+			AffectedPacks: collectSUSEPacks(d.Criteria),
+			References:    rs,
 		}
-	}
-	for _, v := range m {
-		roots = append(roots, v)
+
+		if c.Conf.NoDetails {
+			def.Title = ""
+			def.Description = ""
+			def.Advisory = Advisory{}
+
+			var references []Reference
+			for _, ref := range def.References {
+				if ref.Source != "CVE" {
+					continue
+				}
+				references = append(references, Reference{
+					Source: ref.Source,
+					RefID:  ref.RefID,
+				})
+			}
+			def.References = references
+		}
+
+		defs = append(defs, def)
 	}
 	return
 }
 
-func collectSUSEPacks(cri oval.Criteria) []distroPackage {
-	return walkSUSE(cri, "", []distroPackage{})
+func collectSUSEPacks(cri oval.Criteria) []Package {
+	return walkSUSE(cri, []Package{})
 }
 
-func walkSUSE(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {
+func walkSUSE(cri oval.Criteria, acc []Package) []Package {
 	for _, c := range cri.Criterions {
-		if strings.HasPrefix(c.Comment, "openSUSE ") {
-			continue
-		}
-		if strings.HasPrefix(c.Comment, "SUSE Linux Enterprise Server ") {
-			osVer = strings.TrimPrefix(strings.TrimSuffix(c.Comment, " is installed"),
-				"SUSE Linux Enterprise Server ")
-			continue
-		}
-
-		// Ignore except SUSE Enterprise Linux and openSUSE for now.
-		if strings.HasPrefix(c.Comment, "SUSE") {
-			return acc
-		}
-
-		osVer = strings.TrimSuffix(osVer, "-LTSS")
-		osVer = strings.Replace(osVer, " SP", ".", -1)
-
 		packVer := ""
 		if strings.HasSuffix(c.Comment, " is installed") {
 			packVer = strings.TrimSuffix(c.Comment, " is installed")
@@ -84,12 +70,9 @@ func walkSUSE(cri oval.Criteria, osVer string, acc []distroPackage) []distroPack
 		name := fmt.Sprintf("%s", strings.Join(ss[0:len(ss)-2], "-"))
 		version := fmt.Sprintf("%s-%s", ss[len(ss)-2], ss[len(ss)-1])
 
-		acc = append(acc, distroPackage{
-			osVer: osVer,
-			pack: Package{
-				Name:    name,
-				Version: version,
-			},
+		acc = append(acc, Package{
+			Name:    name,
+			Version: version,
 		})
 	}
 
@@ -97,7 +80,7 @@ func walkSUSE(cri oval.Criteria, osVer string, acc []distroPackage) []distroPack
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkSUSE(c, osVer, acc)
+		acc = walkSUSE(c, acc)
 	}
 	return acc
 }

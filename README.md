@@ -245,6 +245,8 @@ For the first time, run the blow command to fetch data for all versions.
         http://proxy-url:port (default: empty)
   -quiet
         quiet mode (no output)
+  -no-details
+        without vulnerability details
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -log-json

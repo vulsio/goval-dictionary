@@ -15,7 +15,7 @@ import (
 const Name string = "goval-dictionary"
 
 // Version ... Version
-var version = "0.2.7"
+var version = ""
 
 // Revision of Git
 var revision string

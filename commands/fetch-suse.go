@@ -188,7 +188,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertSUSEToModel(&ovalroot, suseType)
+		roots := models.ConvertSUSEToModel(&ovalroot, suseType, r.Target)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
 			if err := driver.InsertOval(suseType, &root, fmeta); err != nil {

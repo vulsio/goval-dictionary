@@ -6,6 +6,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
+	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
@@ -73,9 +74,16 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 }
 
 // GetByPackName select definitions by packName
-// SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
-// http: //ftp.suse.com/pub/projects/security/oval/
 func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
+	// SLES: OVAL provided in each major version.
+	// OpenSUSE : OVAL is separate for each minor version.
+	// http://ftp.suse.com/pub/projects/security/oval/
+	switch o.Family {
+	case c.SUSEEnterpriseServer,
+		c.SUSEEnterpriseDesktop,
+		c.SUSEOpenstackCloud:
+		osVer = major(osVer)
+	}
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {

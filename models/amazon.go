@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -11,6 +12,9 @@ import (
 // ConvertAmazonToModel Convert OVAL to models
 func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 	for _, alas := range data.ALASList {
+		if strings.Contains(alas.Description, "** REJECT **") {
+			continue
+		}
 		cves := []Cve{}
 		for _, cveID := range alas.CVEIDs {
 			cves = append(cves, Cve{CveID: cveID})

@@ -11,6 +11,9 @@ import (
 func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
 	m := map[string]Root{}
 	for _, ovaldef := range root.Definitions.Definitions {
+		if strings.Contains(ovaldef.Description, "** REJECT **") {
+			continue
+		}
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
 			rs = append(rs, Reference{

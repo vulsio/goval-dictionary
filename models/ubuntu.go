@@ -11,7 +11,9 @@ import (
 // ConvertUbuntuToModel Convert OVAL to models
 func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 	for _, d := range root.Definitions.Definitions {
-
+		if strings.Contains(d.Description, "** REJECT **") {
+			continue
+		}
 		cveID := ""
 		rs := []Reference{}
 		for _, r := range d.References {

@@ -16,6 +16,9 @@ type distroPackage struct {
 // ConvertDebianToModel Convert OVAL to models
 func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 	for _, ovaldef := range root.Definitions.Definitions {
+		if strings.Contains(ovaldef.Description, "** REJECT **") {
+			continue
+		}
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
 			rs = append(rs, Reference{

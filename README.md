@@ -231,7 +231,7 @@ fetch-suse:
                 [-log-json]
 
 For the first time, run the blow command to fetch data for all versions.
-    $ goval-dictionary fetch-suse -opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+    $ goval-dictionary fetch-suse -opensuse 13.2
 
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
@@ -245,8 +245,6 @@ For the first time, run the blow command to fetch data for all versions.
         http://proxy-url:port (default: empty)
   -quiet
         quiet mode (no output)
-  -no-details
-        without vulnerability details
   -log-dir string
         /path/to/log (default "/var/log/vuls")
   -log-json
@@ -256,33 +254,17 @@ For the first time, run the blow command to fetch data for all versions.
   -opensuse-leap
         OpenSUSE Leap
   -suse-enterprise-server
-        SUSE Linux Enterprise Server
-  -suse-enterprise-desktop
-        SUSE Linux Enterprise Desktop
-  -suse-openstack-cloud
-        SUSE OpenStack Cloud
+        SUSE Enterprise Linux
 ```
 
 - Import OVAL data from Internet
 
 ```bash
-$ goval-dictionary fetch-suse -opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+$ goval-dictionary fetch-suse -opensuse 13.2
 ```
 
 ```bash
-$ goval-dictionary fetch-suse -opensuse-leap 15.0 15.1 15.2 42.3
-```
-
-```bash
-$ goval-dictionary fetch-suse -suse-enterprise-server 10 11 12 15
-```
-
-```bash
-$ goval-dictionary fetch-suse -suse-enterprise-desktop 10 11 12 15
-```
-
-```bash
-$ goval-dictionary fetch-suse -suse-openstack-cloud 7 8 9
+$ goval-dictionary fetch-suse -suse-enterprise-server 12
 ```
 
 ### Usage: Fetch OVAL data from Oracle

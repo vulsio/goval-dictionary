@@ -42,7 +42,7 @@ func Start(logDir string) error {
 	// Routes
 	e.GET("/health", health())
 	e.GET("/packs/:family/:release/:pack/:arch", getByPackName())
-	//	e.GET("/packs/:family/:release/:pack", getByPackName()) ; need debug
+	e.GET("/packs/:family/:release/:pack", getByPackName())
 	e.GET("/cves/:family/:release/:id", getByCveID())
 	e.GET("/count/:family/:release", countOvalDefs())
 	e.GET("/lastmodified/:family/:release", getLastModified())

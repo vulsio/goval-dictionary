@@ -10,7 +10,9 @@ require (
 	github.com/htcat/htcat v1.0.2
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/jinzhu/gorm v1.9.10
+	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible
+	github.com/kr/pretty v0.2.1 // indirect
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.2.9 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0

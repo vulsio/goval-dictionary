@@ -261,8 +261,6 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
-	case c.SUSEEnterpriseServer:
-		// SUSE provides OVAL each major.minor
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
 	default:
@@ -287,8 +285,6 @@ func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 	switch osFamily {
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
-	case c.SUSEEnterpriseServer:
-		// SUSE provides OVAL each major.minor
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
 	default:

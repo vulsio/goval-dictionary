@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"flag"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -28,12 +29,12 @@ type FetchSUSECmd struct {
 	Debug                 bool
 	DebugSQL              bool
 	Quiet                 bool
-	NoDetails             bool
 	LogDir                string
 	LogJSON               bool
 	DBPath                string
 	DBType                string
 	HTTPProxy             string
+	OVALPath              string
 }
 
 // Name return subcommand name
@@ -57,12 +58,11 @@ func (*FetchSUSECmd) Usage() string {
 		[-debug]
 		[-debug-sql]
 		[-quiet]
-		[-no-details]
 		[-log-dir=/path/to/log]
 		[-log-json]
 
 For details, see https://github.com/kotakanbe/goval-dictionary#usage-fetch-oval-data-from-suse
-	$ goval-dictionary fetch-suse -opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+	$ goval-dictionary fetch-suse -opensuse 13.2
 
 `
 }
@@ -79,7 +79,6 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.Debug, "debug", false, "debug mode")
 	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
 	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
-	f.BoolVar(&p.NoDetails, "no-details", false, "without vulnerability details")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
@@ -93,6 +92,8 @@ func (p *FetchSUSECmd) SetFlags(f *flag.FlagSet) {
 		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 
 	f.StringVar(&p.HTTPProxy, "http-proxy", "", "http://proxy-url:port (default: empty)")
+
+	f.StringVar(&p.OVALPath, "oval-path", "", "Local file path of Downloaded oval")
 }
 
 // Execute execute
@@ -103,7 +104,6 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	c.Conf.DBPath = p.DBPath
 	c.Conf.DBType = p.DBType
 	c.Conf.HTTPProxy = p.HTTPProxy
-	c.Conf.NoDetails = p.NoDetails
 
 	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if !c.Conf.Validate() {
@@ -113,6 +113,16 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 	if len(f.Args()) == 0 {
 		log15.Error("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
 		return subcommands.ExitUsageError
+	}
+
+	// Distinct
+	v := map[string]bool{}
+	vers := []string{}
+	for _, arg := range f.Args() {
+		v[arg] = true
+	}
+	for k := range v {
+		vers = append(vers, k)
 	}
 
 	suseType := ""
@@ -139,20 +149,23 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		return subcommands.ExitFailure
 	}
 
-	// Distinct
-	v := map[string]bool{}
-	vers := []string{}
-	for _, arg := range f.Args() {
-		v[arg] = true
-	}
-	for k := range v {
-		vers = append(vers, k)
-	}
-
-	results, err := fetcher.FetchSUSEFiles(suseType, vers)
-	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return subcommands.ExitFailure
+	var results []fetcher.FetchResult
+	if p.OVALPath == "" {
+		results, err = fetcher.FetchSUSEFiles(suseType, vers)
+		if err != nil {
+			log15.Error("Failed to fetch files", "err", err)
+			return subcommands.ExitFailure
+		}
+	} else {
+		dat, err := ioutil.ReadFile(p.OVALPath)
+		if err != nil {
+			log15.Error("Failed to read file", "err", err)
+			return subcommands.ExitFailure
+		}
+		results = []fetcher.FetchResult{{
+			Body:   dat,
+			Target: vers[0],
+		}}
 	}
 
 	for _, r := range results {
@@ -163,32 +176,27 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
-		defs := models.ConvertSUSEToModel(&ovalroot, suseType)
-
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
 			log15.Error("Failed to parse time", "err", err)
 			return subcommands.ExitFailure
 		}
-
-		root := models.Root{
-			Family:      suseType,
-			OSVersion:   r.Target,
-			Definitions: defs,
-			Timestamp:   time.Now(),
-		}
-
 		ss := strings.Split(r.URL, "/")
 		fmeta := models.FetchMeta{
 			Timestamp: t,
 			FileName:  ss[len(ss)-1],
 		}
 
-		if err := driver.InsertOval(suseType, &root, fmeta); err != nil {
-			log15.Error("Failed to insert oval", "err", err)
-			return subcommands.ExitFailure
+		roots := models.ConvertSUSEToModel(&ovalroot, suseType)
+		for _, root := range roots {
+			root.Timestamp = time.Now()
+			if err := driver.InsertOval(suseType, &root, fmeta); err != nil {
+				log15.Error("Failed to insert oval", "err", err)
+				return subcommands.ExitFailure
+			}
 		}
+
 		if err := driver.InsertFetchMeta(fmeta); err != nil {
 			log15.Error("Failed to insert meta", "err", err)
 			return subcommands.ExitFailure

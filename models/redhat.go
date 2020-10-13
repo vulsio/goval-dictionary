@@ -14,6 +14,9 @@ var cveIDPattern = regexp.MustCompile(`(CVE-\d{4}-\d{4,})`)
 // ConvertRedHatToModel Convert OVAL to models
 func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 	for _, d := range root.Definitions.Definitions {
+		if strings.Contains(d.Description, "** REJECT **") {
+			continue
+		}
 		rs := []Reference{}
 		for _, r := range d.References {
 			rs = append(rs, Reference{

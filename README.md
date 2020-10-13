@@ -254,7 +254,7 @@ For the first time, run the blow command to fetch data for all versions.
   -opensuse-leap
         OpenSUSE Leap
   -suse-enterprise-server
-        SUSE Enterprise Linux
+        SUSE Enterprise Server
 ```
 
 - Import OVAL data from Internet

@@ -150,7 +150,8 @@ func (p *FetchRedHatCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
-			panic(err)
+			log15.Error("Failed to parse time", "err", err)
+			return subcommands.ExitFailure
 		}
 
 		root := models.Root{

@@ -265,7 +265,6 @@ $ goval-dictionary fetch-suse -opensuse 13.2
 
 ```bash
 $ goval-dictionary fetch-suse -suse-enterprise-server 12
-
 ```
 
 ### Usage: Fetch OVAL data from Oracle

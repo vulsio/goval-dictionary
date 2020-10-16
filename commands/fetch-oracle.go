@@ -129,7 +129,8 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, strings.Split(ovalroot.Generator.Timestamp, ".")[0])
 		if err != nil {
-			panic(err)
+			log15.Error("Failed to parse time", "err", err)
+			return subcommands.ExitFailure
 		}
 
 		ss := strings.Split(r.URL, "/")

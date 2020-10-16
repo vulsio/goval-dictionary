@@ -102,3 +102,21 @@ func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 	}
 	return defs, nil
 }
+
+// GetByCveID select definition by CveID
+func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+		config.Alpine, majorDotMinor(osVer)).
+		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
+		Joins("JOIN cves ON cves.advisory_id = advisories.id").
+		Where("cves.cve_id = ?", cveID).
+		Preload("Advisory").
+		Preload("Advisory.Cves").
+		Preload("AffectedPacks").
+		Preload("References").
+		Find(&defs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return defs, nil
+}

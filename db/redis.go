@@ -123,7 +123,7 @@ func (d *RedisDriver) CloseDB() (err error) {
 }
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName, arch
-func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) (defs []models.Definition, err error) {
+func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
 	switch family {
 	case c.CentOS:
 		family = c.RedHat
@@ -131,16 +131,13 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) (defs 
 		family = c.Debian
 	}
 
-	// Alpne provides vulnerability file for each major.minor
-	if family != c.Alpine {
-		if family == c.Amazon {
-			osVer = getAmazonLinux1or2(osVer)
-		} else {
-			osVer = major(osVer)
-		}
+	if family == c.Amazon {
+		osVer = getAmazonLinux1or2(osVer)
+	} else if family != c.Alpine {
+		// OVAL is provided for each major for all other OSes except alpine,
+		// But Alpine provides it for each major.minor
+		osVer = major(osVer)
 	}
-	defs = []models.Definition{}
-	var result *redis.StringSliceCmd
 
 	zkey := hashKeyPrefix + packName
 	if family == c.Amazon {
@@ -148,30 +145,31 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) (defs 
 		zkey = hashKeyPrefix + packName + hashKeySeparator + arch
 	}
 
+	var result *redis.StringSliceCmd
 	if result = d.conn.ZRange(zkey, 0, -1); result.Err() != nil {
-		err = result.Err()
 		log15.Error("Failed to get definition from package", "err", result.Err())
-		return
+		return nil, result.Err()
 	}
 
-	encountered := map[string]bool{}
+	defs := []models.Definition{}
+	found := map[string]bool{}
 	for _, v := range result.Val() {
 		f, ver, _ := splitHashKey(v)
 		if f != family || ver != osVer {
 			continue
 		}
-		var tmpdefs []models.Definition
-		if tmpdefs, err = getByHashKey(v, d.conn); err != nil {
+		tmpdefs, err := getByHashKey(v, d.conn)
+		if err != nil {
 			return nil, err
 		}
 		for _, vv := range tmpdefs {
-			if !encountered[vv.DefinitionID] {
-				encountered[vv.DefinitionID] = true
+			if !found[vv.DefinitionID] {
+				found[vv.DefinitionID] = true
 				defs = append(defs, vv)
 			}
 		}
 	}
-	return
+	return defs, nil
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
@@ -274,20 +272,19 @@ func chunkSlice(l []models.Definition, n int) chan []models.Definition {
 	return ch
 }
 
-func getByHashKey(hashKey string, driver *redis.Client) (defs []models.Definition, err error) {
-	defs = []models.Definition{}
-	var result *redis.StringStringMapCmd
-	if result = driver.HGetAll(hashKey); result.Err() != nil {
-		err = result.Err()
+func getByHashKey(hashKey string, driver *redis.Client) ([]models.Definition, error) {
+	result := driver.HGetAll(hashKey)
+	if result.Err() != nil {
 		log15.Error("Failed to get definition.", "err", result.Err())
-		return
+		return nil, result.Err()
 	}
 
+	defs := []models.Definition{}
 	for _, v := range result.Val() {
 		var def models.Definition
-		if err = json.Unmarshal([]byte(v), &def); err != nil {
+		if err := json.Unmarshal([]byte(v), &def); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
-			return
+			return nil, err
 		}
 		osFamily, osVer, _ := splitHashKey(hashKey)
 		if osFamily == c.RedHat {
@@ -295,7 +292,7 @@ func getByHashKey(hashKey string, driver *redis.Client) (defs []models.Definitio
 		}
 		defs = append(defs, def)
 	}
-	return
+	return defs, nil
 }
 
 func getHashKey(family, osVer, cveID string) string {

@@ -181,6 +181,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definiti
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
 	definitions := aggregateAffectedPackages(root.Definitions)
+	count := 0
 	for chunked := range chunkSlice(definitions, 10) {
 		var pipe redis.Pipeliner
 		pipe = d.conn.Pipeline()
@@ -198,6 +199,9 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			}
 			for _, cve := range def.Advisory.Cves {
 				cveIDs[cve.CveID] = true
+			}
+			if def.Debian.CveID != "" {
+				cveIDs[def.Debian.CveID] = true
 			}
 			for cveID := range cveIDs {
 				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
@@ -220,11 +224,13 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 					}
 				}
 			}
+			count += len(cveIDs)
 		}
 		if _, err = pipe.Exec(); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
 	}
+	log15.Info("Total CVE-IDs: ", "count", count)
 	return nil
 }
 

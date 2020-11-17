@@ -181,7 +181,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definiti
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
 	definitions := aggregateAffectedPackages(root.Definitions)
-	count := 0
+	total := map[string]struct{}{}
 	for chunked := range chunkSlice(definitions, 10) {
 		var pipe redis.Pipeliner
 		pipe = d.conn.Pipeline()
@@ -190,18 +190,18 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			if dj, err = json.Marshal(def); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
-			cveIDs := map[string]bool{}
+			cveIDs := map[string]struct{}{}
 			for _, ref := range def.References {
 				if ref.Source != "CVE" || ref.RefID == "" {
 					continue
 				}
-				cveIDs[ref.RefID] = true
+				cveIDs[ref.RefID] = struct{}{}
 			}
 			for _, cve := range def.Advisory.Cves {
-				cveIDs[cve.CveID] = true
+				cveIDs[cve.CveID] = struct{}{}
 			}
 			if def.Debian.CveID != "" {
-				cveIDs[def.Debian.CveID] = true
+				cveIDs[def.Debian.CveID] = struct{}{}
 			}
 			for cveID := range cveIDs {
 				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
@@ -223,14 +223,14 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
 					}
 				}
+				total[cveID] = struct{}{}
 			}
-			count += len(cveIDs)
 		}
 		if _, err = pipe.Exec(); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
 	}
-	log15.Info("Total CVE-IDs: ", "count", count)
+	log15.Info("Total CVE-IDs: ", "count", len(total))
 	return nil
 }
 

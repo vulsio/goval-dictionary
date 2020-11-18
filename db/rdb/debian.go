@@ -123,7 +123,7 @@ func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Preload("Debian").
 			Preload("AffectedPacks").
 			Preload("References").
-			Find(&defs).Error
+			Find(&tmpDefs).Error
 
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err

@@ -90,7 +90,7 @@ func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Preload("Advisory.Cves").
 			Preload("AffectedPacks").
 			Preload("References").
-			Find(&defs).Error
+			Find(&tmpDefs).Error
 
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err

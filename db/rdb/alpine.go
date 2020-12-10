@@ -33,7 +33,7 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	old := models.Root{}
 	r := tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
 	if !r.RecordNotFound() {
-		// Delete data related to root passed in arg
+
 		defs := []models.Definition{}
 		tx.Model(&old).Related(&defs, "Definitions")
 		for _, def := range defs {

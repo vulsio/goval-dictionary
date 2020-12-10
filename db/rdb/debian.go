@@ -41,69 +41,37 @@ func (o *Debian) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	old := models.Root{}
 	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
 	if !r.RecordNotFound() {
-		for _, def := range root.Definitions {
-			olddebs := []models.Debian{}
-			if r := tx.Where(&models.Debian{CveID: def.Debian.CveID}).Find(&olddebs); r.RecordNotFound() {
-
-				def.RootID = old.ID
-				if err := tx.Create(&def).Error; err != nil {
-					tx.Rollback()
-					return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-						pp.Sprintf("%v", root), err)
-				}
-				continue
-			}
-
-			// Delete old records
-			for _, olddeb := range olddebs {
-				olddef := models.Definition{}
-				if r := tx.First(&olddef, olddeb.DefinitionID); r.RecordNotFound() {
-					continue
-				}
-
-				oldroot := models.Root{}
-				if r := tx.First(&oldroot, olddef.RootID); r.RecordNotFound() {
-					continue
-				}
-
-				if oldroot.Family != root.Family || oldroot.OSVersion != root.OSVersion {
-					continue
-				}
-
-				log15.Debug("delete", "defid", olddef.ID)
-
-				if err := tx.Unscoped().Where("definition_id= ?", olddef.ID).Delete(&models.Package{}).Error; err != nil {
-					tx.Rollback()
-					return fmt.Errorf("Failed to delete: %s", err)
-				}
-				if err := tx.Unscoped().Where("definition_id = ?", olddef.ID).Delete(&models.Reference{}).Error; err != nil {
-					tx.Rollback()
-					return fmt.Errorf("Failed to delete: %s", err)
-				}
-				if err := tx.Unscoped().Where("definition_id = ?", olddef.ID).Delete(&models.Debian{}).Error; err != nil {
-					tx.Rollback()
-					return fmt.Errorf("Failed to delete: %s", err)
-				}
-				if err := tx.Unscoped().Where("id = ?", olddef.ID).Delete(&models.Definition{}).Error; err != nil {
-					tx.Rollback()
-					return fmt.Errorf("Failed to delete: %s", err)
-				}
-			}
-
-			// Insert a new record
-			def.RootID = old.ID
-			if err := tx.Create(&def).Error; err != nil {
+		// Delete data related to root passed in arg
+		defs := []models.Definition{}
+		tx.Model(&old).Related(&defs, "Definitions")
+		for _, def := range defs {
+			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-					pp.Sprintf("%v", root), err)
+				return fmt.Errorf("Failed to delete: %s", err)
+			}
+			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("Failed to delete: %s", err)
+			}
+			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Debian{}).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("Failed to delete: %s", err)
 			}
 		}
-	} else {
-		if err := tx.Create(&root).Error; err != nil {
+		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-				pp.Sprintf("%v", root), err)
+			return fmt.Errorf("Failed to delete: %s", err)
 		}
+		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("Failed to delete: %s", err)
+		}
+	}
+	// Insert a new record
+	if err := tx.Create(&root).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("Failed to insert. cve: %s, err: %s",
+			pp.Sprintf("%v", root), err)
 	}
 
 	return tx.Commit().Error

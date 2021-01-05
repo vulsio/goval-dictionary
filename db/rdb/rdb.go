@@ -203,7 +203,7 @@ func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.D
 	}
 
 	if _, ok := ovalMap[family]; !ok {
-		return nil, fmt.Errorf("Unsupport family: %s", family)
+		return nil, fmt.Errorf("Unsupported family: %s", family)
 	}
 
 	return ovalMap[family].GetByPackName(d.conn, osVer, packName, arch)
@@ -212,7 +212,7 @@ func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.D
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
 func (d *Driver) GetByCveID(family, osVer, cveID string) ([]models.Definition, error) {
 	if _, ok := ovalMap[family]; !ok {
-		return nil, fmt.Errorf("Unsupport family: %s", family)
+		return nil, fmt.Errorf("Unsupported family: %s", family)
 	}
 
 	return ovalMap[family].GetByCveID(d.conn, osVer, cveID)
@@ -221,7 +221,7 @@ func (d *Driver) GetByCveID(family, osVer, cveID string) ([]models.Definition, e
 // InsertOval inserts OVAL
 func (d *Driver) InsertOval(family string, root *models.Root, meta models.FetchMeta) error {
 	if _, ok := ovalMap[family]; !ok {
-		return fmt.Errorf("Unsupport family: %s", family)
+		return fmt.Errorf("Unsupported family: %s", family)
 	}
 
 	return ovalMap[family].InsertOval(root, meta, d.conn)

@@ -195,6 +195,7 @@ func (p *FetchSUSECmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interfac
 				log15.Error("Failed to insert oval", "err", err)
 				return subcommands.ExitFailure
 			}
+			log15.Info("Finish", "Updated", len(root.Definitions))
 		}
 
 		if err := driver.InsertFetchMeta(fmeta); err != nil {

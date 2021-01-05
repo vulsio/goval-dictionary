@@ -169,6 +169,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			log15.Error("Failed to insert meta.", "err", err)
 			return subcommands.ExitFailure
 		}
+		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
 	return subcommands.ExitSuccess

@@ -146,6 +146,7 @@ func (p *FetchOracleCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 				log15.Error("Failed to insert oval", "err", err)
 				return subcommands.ExitFailure
 			}
+			log15.Info("Finish", "Updated", len(root.Definitions))
 		}
 		if err := driver.InsertFetchMeta(fmeta); err != nil {
 			log15.Error("Failed to insert meta", "err", err)

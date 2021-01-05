@@ -19,15 +19,8 @@ import (
 // FetchAmazonCmd is Subcommand for fetch Amazon ALAS RSS
 // https://alas.aws.amazon.com/alas.rss
 type FetchAmazonCmd struct {
-	Debug     bool
-	DebugSQL  bool
-	Quiet     bool
-	NoDetails bool
-	LogDir    string
-	LogJSON   bool
-	DBPath    string
-	DBType    string
-	HTTPProxy string
+	LogDir  string
+	LogJSON bool
 }
 
 // Name return subcommand name
@@ -56,24 +49,24 @@ func (*FetchAmazonCmd) Usage() string {
 
 // SetFlags set flag
 func (p *FetchAmazonCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&p.Debug, "debug", false, "debug mode")
-	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
-	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
-	f.BoolVar(&p.NoDetails, "no-details", false, "without vulnerability details")
+	f.BoolVar(&c.Conf.Debug, "debug", false, "debug mode")
+	f.BoolVar(&c.Conf.DebugSQL, "debug-sql", false, "SQL debug mode")
+	f.BoolVar(&c.Conf.Quiet, "quiet", false, "quiet mode (no output)")
+	f.BoolVar(&c.Conf.NoDetails, "no-details", false, "without vulnerability details")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
 	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
-	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
+	f.StringVar(&c.Conf.DBPath, "dbpath", pwd+"/oval.sqlite3",
 		"/path/to/sqlite3 or SQL connection string")
 
-	f.StringVar(&p.DBType, "dbtype", "sqlite3",
+	f.StringVar(&c.Conf.DBType, "dbtype", "sqlite3",
 		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 
 	f.StringVar(
-		&p.HTTPProxy,
+		&c.Conf.HTTPProxy,
 		"http-proxy",
 		"",
 		"http://proxy-url:port (default: empty)",
@@ -82,14 +75,6 @@ func (p *FetchAmazonCmd) SetFlags(f *flag.FlagSet) {
 
 // Execute execute
 func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	c.Conf.Quiet = p.Quiet
-	c.Conf.DebugSQL = p.DebugSQL
-	c.Conf.Debug = p.Debug
-	c.Conf.DBPath = p.DBPath
-	c.Conf.DBType = p.DBType
-	c.Conf.HTTPProxy = p.HTTPProxy
-	c.Conf.NoDetails = p.NoDetails
-
 	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
@@ -100,31 +85,16 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to fetch updateinfo for Amazon Linux1", "err", err)
 		return subcommands.ExitFailure
 	}
-	defs := models.ConvertAmazonToModel(uinfo)
 	root := models.Root{
 		Family:      c.Amazon,
 		OSVersion:   "1",
-		Definitions: defs,
+		Definitions: models.ConvertAmazonToModel(uinfo),
 		Timestamp:   time.Now(),
 	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(defs)))
-	driver, locked, err := db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
-	if err != nil {
-		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return subcommands.ExitFailure
-		}
-		log15.Error("Failed to open DB", "err", err)
-		return subcommands.ExitFailure
-	}
-	if err := driver.InsertOval(c.Amazon, &root, models.FetchMeta{}); err != nil {
-		log15.Error("Failed to insert OVAL", "err", err)
-		return subcommands.ExitFailure
-	}
-	log15.Info("Success")
-	if err := driver.CloseDB(); err != nil {
-		log15.Crit("Failed to close DB", "err", err)
-		return subcommands.ExitFailure
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
+	if err := execute(&root); err != nil {
+		log15.Error("Failed to Insert Amazon2", "err", err)
+		return subcommands.ExitSuccess
 	}
 
 	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
@@ -132,34 +102,37 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		log15.Error("Failed to fetch updateinfo for Amazon Linux2", "err", err)
 		return subcommands.ExitFailure
 	}
-	defs = models.ConvertAmazonToModel(uinfo)
 	root = models.Root{
 		Family:      c.Amazon,
 		OSVersion:   "2",
-		Definitions: defs,
+		Definitions: models.ConvertAmazonToModel(uinfo),
 		Timestamp:   time.Now(),
 	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(defs)))
-	driver2, locked, err := db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
+	if err := execute(&root); err != nil {
+		log15.Error("Failed to Insert Amazon2", "err", err)
+		return subcommands.ExitSuccess
+	}
+	return subcommands.ExitSuccess
+}
+
+func execute(root *models.Root) error {
+	driver, locked, err := db.NewDB(c.Amazon, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return subcommands.ExitFailure
+			return fmt.Errorf("Failed to open DB. Close DB connection before fetching: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
-		return subcommands.ExitFailure
+		return fmt.Errorf("Failed to open DB: %w", err)
 	}
 	defer func() {
-		err := driver2.CloseDB()
+		err := driver.CloseDB()
 		if err != nil {
-			log15.Crit("Failed to close DB", "err", err)
+			log15.Error("Failed to close DB", "err", err)
 		}
 	}()
-	if err := driver2.InsertOval(c.Amazon, &root, models.FetchMeta{}); err != nil {
-		log15.Error("Failed to insert OVAL", "err", err)
-		return subcommands.ExitFailure
+	if err := driver.InsertOval(c.Amazon, root, models.FetchMeta{}); err != nil {
+		return fmt.Errorf("Failed to insert OVAL: %w", err)
 	}
 	log15.Info("Finish", "Updated", len(root.Definitions))
-
-	return subcommands.ExitSuccess
+	return nil
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
-	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
@@ -43,7 +42,10 @@ func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		tx.Model(&old).Related(&defs, "Definitions")
+		if err := tx.Model(&old).Related(&defs, "Definitions").Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("Failed to select old defs: %s", err)
+		}
 		for _, def := range defs {
 			adv := models.Advisory{}
 			tx.Model(&def).Related(&adv, "Advisory")
@@ -84,10 +86,8 @@ func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 	if err := tx.Create(&root).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-			pp.Sprintf("%v", root), err)
+		return fmt.Errorf("Failed to insert. err: %+v", err)
 	}
-
 	return tx.Commit().Error
 }
 
@@ -100,6 +100,7 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 		return nil, err
 	}
 
+	//TODO Preload
 	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}

@@ -101,18 +101,23 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 }
 
 func collectRedHatPacks(cri oval.Criteria) []Package {
-	return walkRedHat(cri, []Package{})
+	return walkRedHat(cri, []Package{}, "")
 }
 
-func walkRedHat(cri oval.Criteria, acc []Package) []Package {
+func walkRedHat(cri oval.Criteria, acc []Package, label string) []Package {
 	for _, c := range cri.Criterions {
+		if strings.HasPrefix(c.Comment, "Module ") && strings.HasSuffix(c.Comment, " is enabled") {
+			label = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Module "), " is enabled")
+		}
+
 		ss := strings.Split(c.Comment, " is earlier than ")
 		if len(ss) != 2 {
 			continue
 		}
 		acc = append(acc, Package{
-			Name:    ss[0],
-			Version: strings.Split(ss[1], " ")[0],
+			Name:            ss[0],
+			Version:         strings.Split(ss[1], " ")[0],
+			ModularityLabel: label,
 		})
 	}
 
@@ -120,7 +125,7 @@ func walkRedHat(cri oval.Criteria, acc []Package) []Package {
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkRedHat(c, acc)
+		acc = walkRedHat(c, acc, label)
 	}
 	return acc
 }

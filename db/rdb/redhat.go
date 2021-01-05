@@ -170,7 +170,8 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 
 func filterByMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
 	for _, p := range packs {
-		if strings.Contains(p.Version, ".el"+majorVer) {
+		if strings.Contains(p.Version, ".el"+majorVer) ||
+			strings.Contains(p.Version, "module+el"+majorVer) {
 			filtered = append(filtered, p)
 		}
 	}

@@ -21,14 +21,8 @@ import (
 // FetchAlpineCmd is Subcommand for fetch Alpine secdb
 // https://git.alpinelinux.org/cgit/alpine-secdb/
 type FetchAlpineCmd struct {
-	Debug     bool
-	DebugSQL  bool
-	Quiet     bool
-	LogDir    string
-	LogJSON   bool
-	DBPath    string
-	DBType    string
-	HTTPProxy string
+	LogDir  string
+	LogJSON bool
 }
 
 // Name return subcommand name
@@ -51,30 +45,30 @@ func (*FetchAlpineCmd) Usage() string {
 		[-log-json]
 
 The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
-	$ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
+	$ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11
 
 `
 }
 
 // SetFlags set flag
 func (p *FetchAlpineCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&p.Debug, "debug", false, "debug mode")
-	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
-	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
+	f.BoolVar(&c.Conf.Debug, "debug", false, "debug mode")
+	f.BoolVar(&c.Conf.DebugSQL, "debug-sql", false, "SQL debug mode")
+	f.BoolVar(&c.Conf.Quiet, "quiet", false, "quiet mode (no output)")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
 	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
-	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
+	f.StringVar(&c.Conf.DBPath, "dbpath", pwd+"/oval.sqlite3",
 		"/path/to/sqlite3 or SQL connection string")
 
-	f.StringVar(&p.DBType, "dbtype", "sqlite3",
+	f.StringVar(&c.Conf.DBType, "dbtype", "sqlite3",
 		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 
 	f.StringVar(
-		&p.HTTPProxy,
+		&c.Conf.HTTPProxy,
 		"http-proxy",
 		"",
 		"http://proxy-url:port (default: empty)",
@@ -83,13 +77,6 @@ func (p *FetchAlpineCmd) SetFlags(f *flag.FlagSet) {
 
 // Execute execute
 func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	c.Conf.Quiet = p.Quiet
-	c.Conf.DebugSQL = p.DebugSQL
-	c.Conf.Debug = p.Debug
-	c.Conf.DBPath = p.DBPath
-	c.Conf.DBType = p.DBType
-	c.Conf.HTTPProxy = p.HTTPProxy
-
 	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if !c.Conf.Validate() {
 		return subcommands.ExitUsageError
@@ -169,6 +156,7 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			log15.Error("Failed to insert meta.", "err", err)
 			return subcommands.ExitFailure
 		}
+		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
 	return subcommands.ExitSuccess

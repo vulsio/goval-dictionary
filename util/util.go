@@ -10,7 +10,7 @@ import (
 	"github.com/k0kubun/pp"
 )
 
-// GenWorkers generate workders
+// GenWorkers generate workers
 func GenWorkers(num int) chan<- func() {
 	tasks := make(chan func())
 	for i := 0; i < num; i++ {
@@ -34,19 +34,19 @@ func GetDefaultLogDir() string {
 
 // SetLogger set logger
 func SetLogger(logDir string, quiet, debug, logJSON bool) {
-	stderrHundler := log15.StderrHandler
+	stderrHandler := log15.StderrHandler
 	logFormat := log15.LogfmtFormat()
 	if logJSON {
 		logFormat = log15.JsonFormatEx(false, true)
-		stderrHundler = log15.StreamHandler(os.Stderr, logFormat)
+		stderrHandler = log15.StreamHandler(os.Stderr, logFormat)
 	}
 
-	lvlHundler := log15.LvlFilterHandler(log15.LvlInfo, stderrHundler)
+	lvlHandler := log15.LvlFilterHandler(log15.LvlInfo, stderrHandler)
 	if debug {
-		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, stderrHundler)
+		lvlHandler = log15.LvlFilterHandler(log15.LvlDebug, stderrHandler)
 	}
 	if quiet {
-		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, log15.DiscardHandler())
+		lvlHandler = log15.LvlFilterHandler(log15.LvlDebug, log15.DiscardHandler())
 		pp.SetDefaultOutput(ioutil.Discard)
 	}
 
@@ -55,20 +55,20 @@ func SetLogger(logDir string, quiet, debug, logJSON bool) {
 			log15.Error("Failed to create log directory", "err", err)
 		}
 	}
-	var hundler log15.Handler
+	var handler log15.Handler
 	if _, err := os.Stat(logDir); err == nil {
 		logPath := filepath.Join(logDir, "goval-dictionary.log")
 		if _, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err != nil {
 			log15.Error("Failed to create a log file", "err", err)
-			hundler = lvlHundler
+			handler = lvlHandler
 		} else {
-			hundler = log15.MultiHandler(
+			handler = log15.MultiHandler(
 				log15.Must.FileHandler(logPath, logFormat),
-				lvlHundler,
+				lvlHandler,
 			)
 		}
 	} else {
-		hundler = lvlHundler
+		handler = lvlHandler
 	}
-	log15.Root().SetHandler(hundler)
+	log15.Root().SetHandler(handler)
 }

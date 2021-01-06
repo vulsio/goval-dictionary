@@ -54,7 +54,7 @@ type Updated struct {
 	Date string `xml:"date,attr" json:"date,omitempty"`
 }
 
-// Reference has reference informaiton
+// Reference has reference information
 type Reference struct {
 	Href  string `xml:"href,attr" json:"href,omitempty"`
 	ID    string `xml:"id,attr" json:"id,omitempty"`
@@ -168,7 +168,7 @@ func fetchUpdateInfo(url string) (*UpdateInfo, error) {
 	}
 	r, err := gzip.NewReader(bytes.NewBuffer(results[0].Body))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to decomparess updateInfo. err: %s", err)
+		return nil, fmt.Errorf("Failed to decompress updateInfo. err: %s", err)
 	}
 	defer r.Close()
 

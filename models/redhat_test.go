@@ -105,6 +105,30 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
+		// 3 dnf module
+		{
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "ruby is earlier than 0:2.5.5-105.module+el8.1.0+3656+f80bfa1d"},
+							{Comment: "ruby is signed with Red Hat redhatrelease2 key"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "Red Hat Enterprise Linux 8 is installed"},
+					{Comment: "Module ruby:2.5 is enabled"},
+				},
+			},
+			expected: []Package{
+				{
+					Name:            "ruby",
+					Version:         "0:2.5.5-105.module+el8.1.0+3656+f80bfa1d",
+					ModularityLabel: "ruby:2.5",
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

@@ -36,15 +36,16 @@ type Definition struct {
 	References    []Reference
 }
 
-// Package affedted
+// Package affected
 type Package struct {
 	ID           uint `gorm:"primary_key"`
 	DefinitionID uint `json:"-" xml:"-"`
 
-	Name        string
-	Version     string // affected earlier than this version
-	Arch        string // Used for Amazon Linux
-	NotFixedYet bool   // Ubuntu Only
+	Name            string
+	Version         string // affected earlier than this version
+	Arch            string // Used for Amazon Linux
+	NotFixedYet     bool   // Ubuntu Only
+	ModularityLabel string // RHEL 8 or later only
 }
 
 // Reference : >definitions>definition>metadata>reference

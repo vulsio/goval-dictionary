@@ -17,12 +17,8 @@ import (
 
 // SelectCmd is Subcommand for fetch RedHat OVAL
 type SelectCmd struct {
-	DebugSQL bool
-	DBPath   string
-	DBType   string
-	Quiet    bool
-	LogDir   string
-	LogJSON  bool
+	LogDir  string
+	LogJSON bool
 
 	ByPackage bool
 	ByCveID   bool
@@ -53,18 +49,18 @@ func (*SelectCmd) Usage() string {
 
 // SetFlags set flag
 func (p *SelectCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&p.DebugSQL, "debug-sql", false, "SQL debug mode")
-	f.BoolVar(&p.Quiet, "quiet", false, "quiet mode (no output)")
+	f.BoolVar(&c.Conf.DebugSQL, "debug-sql", false, "SQL debug mode")
+	f.BoolVar(&c.Conf.Quiet, "quiet", false, "quiet mode (no output)")
 
 	defaultLogDir := util.GetDefaultLogDir()
 	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
 	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
 
 	pwd := os.Getenv("PWD")
-	f.StringVar(&p.DBPath, "dbpath", pwd+"/oval.sqlite3",
+	f.StringVar(&c.Conf.DBPath, "dbpath", pwd+"/oval.sqlite3",
 		"/path/to/sqlite3 or SQL connection string")
 
-	f.StringVar(&p.DBType, "dbtype", "sqlite3",
+	f.StringVar(&c.Conf.DBType, "dbtype", "sqlite3",
 		"Database type to store data in (sqlite3 or mysql supported)")
 
 	f.BoolVar(&p.ByPackage, "by-package", false, "select OVAL by package name")
@@ -73,10 +69,6 @@ func (p *SelectCmd) SetFlags(f *flag.FlagSet) {
 
 // Execute execute
 func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	c.Conf.DebugSQL = p.DebugSQL
-	c.Conf.DBPath = p.DBPath
-	c.Conf.DBType = p.DBType
-
 	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
 	if p.ByPackage && f.NArg() != 4 {
 		log15.Crit(`

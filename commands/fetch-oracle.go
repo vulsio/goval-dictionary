@@ -20,15 +20,8 @@ import (
 
 // FetchOracleCmd is Subcommand for fetch Oracle OVAL
 type FetchOracleCmd struct {
-	// Debug     bool
-	// DebugSQL  bool
-	// Quiet     bool
-	// NoDetails bool
 	LogDir  string
 	LogJSON bool
-	// DBPath    string
-	// DBType    string
-	// HTTPProxy string
 }
 
 // Name return subcommand name

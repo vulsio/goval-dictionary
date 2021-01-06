@@ -1,13 +1,12 @@
 package db
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
@@ -102,14 +101,13 @@ func (d *RedisDriver) Name() string {
 
 // OpenDB opens Database
 func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
-	ctx := context.Background()
 	var option *redis.Options
 	if option, err = redis.ParseURL(dbPath); err != nil {
 		log15.Error("Failed to parse url", "err", err)
 		return fmt.Errorf("Failed to Parse Redis URL. dbpath: %s, err: %s", dbPath, err)
 	}
 	d.conn = redis.NewClient(option)
-	if err = d.conn.Ping(ctx).Err(); err != nil {
+	if err = d.conn.Ping().Err(); err != nil {
 		return fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
 	return nil
@@ -126,7 +124,6 @@ func (d *RedisDriver) CloseDB() (err error) {
 
 // GetByPackName select OVAL definition related to OS Family, osVer, packName, arch
 func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
-	ctx := context.Background()
 	switch family {
 	case c.CentOS:
 		family = c.RedHat
@@ -149,7 +146,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	}
 
 	var result *redis.StringSliceCmd
-	if result = d.conn.ZRange(ctx, zkey, 0, -1); result.Err() != nil {
+	if result = d.conn.ZRange(zkey, 0, -1); result.Err() != nil {
 		log15.Error("Failed to get definition from package", "err", result.Err())
 		return nil, result.Err()
 	}
@@ -183,7 +180,6 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definiti
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
-	ctx := context.Background()
 	definitions := aggregateAffectedPackages(root.Definitions)
 	total := map[string]struct{}{}
 	for chunked := range chunkSlice(definitions, 10) {
@@ -209,7 +205,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			}
 			for cveID := range cveIDs {
 				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
-				if result := pipe.HSet(ctx, hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
+				if result := pipe.HSet(hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
 				for _, pack := range def.AffectedPacks {
@@ -219,9 +215,8 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 						zkey = hashKeyPrefix + pack.Name + hashKeySeparator + pack.Arch
 					}
 					if result := pipe.ZAdd(
-						ctx,
 						zkey,
-						&redis.Z{
+						redis.Z{
 							Score:  0,
 							Member: hashKey,
 						}); result.Err() != nil {
@@ -231,7 +226,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				total[cveID] = struct{}{}
 			}
 		}
-		if _, err = pipe.Exec(ctx); err != nil {
+		if _, err = pipe.Exec(); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
 	}
@@ -284,8 +279,7 @@ func chunkSlice(l []models.Definition, n int) chan []models.Definition {
 }
 
 func getByHashKey(hashKey string, driver *redis.Client) ([]models.Definition, error) {
-	ctx := context.Background()
-	result := driver.HGetAll(ctx, hashKey)
+	result := driver.HGetAll(hashKey)
 	if result.Err() != nil {
 		log15.Error("Failed to get definition.", "err", result.Err())
 		return nil, result.Err()

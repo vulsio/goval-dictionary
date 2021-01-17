@@ -84,6 +84,7 @@ func TestParseNotDecided(t *testing.T) {
 func TestParseFixed(t *testing.T) {
 	var tests = []struct {
 		comment  string
+		ok       bool
 		expected Package
 	}{
 		{
@@ -92,6 +93,7 @@ func TestParseFixed(t *testing.T) {
 				Name:    "poppler",
 				Version: "0.10.5-1ubuntu2",
 			},
+			ok: true,
 		},
 		{
 			comment: `iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2').`,
@@ -99,6 +101,7 @@ func TestParseFixed(t *testing.T) {
 				Name:    "iproute2",
 				Version: "3.12.0-2",
 			},
+			ok: true,
 		},
 		{
 			comment: `iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2 ').`,
@@ -106,16 +109,22 @@ func TestParseFixed(t *testing.T) {
 				Name:    "iproute2",
 				Version: "3.12.0-2",
 			},
+			ok: true,
+		},
+		{
+			comment: "mysql-5.7 package in bionic, is related to the CVE in some way and has been fixed (note: '8.0 only').",
+			ok:      false,
 		},
 	}
 
 	for i, tt := range tests {
 		actual, ok := parseFixed(tt.comment)
-		if !ok {
+		if tt.ok != ok {
 			t.Errorf("[%d]: no match: %s\n", i, tt.comment)
 			return
 		}
-		if !reflect.DeepEqual(tt.expected, *actual) {
+		if actual != nil && !reflect.DeepEqual(tt.expected, *actual) {
+			pp.ColoringEnabled = false
 			e := pp.Sprintf("%v", tt.expected)
 			a := pp.Sprintf("%v", *actual)
 			t.Errorf("[%d]: expected: %s\n, actual: %s\n", i, e, a)

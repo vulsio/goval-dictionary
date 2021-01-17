@@ -162,10 +162,9 @@ func parseFixed(comment string) (*Package, bool) {
 	// iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2').
 	res := reFixed.FindStringSubmatch(comment)
 	if len(res) == 3 {
-		ver := res[2]
 		return &Package{
 			Name:    trimPkgName(res[1]),
-			Version: ver,
+			Version: res[2],
 		}, true
 	}
 	return nil, false

@@ -150,6 +150,11 @@ func parseNotDecided(comment string) (*Package, bool) {
 var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '([^\s]+).*'\).$`)
 
 func parseFixed(comment string) (*Package, bool) {
+	// https://github.com/kotakanbe/goval-dictionary/issues/120
+	if strings.HasSuffix(comment, " only').") {
+		return nil, false
+	}
+
 	// Ubuntu 14
 	// The 'poppler' package in trusty was vulnerable but has been fixed (note: '0.10.5-1ubuntu2').
 

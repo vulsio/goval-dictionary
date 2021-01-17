@@ -100,12 +100,12 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 
 func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err error) {
 	var proxyURL *url.URL
-	httpCilent := &http.Client{}
+	httpClient := &http.Client{}
 	if c.Conf.HTTPProxy != "" {
 		if proxyURL, err = url.Parse(c.Conf.HTTPProxy); err != nil {
 			return nil, fmt.Errorf("Failed to parse proxy url: %s", err)
 		}
-		httpCilent = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
+		httpClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 	}
 
 	u, err := url.Parse(req.url)
@@ -114,7 +114,7 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 	}
 
 	buf := bytes.Buffer{}
-	htc := htcat.New(httpCilent, u, concurrency)
+	htc := htcat.New(httpClient, u, concurrency)
 	if _, err := htc.WriteTo(&buf); err != nil {
 		return nil, fmt.Errorf("aborting: could not write to output stream: %v",
 			err)

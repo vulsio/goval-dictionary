@@ -129,7 +129,7 @@ func parseNotFixedYet(comment string) (*Package, bool) {
 	return nil, false
 }
 
-var reNotDecided = regexp.MustCompile(`^(.+) package in .+ is affected, but a decision has been made to defer addressing it .+$`)
+var reNotDecided = regexp.MustCompile(`^(.+) package in .+ is affected, but a decision has been made to defer addressing it.*$`)
 
 func parseNotDecided(comment string) (*Package, bool) {
 	// Ubuntu 14

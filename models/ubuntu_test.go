@@ -65,6 +65,13 @@ func TestParseNotDecided(t *testing.T) {
 				NotFixedYet: true,
 			},
 		},
+		{
+			comment: `systemd package in bionic is affected, but a decision has been made to defer addressing it.`,
+			expected: Package{
+				Name:        "systemd",
+				NotFixedYet: true,
+			},
+		},
 	}
 
 	for i, tt := range tests {

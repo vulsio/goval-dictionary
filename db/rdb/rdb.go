@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
+	"golang.org/x/xerrors"
 
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -186,9 +186,11 @@ func (d *Driver) MigrateDB() error {
 
 // CloseDB close Database
 func (d *Driver) CloseDB() (err error) {
-	if err = d.conn.Close(); err != nil {
-		log15.Error("Failed to close DB.", "Type", d.name, " err", err)
+	if d.conn == nil {
 		return
+	}
+	if err = d.conn.Close(); err != nil {
+		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", d.name, err)
 	}
 	return
 }

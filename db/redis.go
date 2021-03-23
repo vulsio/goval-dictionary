@@ -10,6 +10,7 @@ import (
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"golang.org/x/xerrors"
 )
 
 /**
@@ -114,9 +115,11 @@ func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 
 // CloseDB close Database
 func (d *RedisDriver) CloseDB() (err error) {
-	if err = d.conn.Close(); err != nil {
-		log15.Error("Failed to close DB.", "Type", d.name, "err", err)
+	if d.conn == nil {
 		return
+	}
+	if err = d.conn.Close(); err != nil {
+		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", d.name, err)
 	}
 	return
 }

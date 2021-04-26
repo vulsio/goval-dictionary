@@ -121,6 +121,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			}
 		}
 		fmt.Println("------------------")
+		pp.ColoringEnabled = false
 		_, _ = pp.Println(dfs)
 		return subcommands.ExitSuccess
 	}
@@ -135,6 +136,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			fmt.Printf("%v\n", d.Advisory.Cves)
 		}
 		fmt.Println("------------------")
+		pp.ColoringEnabled = false
 		_, _ = pp.Println(dfs)
 		return subcommands.ExitSuccess
 	}

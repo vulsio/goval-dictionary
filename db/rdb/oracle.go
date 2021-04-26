@@ -39,7 +39,10 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
-	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
+	r = tx.Where(&models.Root{
+		Family:    root.Family,
+		OSVersion: root.OSVersion,
+	}).First(&old)
 	if !r.RecordNotFound() {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
@@ -84,10 +87,13 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
+func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
-	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
+	err := driver.Where(&models.Package{
+		Name: packName,
+		Arch: arch,
+	}).Find(&packs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}

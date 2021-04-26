@@ -27,12 +27,12 @@ func Start(logDir string) error {
 	logPath := filepath.Join(logDir, "access.log")
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		if _, err := os.Create(logPath); err != nil {
-			return err
+			log15.Error("Failed to create log dir", logPath, err)
 		}
 	}
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		return err
+		log15.Error("Failed to open log file", logPath, err)
 	}
 	defer f.Close()
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{

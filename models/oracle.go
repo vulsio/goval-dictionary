@@ -81,15 +81,23 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 }
 
 func collectOraclePacks(cri oval.Criteria) []distroPackage {
-	return walkOracle(cri, "", []distroPackage{})
+	return walkOracle(cri, "", "", []distroPackage{})
 }
 
-func walkOracle(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {
+func walkOracle(cri oval.Criteria, osVer, arch string, acc []distroPackage) []distroPackage {
 	for _, c := range cri.Criterions {
+		// <criterion test_ref="oval:com.oracle.elsa:tst:20110498001" comment="Oracle Linux 6 is installed"/>
 		if strings.HasPrefix(c.Comment, "Oracle Linux ") &&
 			strings.HasSuffix(c.Comment, " is installed") {
 			osVer = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Oracle Linux "), " is installed")
 		}
+
+		// <criterion test_ref="oval:com.oracle.elsa:tst:20110498002" comment="Oracle Linux arch is x86_64"/>
+		const archPrefix = "Oracle Linux arch is "
+		if strings.HasPrefix(c.Comment, archPrefix) {
+			arch = strings.TrimSpace(strings.TrimPrefix(c.Comment, archPrefix))
+		}
+
 		ss := strings.Split(c.Comment, " is earlier than ")
 		if len(ss) != 2 {
 			continue
@@ -102,6 +110,7 @@ func walkOracle(cri oval.Criteria, osVer string, acc []distroPackage) []distroPa
 			pack: Package{
 				Name:    ss[0],
 				Version: strings.Split(ss[1], " ")[0],
+				Arch:    arch,
 			},
 		})
 	}
@@ -110,7 +119,7 @@ func walkOracle(cri oval.Criteria, osVer string, acc []distroPackage) []distroPa
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkOracle(c, osVer, acc)
+		acc = walkOracle(c, osVer, arch, acc)
 	}
 	return acc
 }

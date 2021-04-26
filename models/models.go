@@ -43,7 +43,7 @@ type Package struct {
 
 	Name            string
 	Version         string // affected earlier than this version
-	Arch            string // Used for Amazon Linux
+	Arch            string // Used for Amazon and Oracle Linux
 	NotFixedYet     bool   // Ubuntu Only
 	ModularityLabel string // RHEL 8 or later only
 }

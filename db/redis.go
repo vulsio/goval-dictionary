@@ -33,7 +33,7 @@ import (
   │ 2 │  $PACKAGENAME  │      0      │OVAL#$OSFAMILY::│TO GET []CVEID&OS │
   │   │      or        │             │$VERSION::$CVEID│  BY PACKAGENAME  │
   │   │  $PACKAGENAME::│             │                │                  │
-  │   │  $ARCH         │             │                │For Amazon Linux  │
+  │   │  $ARCH         │             │                │For Amazon/Oracle │
   └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
 **/
 
@@ -142,8 +142,9 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	}
 
 	zkey := hashKeyPrefix + packName
-	if family == c.Amazon {
-		// affected packages for Amazon OVAL needs to consider arch
+	switch family {
+	case c.Amazon, c.Oracle:
+		// affected packages for Amazon and Oracle OVAL needs to consider arch
 		zkey = hashKeyPrefix + packName + hashKeySeparator + arch
 	}
 
@@ -212,7 +213,8 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				}
 				for _, pack := range def.AffectedPacks {
 					zkey := hashKeyPrefix + pack.Name
-					if family == c.Amazon {
+					switch family {
+					case c.Amazon, c.Oracle:
 						// affected packages for Amazon OVAL needs to consider arch
 						zkey = hashKeyPrefix + pack.Name + hashKeySeparator + pack.Arch
 					}

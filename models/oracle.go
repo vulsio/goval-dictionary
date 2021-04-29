@@ -44,8 +44,8 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 
 			def := Definition{
 				DefinitionID: ovaldef.ID,
-				Title:        ovaldef.Title,
-				Description:  ovaldef.Description,
+				Title:        strings.TrimSpace(ovaldef.Title),
+				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
 					Cves:     copyCves,
 					Severity: ovaldef.Advisory.Severity,

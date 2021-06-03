@@ -131,7 +131,12 @@ elif args.ostype == 'ubuntu':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'redhat':
-    if len(list(set(args.release) - set(['5', '6', '7', '8']))) > 0:
+    if len(list(set(args.release) - set([
+        '5',
+        '6', '6.1-eus', '6.3-eus', '6.4-eus', '6.5-eus', '6.6-eus', '6.7-eus',
+        '7', '7.1-eus', '7.2-eus', '7.3-eus', '7.4-eus', '7.5-eus', '7.6-eus', '7.7-eus',
+        '8', '8.1-eus', '8.2-eus', '8.4-eus',
+    ]))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError

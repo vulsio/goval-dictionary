@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"strconv"
 	"strings"
@@ -60,11 +61,34 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
+	log15.Info("Fetching Repository to CPE data")
+	result, err := fetcher.FetchRepositoryToCPEFile()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch redhat Repository to CPE file. err: %w", err)
+	}
+
+	var repoToCPEJSON redhat.RepositoryToCPEJSON
+	if err := json.Unmarshal(result.Body, &repoToCPEJSON); err != nil {
+		return xerrors.Errorf("Failed to unmarshal Repository to CPE json. err: %w", err)
+	}
+	repoToCPE := redhat.ConvertRepositoryToCPEToModel(repoToCPEJSON)
+	if err := driver.InsertRedHatRepositoryToCPE(repoToCPE); err != nil {
+		return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
+	}
+	log15.Info("Updated Repository to CPE data")
+
 	// Distinct
 	vers := []string{}
 	v := map[string]bool{}
 	for _, arg := range args {
-		ver, err := strconv.Atoi(arg)
+		majorVer := arg
+		if strings.Contains(arg, "-") {
+			if !strings.HasSuffix(arg, "-eus") && !strings.HasSuffix(arg, "-tus") && !strings.HasSuffix(arg, "-aus") && !strings.HasSuffix(arg, "-els") {
+				return xerrors.Errorf("Only EUS, TUS, AUS and ELS is supported. arg: %s", arg)
+			}
+			majorVer = arg[:1]
+		}
+		ver, err := strconv.Atoi(majorVer)
 		if err != nil || ver < 5 {
 			return xerrors.Errorf("Specify version to fetch (from 5 to latest RHEL version). arg: %s", arg)
 		}
@@ -74,30 +98,41 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchFiles(vers)
+	resultsPerVersion, err := fetcher.FetchFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
-	for _, r := range results {
-		ovalroot := redhat.Root{}
-		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
-		}
+	rootsPerVersion := map[string][]redhat.Root{}
+	for v, rs := range resultsPerVersion {
+		for _, r := range rs {
+			root := redhat.Root{}
+			if err = xml.Unmarshal(r.Body, &root); err != nil {
+				return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
+			}
 
-		log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
-		ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
+			log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(root.Definitions.Definitions), "Timestamp", root.Generator.Timestamp)
+			ts, err := time.Parse("2006-01-02T15:04:05", root.Generator.Timestamp)
+			if err != nil {
+				return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, root.Generator.Timestamp, err)
+			}
+			if ts.Before(time.Now().AddDate(0, 0, -3)) {
+				log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", root.Generator.Timestamp)
+			}
+
+			rootsPerVersion[v] = append(rootsPerVersion[v], root)
+		}
+	}
+
+	for v, roots := range rootsPerVersion {
+		defs, err := redhat.ConvertToModel(roots)
 		if err != nil {
-			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
+			return xerrors.Errorf("Failed to convert from OVAL to goval-dictionary model. err: %w", err)
 		}
-		if ts.Before(time.Now().AddDate(0, 0, -3)) {
-			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
-		}
-
 		root := models.Root{
 			Family:      c.RedHat,
-			OSVersion:   r.Target,
-			Definitions: redhat.ConvertToModel(&ovalroot),
+			OSVersion:   v,
+			Definitions: defs,
 			Timestamp:   time.Now(),
 		}
 

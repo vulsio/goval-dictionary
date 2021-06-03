@@ -34,6 +34,8 @@ const (
 	MIMETypeXz
 	// MIMETypeGzip :
 	MIMETypeGzip
+	// MIMETypeJSON :
+	MIMETypeJSON
 )
 
 func (m MIMEType) String() string {
@@ -48,6 +50,10 @@ func (m MIMEType) String() string {
 		return "bzip2"
 	case MIMETypeXz:
 		return "xz"
+	case MIMETypeGzip:
+		return "gz"
+	case MIMETypeJSON:
+		return "json"
 	default:
 		return "Unknown"
 	}

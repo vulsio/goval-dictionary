@@ -8,6 +8,7 @@ import (
 
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/redhat"
 )
 
 // DB is interface for a database driver
@@ -26,6 +27,10 @@ type DB interface {
 	InsertOval(*models.Root) error
 	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) (time.Time, error)
+
+	InsertRedHatRepositoryToCPE([]redhat.RepositoryToCPE) error
+	GetRepositoryCPE([]string) ([]string, error)
+	CountRepositoryToCPEs() (int, error)
 }
 
 // Option :
@@ -80,7 +85,7 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 		family = c.Debian
 		osVer = major(osVer)
 	case c.RedHat:
-		osVer = major(osVer)
+		osVer = formatRedhatVersion(osVer)
 	case c.CentOS:
 		family = c.RedHat
 		osVer = major(osVer)
@@ -127,6 +132,13 @@ func getAmazonLinuxVer(osVersion string) string {
 		return "2"
 	}
 	return "1"
+}
+
+func formatRedhatVersion(osVersion string) string {
+	if strings.HasSuffix(osVersion, "-eus") || strings.HasSuffix(osVersion, "-tus") || strings.HasSuffix(osVersion, "-aus") || strings.HasSuffix(osVersion, "-els") {
+		return osVersion
+	}
+	return major(osVersion)
 }
 
 // IndexChunk has a starting point and an ending point for Chunk

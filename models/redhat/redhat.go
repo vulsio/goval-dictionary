@@ -5,14 +5,148 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/util"
 )
 
+// RepositoryToCPEJSON :
+type RepositoryToCPEJSON struct {
+	Data map[string]struct {
+		Cpes []string
+	}
+}
+
+// RepositoryToCPE :
+type RepositoryToCPE struct {
+	ID uint `gorm:"primary_key" json:"-"`
+
+	Repository     string `gorm:"type:varchar(255)"`
+	RepositoryCPEs []RepositoryCPE
+}
+
+// RepositoryCPE :
+type RepositoryCPE struct {
+	ID                uint `gorm:"primary_key" json:"-"`
+	RepositoryToCPEID uint `json:"-"`
+
+	Cpe string `gorm:"type:varchar(255)"`
+}
+
+// ConvertRepositoryToCPEToModel Convert RepositoryToCPEJSON to models
+func ConvertRepositoryToCPEToModel(repoToCPEJSON RepositoryToCPEJSON) []RepositoryToCPE {
+	repoToCPEs := []RepositoryToCPE{}
+	for repo, cpedata := range repoToCPEJSON.Data {
+		repoCPEs := []RepositoryCPE{}
+		for _, cpe := range cpedata.Cpes {
+			repoCPEs = append(repoCPEs, RepositoryCPE{Cpe: cpe})
+		}
+		repoToCPEs = append(repoToCPEs, RepositoryToCPE{
+			Repository:     repo,
+			RepositoryCPEs: repoCPEs,
+		})
+	}
+	return repoToCPEs
+}
+
 // ConvertToModel Convert OVAL to models
-func ConvertToModel(root *Root) (defs []models.Definition) {
-	for _, d := range root.Definitions.Definitions {
+func ConvertToModel(roots []Root) ([]models.Definition, error) {
+	defs := []models.Definition{}
+	for _, root := range roots {
+		tests, err := parseTests(root)
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to parse oval.Tests. err: %w", err)
+		}
+		defs = append(defs, parseDefinitions(root.Definitions, tests)...)
+	}
+	return defs, nil
+}
+
+// based:
+// - https://github.com/aquasecurity/trivy-db/blob/df65ebde46f4ab443fb6f4702b05b8fe6332c356/pkg/vulnsrc/redhat-oval/parse.go
+// - https://github.com/aquasecurity/trivy-db/blob/df65ebde46f4ab443fb6f4702b05b8fe6332c356/pkg/vulnsrc/redhat-oval/redhat-oval.go
+type rpmInfoTest struct {
+	Name           string
+	SignatureKeyID SignatureKeyid
+	FixedVersion   string
+	Arch           []string
+}
+
+func parseObjects(ovalObjs Objects) map[string]string {
+	objs := map[string]string{}
+	for _, obj := range ovalObjs.RpminfoObjects {
+		objs[obj.ID] = obj.Name
+	}
+	return objs
+}
+
+func parseStates(objStates States) map[string]RpminfoState {
+	states := map[string]RpminfoState{}
+	for _, state := range objStates.RpminfoStates {
+		states[state.ID] = state
+	}
+	return states
+}
+
+func parseTests(root Root) (map[string]rpmInfoTest, error) {
+	objs := parseObjects(root.Objects)
+	states := parseStates(root.States)
+	tests := map[string]rpmInfoTest{}
+	for _, test := range root.Tests.RpminfoTests {
+		if test.Check != "at least one" {
+			continue
+		}
+
+		t, err := followTestRefs(test, objs, states)
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to follow test refs. err: %w", err)
+		}
+		tests[test.ID] = t
+	}
+	return tests, nil
+}
+
+func followTestRefs(test RpminfoTest, objects map[string]string, states map[string]RpminfoState) (rpmInfoTest, error) {
+	var t rpmInfoTest
+
+	// Follow object ref
+	if test.Object.ObjectRef == "" {
+		return t, nil
+	}
+
+	pkgName, ok := objects[test.Object.ObjectRef]
+	if !ok {
+		return t, xerrors.Errorf("Failed to find object ref. object ref: %s, test ref: %s, err: invalid tests data", test.Object.ObjectRef, test.ID)
+	}
+	t.Name = pkgName
+
+	// Follow state ref
+	if test.State.StateRef == "" {
+		return t, nil
+	}
+
+	state, ok := states[test.State.StateRef]
+	if !ok {
+		return t, xerrors.Errorf("Failed to find state ref. state ref: %s, test ref: %s, err: invalid tests data", test.State.StateRef, test.ID)
+	}
+
+	t.SignatureKeyID = state.SignatureKeyid
+
+	if state.Arch.Datatype == "string" && (state.Arch.Operation == "pattern match" || state.Arch.Operation == "equals") {
+		t.Arch = strings.Split(state.Arch.Text, "|")
+	}
+
+	if state.Evr.Datatype == "evr_string" && state.Evr.Operation == "less than" {
+		t.FixedVersion = state.Evr.Text
+	}
+
+	return t, nil
+}
+
+func parseDefinitions(ovalDefs Definitions, tests map[string]rpmInfoTest) []models.Definition {
+	defs := []models.Definition{}
+	for _, d := range ovalDefs.Definitions {
 		if strings.Contains(d.Description, "** REJECT **") {
 			continue
 		}
@@ -72,7 +206,7 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 				Updated:         updated,
 			},
 			Debian:        nil,
-			AffectedPacks: collectRedHatPacks(d.Criteria),
+			AffectedPacks: collectRedHatPacks(d.Criteria, tests),
 			References:    rs,
 		}
 
@@ -80,7 +214,6 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 			def.Title = ""
 			def.Description = ""
 			def.Advisory.Severity = ""
-			def.Advisory.AffectedCPEList = []models.Cpe{}
 			def.Advisory.Bugzillas = []models.Bugzilla{}
 			def.Advisory.Issued = time.Time{}
 			def.Advisory.Updated = time.Time{}
@@ -89,35 +222,55 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 
 		defs = append(defs, def)
 	}
-	return
+	return defs
 }
 
-func collectRedHatPacks(cri Criteria) []models.Package {
-	return walkRedHat(cri, []models.Package{}, "")
+func collectRedHatPacks(cri Criteria, tests map[string]rpmInfoTest) []models.Package {
+	label, pkgs := walkCriterion(cri, tests)
+	for i := range pkgs {
+		pkgs[i].ModularityLabel = label
+	}
+	return pkgs
 }
 
-func walkRedHat(cri Criteria, acc []models.Package, label string) []models.Package {
+func walkCriterion(cri Criteria, tests map[string]rpmInfoTest) (string, []models.Package) {
+	var label string
+	packages := []models.Package{}
+
 	for _, c := range cri.Criterions {
 		if strings.HasPrefix(c.Comment, "Module ") && strings.HasSuffix(c.Comment, " is enabled") {
 			label = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Module "), " is enabled")
-		}
-
-		ss := strings.Split(c.Comment, " is earlier than ")
-		if len(ss) != 2 {
 			continue
 		}
-		acc = append(acc, models.Package{
-			Name:            ss[0],
-			Version:         strings.Split(ss[1], " ")[0],
-			ModularityLabel: label,
+
+		t, ok := tests[c.TestRef]
+		if !ok {
+			continue
+		}
+
+		// Skip red-def:signature_keyid
+		if t.SignatureKeyID.Text != "" {
+			continue
+		}
+
+		packages = append(packages, models.Package{
+			Name:    t.Name,
+			Version: t.FixedVersion,
 		})
 	}
 
 	if len(cri.Criterias) == 0 {
-		return acc
+		return label, packages
 	}
+
 	for _, c := range cri.Criterias {
-		acc = walkRedHat(c, acc, label)
+		l, pkgs := walkCriterion(c, tests)
+		if l != "" {
+			label = l
+		}
+		if len(pkgs) != 0 {
+			packages = append(packages, pkgs...)
+		}
 	}
-	return acc
+	return label, packages
 }

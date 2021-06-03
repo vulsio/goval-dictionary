@@ -12,9 +12,11 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/redhat"
 )
 
 /**
@@ -28,19 +30,23 @@ import (
   │ 1 │ OVAL#$OSFAMILY#$VERSION#DEP          │   JSON  │ TO DELETE OUTDATED AND UNNEEDED FIELD AND MEMBER │
   ├───┼──────────────────────────────────────┼─────────┼──────────────────────────────────────────────────┤
   │ 2 │ OVAL#$OSFAMILY#$VERSION#LASTMODIFIED │  string │ TO GET Last Modified                             │
+  ├───┼──────────────────────────────────────┼─────────┼──────────────────────────────────────────────────┤
+  │ 3 │ OVAL#REPOSITORYTOCPE#DEP             │  JSON   │ TO DELETE OUTDATED AND UNNEEDED MEMBER           │
   └───┴──────────────────────────────────────┴─────────┴──────────────────────────────────────────────────┘
 
 - Sets
   ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
   │NO │ KEY                                            │     MEMBER    │ PURPOSE                                  │
   └───┴────────────────────────────────────────────────┴───────────────┴──────────────────────────────────────────┘
-  ┌───┬────────────────────────────────────────────────┬───────────────┬─────────────────────────────────────────────────┐
-  │ 1 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ $DEFINITIONID │ TO GET []$DEFINITIONID                          │
-  ├───┼────────────────────────────────────────────────┼───────────────┼─────────────────────────────────────────────────┤
+  ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ $DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
   │ 2 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME#$ARCH │ $DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle/Fedora │
-  ├───┼────────────────────────────────────────────────┼───────────────┼─────────────────────────────────────────────────┤
-  │ 3 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ $DEFINITIONID │ TO GET []$DEFINITIONID                          │
-  └───┴────────────────────────────────────────────────┴───────────────┴─────────────────────────────────────────────────┘
+  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
+  │ 3 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ $DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
+  │ 4 │ OVAL#REPOSITORYTOCPE#$REPOSITORY               │ $REPOSITORYCPE│ TO GET []$REPOSITORYCPE                  │
+  └───┴────────────────────────────────────────────────┴───────────────┴──────────────────────────────────────────┘
 
 - Hash
   ┌───┬─────────────────────────────┬───────────────┬───────────┬───────────────────────────────────────────┐
@@ -60,14 +66,16 @@ import (
 
 // Supported DB dialects.
 const (
-	dialectRedis          = "redis"
-	defKeyFormat          = "OVAL#%s#%s#DEF"
-	cveKeyFormat          = "OVAL#%s#%s#CVE#%s"
-	pkgKeyFormat          = "OVAL#%s#%s#PKG#%s"
-	depKeyFormat          = "OVAL#%s#%s#DEP"
-	lastModifiedKeyFormat = "OVAL#%s#%s#LASTMODIFIED"
-	fileMetaKey           = "OVAL#FILEMETA"
-	fetchMetaKey          = "OVAL#FETCHMETA"
+	dialectRedis             = "redis"
+	defKeyFormat             = "OVAL#%s#%s#DEF"
+	cveKeyFormat             = "OVAL#%s#%s#CVE#%s"
+	pkgKeyFormat             = "OVAL#%s#%s#PKG#%s"
+	depKeyFormat             = "OVAL#%s#%s#DEP"
+	lastModifiedKeyFormat    = "OVAL#%s#%s#LASTMODIFIED"
+	repositoryToCPEKeyFormat = "OVAL#REPOSITORYTOCPE#%s"
+	repositoryToCPEDepKey    = "OVAL#REPOSITORYTOCPE#DEP"
+	fileMetaKey              = "OVAL#FILEMETA"
+	fetchMetaKey             = "OVAL#FETCHMETA"
 )
 
 // RedisDriver is Driver for Redis
@@ -299,7 +307,7 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
-		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
@@ -518,4 +526,116 @@ func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 // UpsertFetchMeta upsert FetchMeta to Database
 func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
 	return r.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": c.Revision, "SchemaVersion": models.LatestSchemaVersion, "LastFetchedAt": fetchMeta.LastFetchedAt}).Err()
+}
+
+// InsertRedHatRepositoryToCPE insert Repository to CPE data
+func (r *RedisDriver) InsertRedHatRepositoryToCPE(repositoryToCPEs []redhat.RepositoryToCPE) error {
+	ctx := context.Background()
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	// newDeps, oldDeps: {"REPOSITORY": {"CPE": {}}}
+	newDeps := map[string]map[string]struct{}{}
+	oldDepsStr, err := r.conn.Get(ctx, repositoryToCPEDepKey).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", repositoryToCPEDepKey, err)
+		}
+		oldDepsStr = "{}"
+	}
+	var oldDeps map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
+	}
+
+	for idx := range chunkSlice(len(repositoryToCPEs), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, repoToCPE := range repositoryToCPEs[idx.From:idx.To] {
+			if _, ok := newDeps[repoToCPE.Repository]; !ok {
+				newDeps[repoToCPE.Repository] = map[string]struct{}{}
+			}
+			for _, repoCPE := range repoToCPE.RepositoryCPEs {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(repositoryToCPEKeyFormat, repoToCPE.Repository), repoCPE.Cpe)
+				newDeps[repoToCPE.Repository][repoCPE.Cpe] = struct{}{}
+				if _, ok := oldDeps[repoToCPE.Repository]; ok {
+					delete(oldDeps[repoToCPE.Repository], repoCPE.Cpe)
+				}
+			}
+			if len(oldDeps[repoToCPE.Repository]) == 0 {
+				delete(oldDeps, repoToCPE.Repository)
+			}
+		}
+		if _, err := pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+	}
+
+	pipe := r.conn.Pipeline()
+	for repository, cpes := range oldDeps {
+		for cpe := range cpes {
+			_ = pipe.SRem(ctx, fmt.Sprintf(repositoryToCPEKeyFormat, repository), cpe)
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
+	}
+	_ = pipe.Set(ctx, repositoryToCPEDepKey, string(newDepsJSON), 0)
+	if _, err = pipe.Exec(ctx); err != nil {
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	return nil
+}
+
+// GetRepositoryCPE get CPEs related to the input repositories
+func (r *RedisDriver) GetRepositoryCPE(repositories []string) ([]string, error) {
+	ctx := context.Background()
+
+	pipe := r.conn.Pipeline()
+	for _, repository := range repositories {
+		_ = pipe.SMembers(ctx, fmt.Sprintf(repositoryToCPEKeyFormat, repository))
+	}
+	cmders, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	cpes := []string{}
+	for _, cmder := range cmders {
+		result, err := cmder.(*redis.StringSliceCmd).Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+		}
+		cpes = append(cpes, result...)
+	}
+
+	return cpes, nil
+}
+
+// CountRepositoryToCPEs counts the number of records in repository_to_cpes
+func (r *RedisDriver) CountRepositoryToCPEs() (int, error) {
+	ctx := context.Background()
+	dbsize, err := r.conn.DBSize(ctx).Result()
+	if err != nil {
+		return 0, xerrors.Errorf("Failed to DBSize. err: %w", err)
+	}
+
+	var count int
+	var cursor uint64
+	for {
+		var keys []string
+		keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf(repositoryToCPEKeyFormat, "*"), dbsize/5).Result()
+		if err != nil {
+			return 0, xerrors.Errorf("Failed to Scan. err: %w", err)
+		}
+		count += len(keys)
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return count, nil
 }

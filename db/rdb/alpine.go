@@ -1,13 +1,15 @@
 package rdb
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"golang.org/x/xerrors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Alpine is a struct for DBAccess
@@ -32,43 +34,47 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 	old := models.Root{}
 	r := tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
-	if !r.RecordNotFound() {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 
 		defs := []models.Definition{}
-		tx.Model(&old).Related(&defs, "Definitions")
+		if err := tx.Model(&old).Association("Definitions").Find(&defs); err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to select old defs: %w", err)
+		}
 		for _, def := range defs {
 			adv := models.Advisory{}
-			tx.Model(&def).Related(&adv, "Advisory")
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
+			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Delete(&adv).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Delete(&def).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
 		}
 		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 	}
 
-	if err := tx.Create(&root).Error; err != nil {
+	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("Failed to insert. cve: %s, err: %s",
+		return xerrors.Errorf("Failed to insert. cve: %s, err: %w",
+			pp.Sprintf("%v", root), err)
+	}
+
+	if err := tx.Model(&root.Definitions).CreateInBatches(root.Definitions, 100).Error; err != nil {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to insert. cve: %s, err: %w",
 			pp.Sprintf("%v", root), err)
 	}
 

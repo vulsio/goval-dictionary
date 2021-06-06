@@ -2,10 +2,6 @@ package rdb
 
 import (
 	"testing"
-
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 func Test_majorMinor(t *testing.T) {

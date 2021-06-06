@@ -319,7 +319,7 @@ func splitHashKey(hashKey string) (osFamily, osVer, cveID string) {
 }
 
 // CountDefs counts the number of definitions specified by args
-func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
+func (d *RedisDriver) CountDefs(family, osVer string) (int64, error) {
 	// TODO not implemented yet
 	return 1, nil
 }

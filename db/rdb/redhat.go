@@ -1,13 +1,15 @@
 package rdb
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"golang.org/x/xerrors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // RedHat is a struct for DBAccess
@@ -26,12 +28,12 @@ func (o *RedHat) Name() string {
 }
 
 // InsertOval inserts RedHat OVAL
-func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) (err error) {
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
 		return tx.Rollback().Error
 	}
@@ -39,55 +41,48 @@ func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 	old := models.Root{}
 	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
-	if !r.RecordNotFound() {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		if err := tx.Model(&old).Related(&defs, "Definitions").Error; err != nil {
+		if err := tx.Model(&old).Association("Definitions").Find(&defs); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to select old defs: %s", err)
+			return xerrors.Errorf("Failed to select old defs: %w", err)
 		}
 		for _, def := range defs {
 			adv := models.Advisory{}
-			tx.Model(&def).Related(&adv, "Advisory")
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
+			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Bugzilla{}).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Delete(&adv).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cpe{}).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Delete(&def).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
 		}
 		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 	}
 
-	if err := tx.Create(&root).Error; err != nil {
+	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("Failed to insert. err: %+v", err)
+		return xerrors.Errorf("Failed to insert. err: %w", err)
 	}
+
+	if err := tx.Model(&root.Definitions).CreateInBatches(root.Definitions, 100).Error; err != nil {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to insert. err: %w", err)
+	}
+
 	return tx.Commit().Error
 }
 
@@ -122,27 +117,27 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		err = driver.Model(&def).Related(&adv, "Advisory").Error
+		err = driver.Model(&def).Association("Advisory").Find(&adv)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		cves := []models.Cve{}
-		err = driver.Model(&adv).Related(&cves, "Cves").Error
+		err = driver.Model(&adv).Association("Cves").Find(&cves)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.Cves = cves
 
 		bugs := []models.Bugzilla{}
-		err = driver.Model(&adv).Related(&bugs, "Bugzillas").Error
+		err = driver.Model(&adv).Association("Bugzillas").Find(&bugs)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		adv.Bugzillas = bugs
 
 		cpes := []models.Cpe{}
-		err = driver.Model(&adv).Related(&cpes, "AffectedCPEList").Error
+		err = driver.Model(&adv).Association("AffectedCPEList").Find(&cpes)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
@@ -151,14 +146,14 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].AffectedPacks = filterByMajor(packs, osVer)
 
 		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
+		err = driver.Model(&def).Association("References").Find(&refs)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}

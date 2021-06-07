@@ -313,3 +313,17 @@ func getAmazonLinux1or2(osVersion string) string {
 	}
 	return "1"
 }
+
+const chunkSize int = 50
+
+func splitChunkIntoDefinitions(definitions []models.Definition, rootID uint) (chunks [][]models.Definition) {
+	for i := range definitions {
+		definitions[i].RootID = rootID
+	}
+
+	for chunkSize < len(definitions) {
+		definitions, chunks = definitions[chunkSize:], append(chunks, definitions[0:chunkSize:chunkSize])
+	}
+
+	return append(chunks, definitions)
+}

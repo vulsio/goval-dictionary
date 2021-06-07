@@ -40,11 +40,13 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
-	r = tx.Where(&models.Root{
-		Family:    root.Family,
-		OSVersion: root.OSVersion,
-	}).First(&old)
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to select old defs: %w", r.Error)
+	}
+
+	if r.RowsAffected > 0 {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
 		if err := tx.Model(&old).Association("Definitions").Find(&defs); err != nil {
@@ -55,13 +57,14 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 			adv := models.Advisory{}
 			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
 				tx.Rollback()
-				return xerrors.Errorf("Failed to select old advs: %w", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Select(clause.Associations).Unscoped().Delete(&adv).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Where("id = ?", adv.ID).Delete(&adv).Error; err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Select(clause.Associations).Unscoped().Delete(&def).Error; err != nil {
+
+			if err := tx.Select(clause.Associations).Unscoped().Where("definition_id = ?", def.ID).Delete(&def).Error; err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
@@ -81,9 +84,16 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 		return xerrors.Errorf("Failed to insert. err: %w", err)
 	}
 
-	if err := tx.Model(&root.Definitions).CreateInBatches(root.Definitions, 50).Error; err != nil {
-		tx.Rollback()
-		return xerrors.Errorf("Failed to insert. err: %w", err)
+	rootID := root.ID
+	if rootID == 0 {
+		rootID = 1
+	}
+
+	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, rootID) {
+		if err := tx.Create(&chunk).Error; err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to insert. err: %w", err)
+		}
 	}
 
 	return tx.Commit().Error

@@ -418,43 +418,6 @@ Select from DB where package name is golang.
 
 ```bash
 $ goval-dictionary select -by-package redhat 7 golang x86_64
-[Apr 10 10:22:43]  INFO Opening DB (sqlite3).
-CVE-2015-5739
-    {3399 319 golang 0:1.6.3-1.el7_2.1}
-    {3400 319 golang-bin 0:1.6.3-1.el7_2.1}
-    {3401 319 golang-docs 0:1.6.3-1.el7_2.1}
-    {3402 319 golang-misc 0:1.6.3-1.el7_2.1}
-    {3403 319 golang-src 0:1.6.3-1.el7_2.1}
-    {3404 319 golang-tests 0:1.6.3-1.el7_2.1}
-CVE-2015-5740
-    {3399 319 golang 0:1.6.3-1.el7_2.1}
-    {3400 319 golang-bin 0:1.6.3-1.el7_2.1}
-    {3401 319 golang-docs 0:1.6.3-1.el7_2.1}
-    {3402 319 golang-misc 0:1.6.3-1.el7_2.1}
-    {3403 319 golang-src 0:1.6.3-1.el7_2.1}
-    {3404 319 golang-tests 0:1.6.3-1.el7_2.1}
-CVE-2015-5741
-    {3399 319 golang 0:1.6.3-1.el7_2.1}
-    {3400 319 golang-bin 0:1.6.3-1.el7_2.1}
-    {3401 319 golang-docs 0:1.6.3-1.el7_2.1}
-    {3402 319 golang-misc 0:1.6.3-1.el7_2.1}
-    {3403 319 golang-src 0:1.6.3-1.el7_2.1}
-    {3404 319 golang-tests 0:1.6.3-1.el7_2.1}
-CVE-2016-3959
-    {3399 319 golang 0:1.6.3-1.el7_2.1}
-    {3400 319 golang-bin 0:1.6.3-1.el7_2.1}
-    {3401 319 golang-docs 0:1.6.3-1.el7_2.1}
-    {3402 319 golang-misc 0:1.6.3-1.el7_2.1}
-    {3403 319 golang-src 0:1.6.3-1.el7_2.1}
-    {3404 319 golang-tests 0:1.6.3-1.el7_2.1}
-CVE-2016-5386
-    {3399 319 golang 0:1.6.3-1.el7_2.1}
-    {3400 319 golang-bin 0:1.6.3-1.el7_2.1}
-    {3401 319 golang-docs 0:1.6.3-1.el7_2.1}
-    {3402 319 golang-misc 0:1.6.3-1.el7_2.1}
-    {3403 319 golang-src 0:1.6.3-1.el7_2.1}
-    {3404 319 golang-tests 0:1.6.3-1.el7_2.1}
-------------------
 []models.Definition{
   models.Definition{
     ID:          0x13f,
@@ -646,11 +609,6 @@ CVE-YYYY-NNNN
 
 ```bash
 $ goval-dictionary select -by-cveid redhat 7 CVE-2017-6009
-[Apr 12 12:12:36]  INFO Opening DB (sqlite3).
-RHSA-2017:0837: icoutils security update (Important)
-Important
-[{1822 430 CVE-2017-5208  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-5208 20170108} {1823 430 CVE-2017-5332  2.8/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:U/C:N/I:N/A:L CWE-190 CWE-125 https://access.redhat.com/security/cve/CVE-2017-5332 20170108} {1824 430 CVE-2017-5333  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-5333 20170108} {1825 430 CVE-2017-6009  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-6009 20170203} {1826 430 CVE-2017-6010  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-190 CWE-122 https://access.redhat.com/security/cve/CVE-2017-6010 20170203} {1827 430 CVE-2017-6011  8.1/CVSS:3.0/AV:L/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:L CWE-122 https://access.redhat.com/security/cve/CVE-2017-6011 20170203}]
-------------------
 []models.Definition{
   models.Definition{
     ID:          0x1ae,

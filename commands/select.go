@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/google/subcommands"
@@ -112,18 +111,6 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			log15.Crit("Failed to get cve by package.", "err", err)
 		}
 
-		for _, d := range dfs {
-			for _, cve := range d.Advisory.Cves {
-				fmt.Printf("%s\n", cve.CveID)
-				for _, pack := range d.AffectedPacks {
-					fmt.Printf("    %v\n", pack)
-				}
-			}
-		}
-		fmt.Println("------------------")
-		pp.ColoringEnabled = false
-		_, _ = pp.Println(dfs)
-		return subcommands.ExitSuccess
 	}
 
 	if p.ByCveID {
@@ -131,15 +118,10 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		if err != nil {
 			log15.Crit("Failed to get cve by cveID", "err", err)
 		}
-		for _, d := range dfs {
-			fmt.Printf("%s\n", d.Title)
-			fmt.Printf("%v\n", d.Advisory.Cves)
-		}
-		fmt.Println("------------------")
-		pp.ColoringEnabled = false
-		_, _ = pp.Println(dfs)
-		return subcommands.ExitSuccess
 	}
+
+	pp.ColoringEnabled = false
+	_, _ = pp.Println(dfs)
 
 	return subcommands.ExitSuccess
 }

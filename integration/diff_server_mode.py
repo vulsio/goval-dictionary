@@ -153,6 +153,6 @@ for relVer in args.release:
 
     with open(list_path) as f:
         list = [s.strip() for s in f.readlines()]
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor() as executor:
             ins = ((args.mode, args.ostype, relVer, e) for e in list)
             executor.map(diff_response, ins)

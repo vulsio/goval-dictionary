@@ -130,20 +130,20 @@ fetch-redis:
 	integration/goval-dictionary.new fetch-alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.3 3.4 3.5 3.6
 
 diff-cveid:
-	@ python integration/diff_server_mode.py cveid debian 7 8 9 10
-	@ python integration/diff_server_mode.py cveid ubuntu 14 16 18 19 20
+	# @ python integration/diff_server_mode.py cveid debian 7 8 9 10
+	# @ python integration/diff_server_mode.py cveid ubuntu 14 16 18 19 20
 	# @ python integration/diff_server_mode.py cveid suse 13.2
-	@ python integration/diff_server_mode.py cveid redhat 5 6 7 8
+	# @ python integration/diff_server_mode.py cveid redhat 5 6 7 8
 	# @ python integration/diff_server_mode.py cveid oracle 5 6 7 8
 	# @ python integration/diff_server_mode.py cveid amazon 1 2
 	# @ python integration/diff_server_mode.py cveid alpine 3.3 3.4 3.5 3.6
 
 
 diff-package:
-	@ python integration/diff_server_mode.py package debian 7 8 9 10
+	# @ python integration/diff_server_mode.py package debian 7 8 9 10
 	# @ python integration/diff_server_mode.py package ubuntu 14 16 18 19 20
 	# @ python integration/diff_server_mode.py package suse 13.2
-	@ python integration/diff_server_mode.py package redhat 5 6 7 8
+	# @ python integration/diff_server_mode.py package redhat 5 6 7 8
 	# @ python integration/diff_server_mode.py package oracle 5 6 7 8
 	# @ python integration/diff_server_mode.py package amazon 1 2
 	# @ python integration/diff_server_mode.py package alpine 3.3 3.4 3.5 3.6

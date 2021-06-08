@@ -34,13 +34,34 @@ def diff_cveid(args: Tuple[str, str, str]):
     diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logger.warning(
-            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({args[2]: diff}, indent=2)}')
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "diff": diff}, indent=2)}')
 
 
 def diff_package(args: Tuple[str, str, str]):
+    session = requests.Session()
+    retries = Retry(total=5,
+                    backoff_factor=1,
+                    status_forcelist=[503, 504])
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
     # Endpoint
     # /packs/:family/:release/:pack
-    raise NotImplementedError
+    try:
+        response_old = requests.get(
+            f'http://127.0.0.1:1325/packs/{args[0]}/{args[1]}/{args[2]}', timeout=(10.0, 10.0)).json()
+        response_new = requests.get(
+            f'http://127.0.0.1:1326/packs/{args[0]}/{args[1]}/{args[2]}', timeout=(10.0, 10.0)).json()
+    except requests.ConnectionError as e:
+        logger.error(f'Failed to Connection..., err: {e}')
+        raise
+    except Exception as e:
+        logger.error(f'Failed to GET request..., err: {e}')
+        raise
+
+    diff = DeepDiff(response_old, response_new, ignore_order=True)
+    if diff != {}:
+        logger.warning(
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "diff": diff}, indent=2)}')
 
 
 def diff_response(args: Tuple[str, str, str, str]):
@@ -97,7 +118,22 @@ elif args.ostype == 'redhat':
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
-elif args.ostype in ["alpine", "amazon", "suse", "oracle"]:
+elif args.ostype == 'oracle':
+    if len(list(set(args.release) - set(['5', '6', '7', '8']))) > 0:
+        logger.error(
+            f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+elif args.ostype == 'amazon':
+    if len(list(set(args.release) - set(['1', '2']))) > 0:
+        logger.error(
+            f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+elif args.ostype == 'alpine':
+    if len(list(set(args.release) - set(['3.3', '3.4', '3.5', '3.6']))) > 0:
+        logger.error(
+            f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+elif args.ostype in ["suse"]:
     raise NotImplementedError
 else:
     logger.error(
@@ -117,6 +153,6 @@ for relVer in args.release:
 
     with open(list_path) as f:
         list = [s.strip() for s in f.readlines()]
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             ins = ((args.mode, args.ostype, relVer, e) for e in list)
             executor.map(diff_response, ins)

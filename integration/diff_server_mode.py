@@ -5,6 +5,7 @@ from deepdiff import DeepDiff
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
+from urllib.parse import quote
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
@@ -69,7 +70,7 @@ def diff_response(args: Tuple[str, str, str, str]):
         if args[0] == 'cveid':
             diff_cveid((args[1], args[2], args[3]))
         if args[0] == 'package':
-            diff_package((args[1], args[2], args[3]))
+            diff_package((args[1], args[2], quote(args[3])))
     except Exception:
         exit(1)
 

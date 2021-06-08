@@ -95,7 +95,6 @@ clean-integration:
 fetch-rdb:
 	integration/goval-dictionary.old fetch-debian --dbpath=$(PWD)/integration/oval.old.sqlite3 7 8 9 10
 	integration/goval-dictionary.old fetch-ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14 16 18 19 20
-	integration/goval-dictionary.old fetch-suse --dbpath=$(PWD)/integration/oval.old.sqlite3 -opensuse 13.2
 	integration/goval-dictionary.old fetch-redhat --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8
 	integration/goval-dictionary.old fetch-oracle --dbpath=$(PWD)/integration/oval.old.sqlite3
 	integration/goval-dictionary.old fetch-amazon --dbpath=$(PWD)/integration/oval.old.sqlite3
@@ -103,7 +102,6 @@ fetch-rdb:
 
 	integration/goval-dictionary.new fetch-debian --dbpath=$(PWD)/integration/oval.new.sqlite3 7 8 9 10
 	integration/goval-dictionary.new fetch-ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14 16 18 19 20
-	integration/goval-dictionary.new fetch-suse --dbpath=$(PWD)/integration/oval.new.sqlite3 -opensuse 13.2
 	integration/goval-dictionary.new fetch-redhat --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8
 	integration/goval-dictionary.new fetch-oracle --dbpath=$(PWD)/integration/oval.new.sqlite3
 	integration/goval-dictionary.new fetch-amazon --dbpath=$(PWD)/integration/oval.new.sqlite3
@@ -115,7 +113,6 @@ fetch-redis:
 
 	integration/goval-dictionary.old fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10
 	integration/goval-dictionary.old fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
-	integration/goval-dictionary.old fetch-suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" -opensuse 13.2
 	integration/goval-dictionary.old fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
 	integration/goval-dictionary.old fetch-oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
 	integration/goval-dictionary.old fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
@@ -123,7 +120,6 @@ fetch-redis:
 
 	integration/goval-dictionary.new fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10
 	integration/goval-dictionary.new fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
-	integration/goval-dictionary.new fetch-suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" -opensuse 13.2
 	integration/goval-dictionary.new fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
 	integration/goval-dictionary.new fetch-oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
 	integration/goval-dictionary.new fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
@@ -132,7 +128,6 @@ fetch-redis:
 diff-cveid:
 	# @ python integration/diff_server_mode.py cveid debian 7 8 9 10
 	# @ python integration/diff_server_mode.py cveid ubuntu 14 16 18 19 20
-	# @ python integration/diff_server_mode.py cveid suse 13.2
 	# @ python integration/diff_server_mode.py cveid redhat 5 6 7 8
 	# @ python integration/diff_server_mode.py cveid oracle 5 6 7 8
 	# @ python integration/diff_server_mode.py cveid amazon 1 2
@@ -142,7 +137,6 @@ diff-cveid:
 diff-package:
 	# @ python integration/diff_server_mode.py package debian 7 8 9 10
 	# @ python integration/diff_server_mode.py package ubuntu 14 16 18 19 20
-	# @ python integration/diff_server_mode.py package suse 13.2
 	# @ python integration/diff_server_mode.py package redhat 5 6 7 8
 	# @ python integration/diff_server_mode.py package oracle 5 6 7 8
 	# @ python integration/diff_server_mode.py package amazon 1 2

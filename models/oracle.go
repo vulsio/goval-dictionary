@@ -2,10 +2,10 @@ package models
 
 import (
 	"strings"
+	"time"
 
 	"github.com/ymomoi/goval-parser/oval"
 
-	"github.com/kotakanbe/goval-dictionary/config"
 	c "github.com/kotakanbe/goval-dictionary/config"
 )
 
@@ -49,6 +49,8 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 				Advisory: Advisory{
 					Cves:     copyCves,
 					Severity: ovaldef.Advisory.Severity,
+					Issued:   time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Updated:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				AffectedPacks: []Package{distPack.pack},
 				References:    copyRs,
@@ -66,7 +68,7 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 				m[distPack.osVer] = root
 			} else {
 				m[distPack.osVer] = Root{
-					Family:      config.Oracle,
+					Family:      c.Oracle,
 					OSVersion:   distPack.osVer,
 					Definitions: []Definition{def},
 				}

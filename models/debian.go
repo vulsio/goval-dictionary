@@ -33,7 +33,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 
 			var t time.Time
 			if ovaldef.Debian.Date == "" {
-				t = time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC)
+				t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
 			} else {
 				t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
 			}

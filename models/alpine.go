@@ -51,8 +51,8 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 			DefinitionID: "def-" + cveID,
 			Advisory: Advisory{
 				Cves:    []Cve{{CveID: cveID}},
-				Issued:  time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
-				Updated: time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
+				Issued:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Updated: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
 			References: []Reference{
 				{

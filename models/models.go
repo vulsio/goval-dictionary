@@ -29,7 +29,7 @@ type Definition struct {
 
 	DefinitionID  string
 	Title         string
-	Description   string `sql:"type:text"`
+	Description   string `gorm:"type:text"`
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package

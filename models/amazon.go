@@ -48,6 +48,7 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 			Advisory: Advisory{
 				Cves:     cves,
 				Severity: alas.Severity,
+				Issued:   time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
 				Updated:  updatedAt,
 			},
 			References: refs,

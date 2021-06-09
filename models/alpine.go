@@ -2,6 +2,7 @@ package models
 
 import (
 	"strings"
+	"time"
 )
 
 // AlpineSecDB is a struct of alpine secdb
@@ -49,7 +50,9 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 		def := Definition{
 			DefinitionID: "def-" + cveID,
 			Advisory: Advisory{
-				Cves: []Cve{{CveID: cveID}},
+				Cves:    []Cve{{CveID: cveID}},
+				Issued:  time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
+				Updated: time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
 			},
 			References: []Reference{
 				{

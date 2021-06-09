@@ -3,6 +3,7 @@ package models
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
@@ -47,8 +48,13 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			Description:  d.Description,
 			Advisory: Advisory{
 				Severity: d.Advisory.Severity,
+				Issued:   time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
+				Updated:  time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
 			},
-			Debian:        Debian{CveID: cveID},
+			Debian: Debian{
+				CveID: cveID,
+				Date:  time.Date(1, time.January, 2, 0, 0, 0, 0, time.UTC),
+			},
 			AffectedPacks: collectUbuntuPacks(d.Criteria),
 			References:    rs,
 		}

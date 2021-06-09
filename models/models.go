@@ -27,8 +27,8 @@ type Definition struct {
 	RootID uint `gorm:"index:idx_definition_root_id" json:"-" xml:"-"`
 
 	DefinitionID  string
-	Title         string
-	Description   string `gorm:"type:text"`
+	Title         string `gorm:"type:text"`
+	Description   string `gorm:"size:16777215"`
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package

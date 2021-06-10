@@ -79,6 +79,7 @@ BRANCH := $(shell git symbolic-ref --short HEAD)
 build-integration:
 	@ git stash save
 	$(GO) build -ldflags "$(LDFLAGS)" -o integration/goval-dict.new
+	git checkout $(shell git describe --tags --abbrev=0)
 	@git reset --hard
 	$(GO) build -ldflags "$(LDFLAGS)" -o integration/goval-dict.old
 	git checkout $(BRANCH)

@@ -32,7 +32,7 @@ type Definition struct {
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package
-	References    []Reference
+	References    []Reference `json:",omitempty"`
 }
 
 // Package affected

@@ -28,7 +28,7 @@ type Definition struct {
 
 	DefinitionID  string
 	Title         string `gorm:"type:text"`
-	Description   string `gorm:"size:16777215"`
+	Description   string
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package

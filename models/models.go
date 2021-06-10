@@ -62,10 +62,10 @@ type Advisory struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_advisories_definition_id" json:"-" xml:"-"`
 
-	Severity        string `gorm:"type:varchar(255)"`
-	Cves            []Cve
-	Bugzillas       []Bugzilla
-	AffectedCPEList []Cpe
+	Severity        string     `gorm:"type:varchar(255)"`
+	Cves            []Cve      `json:",omitempty"`
+	Bugzillas       []Bugzilla `json:",omitempty"`
+	AffectedCPEList []Cpe      `json:",omitempty"`
 	Issued          time.Time
 	Updated         time.Time
 }

@@ -28,6 +28,10 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			}
 		}
 
+		if cveID == "" {
+			continue
+		}
+
 		for _, r := range d.Advisory.Refs {
 			rs = append(rs, Reference{
 				Source: "Ref",

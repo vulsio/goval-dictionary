@@ -110,7 +110,7 @@ fetch-rdb:
 fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
-
+	
 	integration/goval-dict.old fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10
 	integration/goval-dict.old fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
 	integration/goval-dict.old fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
@@ -118,12 +118,12 @@ fetch-redis:
 	integration/goval-dict.old fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
 	integration/goval-dict.old fetch-alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.3 3.4 3.5 3.6
 
-	integration/goval-dict.new fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10
-	integration/goval-dict.new fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
-	integration/goval-dict.new fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
-	integration/goval-dict.new fetch-oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
-	integration/goval-dict.new fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
-	integration/goval-dict.new fetch-alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.3 3.4 3.5 3.6
+	integration/goval-dict.new fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 7 8 9 10
+	integration/goval-dict.new fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14 16 18 19 20
+	integration/goval-dict.new fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8
+	integration/goval-dict.new fetch-oracle --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	integration/goval-dict.new fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	integration/goval-dict.new fetch-alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.3 3.4 3.5 3.6
 
 diff-cveid:
 	# @ python integration/diff_server_mode.py cveid debian 7 8 9 10
@@ -163,5 +163,4 @@ diff-server-rdb-redis:
 	integration/goval-dict.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
 	make diff-cveid
 	make diff-package
-	pkill goval-dict.old
 	pkill goval-dict.new

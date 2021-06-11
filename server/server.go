@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -66,7 +67,13 @@ func getByPackName() echo.HandlerFunc {
 		release := c.Param("release")
 		pack := c.Param("pack")
 		arch := c.Param("arch")
-		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack, "arch", arch)
+		decodePack, err := url.QueryUnescape(pack)
+		if err != nil {
+			log15.Error(fmt.Sprintf("Failed to Decode Package Name: %s", err))
+			return c.JSON(http.StatusBadRequest, nil)
+		}
+
+		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack, "DecodePack", decodePack, "arch", arch)
 
 		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
 		if err != nil {
@@ -80,7 +87,7 @@ func getByPackName() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
-		defs, err := driver.GetByPackName(family, release, pack, arch)
+		defs, err := driver.GetByPackName(family, release, decodePack, arch)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
 		}

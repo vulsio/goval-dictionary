@@ -12,24 +12,23 @@ Use `127.0.0.1:1325` and `127.0.0.1:1326` to diff the server mode between the la
 If you have prepared the two addresses yourself, you can use the following Python script.
 ```terminal
 $ python diff_server_mode.py debian --help
-usage: diff_server_mode.py [-h] [--list_path LIST_PATH] [--debug | --no-debug] {cveid,package} {alpine,amazon,debian,oracle,redhat,suse,ubuntu}
+usage: diff_server_mode.py [-h] [--debug | --no-debug]
+                           {cveid,package} {alpine,amazon,debian,oracle,redhat,suse,ubuntu} release
+                           [release ...]
 
 positional arguments:
   {cveid,package}       Specify the mode to test.
   {alpine,amazon,debian,oracle,redhat,suse,ubuntu}
                         Specify the OS to be started in server mode when testing.
+  release               Specify the Release Version to be started in server mode when testing.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --list_path LIST_PATH
-                        A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results
   --debug, --no-debug   print debug message
 ```
 
 [GNUmakefile](../GNUmakefile) has some tasks for testing.  
 Please run it in the top directory of the goval-dictionary repository.
-
-**NOTE: Tests for RedHat are commented out by default because fetch takes a long time. Tests for Microsoft are commented out by default because they require API KEY. Please uncomment them if necessary.**
 
 - build-integration: create the goval-dictionary binaries needed for testing
 - clean-integration: delete the goval-dictionary process, binary, and docker container used in the test

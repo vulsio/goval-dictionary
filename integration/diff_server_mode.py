@@ -10,8 +10,13 @@ import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
 
+def diff_response(args: Tuple[str, str, str, str]):
+    path = ''
+    if args[0] == 'cveid':
+        path = f'cves/{args[1]}/{args[2]}/{args[3]}'
+    if args[0] == 'package':
+        path = f'packs/{args[1]}/{args[2]}/{quote(args[3])}'
 
-def diff_cveid(args: Tuple[str, str, str]):
     session = requests.Session()
     retries = Retry(total=5,
                     backoff_factor=1,
@@ -20,60 +25,23 @@ def diff_cveid(args: Tuple[str, str, str]):
 
     # Endpoint
     # /cves/:family/:release/:id
-    try:
-        response_old = requests.get(
-            f'http://127.0.0.1:1325/cves/{args[0]}/{args[1]}/{args[2]}', timeout=(10.0, 10.0)).json()
-        response_new = requests.get(
-            f'http://127.0.0.1:1326/cves/{args[0]}/{args[1]}/{args[2]}', timeout=(10.0, 10.0)).json()
-    except requests.ConnectionError as e:
-        logger.error(f'Failed to Connection..., err: {e}')
-        raise
-    except Exception as e:
-        logger.error(f'Failed to GET request..., err: {e}')
-        raise
-
-    diff = DeepDiff(response_old, response_new, ignore_order=True)
-    if diff != {}:
-        logger.warning(
-            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "diff": diff}, indent=2)}')
-
-
-def diff_package(args: Tuple[str, str, str]):
-    session = requests.Session()
-    retries = Retry(total=5,
-                    backoff_factor=1,
-                    status_forcelist=[503, 504])
-    session.mount("http://", HTTPAdapter(max_retries=retries))
-
-    # Endpoint
     # /packs/:family/:release/:pack
-    quote_packname = quote(args[2])
     try:
         response_old = requests.get(
-            f'http://127.0.0.1:1325/packs/{args[0]}/{args[1]}/{quote_packname}', timeout=(10.0, 10.0)).json()
+            f'http://127.0.0.1:1325/{path}', timeout=(10.0, 10.0)).json()
         response_new = requests.get(
-            f'http://127.0.0.1:1326/packs/{args[0]}/{args[1]}/{quote_packname}', timeout=(10.0, 10.0)).json()
+            f'http://127.0.0.1:1326/{path}', timeout=(10.0, 10.0)).json()
     except requests.ConnectionError as e:
         logger.error(f'Failed to Connection..., err: {e}')
-        raise
+        exit(1)
     except Exception as e:
         logger.error(f'Failed to GET request..., err: {e}')
-        raise
+        exit(1)
 
     diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logger.warning(
-            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "quote_packname": quote_packname, "diff": diff}, indent=2)}')
-
-
-def diff_response(args: Tuple[str, str, str, str]):
-    try:
-        if args[0] == 'cveid':
-            diff_cveid((args[1], args[2], args[3]))
-        if args[0] == 'package':
-            diff_package((args[1], args[2], args[3]))
-    except Exception:
-        exit(1)
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": args[0], "args": args, "diff": diff}, indent=2)}')
 
 
 parser = argparse.ArgumentParser()

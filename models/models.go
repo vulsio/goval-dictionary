@@ -32,7 +32,7 @@ type Definition struct {
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package
-	References    []Reference `json:",omitempty"`
+	References    []Reference
 }
 
 // Package affected
@@ -62,10 +62,10 @@ type Advisory struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_advisories_definition_id" json:"-" xml:"-"`
 
-	Severity        string     `gorm:"type:varchar(255)"`
-	Cves            []Cve      `json:",omitempty"`
-	Bugzillas       []Bugzilla `json:",omitempty"`
-	AffectedCPEList []Cpe      `json:",omitempty"`
+	Severity        string `gorm:"type:varchar(255)"`
+	Cves            []Cve
+	Bugzillas       []Bugzilla
+	AffectedCPEList []Cpe
 	Issued          time.Time
 	Updated         time.Time
 }

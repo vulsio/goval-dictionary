@@ -250,7 +250,7 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 }
 
 // CountDefs counts the number of definitions specified by args
-func (d *Driver) CountDefs(osFamily, osVer string) (int64, error) {
+func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
@@ -270,7 +270,7 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int64, error) {
 		"root_id = ?", root.ID).Count(&count).Error; err != nil {
 		return 0, err
 	}
-	return count, nil
+	return int(count), nil
 }
 
 // GetLastModified get last modified time of OVAL in roots

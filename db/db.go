@@ -17,7 +17,7 @@ type DB interface {
 	GetByCveID(string, string, string) ([]models.Definition, error)
 	InsertOval(string, *models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
-	CountDefs(string, string) (int64, error)
+	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) time.Time
 }
 

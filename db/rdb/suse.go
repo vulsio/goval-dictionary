@@ -77,7 +77,7 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 	switch tx.Dialector.Name() {
 	case DialectSqlite3:
 	case DialectMysql:
-		for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID) {
+		for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 50) {
 			if err := tx.Create(&chunk).Error; err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to insert. err: %w", err)

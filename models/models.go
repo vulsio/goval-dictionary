@@ -28,7 +28,7 @@ type Definition struct {
 
 	DefinitionID  string `gorm:"type:varchar(255)"`
 	Title         string `gorm:"type:text"`
-	Description   string
+	Description   string // If the type:text, varchar(255) is specified, MySQL overflows and gives an error. No problem in GORMv2. (https://github.com/go-gorm/mysql/tree/15e2cbc6fd072be99215a82292e025dab25e2e16#configuration)
 	Advisory      Advisory
 	Debian        Debian
 	AffectedPacks []Package
@@ -40,9 +40,9 @@ type Package struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_packages_definition_id" json:"-" xml:"-"`
 
-	Name            string `gorm:"index:idx_packages_name"`
-	Version         string `gorm:"type:varchar(255)"` // affected earlier than this version
-	Arch            string `gorm:"type:varchar(255)"` // Used for Amazon and Oracle Linux
+	Name            string `gorm:"index:idx_packages_name"` // If the type:text, varchar(255) is specified, MySQL overflows and gives an error. No problem in GORMv2. (https://github.com/go-gorm/mysql/tree/15e2cbc6fd072be99215a82292e025dab25e2e16#configuration)
+	Version         string `gorm:"type:varchar(255)"`       // affected earlier than this version
+	Arch            string `gorm:"type:varchar(255)"`       // Used for Amazon and Oracle Linux
 	NotFixedYet     bool   // Ubuntu Only
 	ModularityLabel string `gorm:"type:varchar(255)"` // RHEL 8 or later only
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -15,7 +16,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"sync"
 )
 
 // Supported DB dialects.

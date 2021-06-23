@@ -84,12 +84,7 @@ func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 		return xerrors.Errorf("Failed to insert. err: %w", err)
 	}
 
-	rootID := root.ID
-	if rootID == 0 {
-		rootID = 1
-	}
-
-	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, rootID) {
+	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID) {
 		if err := tx.Create(&chunk).Error; err != nil {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to insert. err: %w", err)

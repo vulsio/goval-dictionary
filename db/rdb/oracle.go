@@ -1,13 +1,14 @@
 package rdb
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
-	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"golang.org/x/xerrors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Oracle is a struct of DBAccess
@@ -32,55 +33,62 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
 		return tx.Rollback().Error
 	}
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
-	r = tx.Where(&models.Root{
-		Family:    root.Family,
-		OSVersion: root.OSVersion,
-	}).First(&old)
-	if !r.RecordNotFound() {
+	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to select old defs: %w", r.Error)
+	}
+
+	if r.RowsAffected > 0 {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		tx.Model(&old).Related(&defs, "Definitions")
+		if err := tx.Model(&old).Association("Definitions").Find(&defs); err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to select old defs: %w", err)
+		}
 		for _, def := range defs {
 			adv := models.Advisory{}
-			tx.Model(&def).Related(&adv, "Advisory")
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
+			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Where("id = ?", adv.ID).Delete(&adv).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
+
+			if err := tx.Select(clause.Associations).Unscoped().Where("definition_id = ?", def.ID).Delete(&def).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
 		}
 		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 	}
 
-	if err := tx.Create(&root).Error; err != nil {
+	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-			pp.Sprintf("%v", root), err)
+		return xerrors.Errorf("Failed to insert. err: %w", err)
+	}
+
+	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 50) {
+		if err := tx.Create(&chunk).Error; err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to insert. err: %w", err)
+		}
 	}
 
 	return tx.Commit().Error
@@ -119,13 +127,13 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		err = driver.Model(&def).Related(&adv, "Advisory").Error
+		err = driver.Model(&def).Association("Advisory").Find(&adv)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 
 		cves := []models.Cve{}
-		err = driver.Model(&adv).Related(&cves, "Cves").Error
+		err = driver.Model(&adv).Association("Cves").Find(&cves)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
@@ -134,14 +142,14 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
+		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
+		err = driver.Model(&def).Association("References").Find(&refs)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			return nil, err
 		}

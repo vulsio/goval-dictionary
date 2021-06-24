@@ -1,21 +1,24 @@
 package rdb
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"golang.org/x/xerrors"
-
-	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Supported DB dialects.
@@ -114,7 +117,33 @@ func (d *Driver) Name() string {
 
 // OpenDB opens Database
 func (d *Driver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	d.conn, err = gorm.Open(dbType, dbPath)
+	gormConfig := gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   logger.Default.LogMode(logger.Silent),
+	}
+
+	if debugSQL {
+		gormConfig.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold: time.Second,
+				LogLevel:      logger.Info,
+				Colorful:      true,
+			},
+		)
+	}
+
+	switch d.name {
+	case DialectSqlite3:
+		d.conn, err = gorm.Open(sqlite.Open(dbPath), &gormConfig)
+	case DialectMysql:
+		d.conn, err = gorm.Open(mysql.Open(dbPath), &gormConfig)
+	case DialectPostgreSQL:
+		d.conn, err = gorm.Open(postgres.Open(dbPath), &gormConfig)
+	default:
+		err = xerrors.Errorf("Not Supported DB dialects. r.name: %s", d.name)
+	}
+
 	if err != nil {
 		if dbType == DialectSqlite3 {
 			switch err.(sqlite3.Error).Code {
@@ -124,7 +153,7 @@ func (d *Driver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err 
 		}
 		return false, fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
-	d.conn.LogMode(debugSQL)
+
 	return false, nil
 }
 
@@ -141,53 +170,10 @@ func (d *Driver) MigrateDB() error {
 		&models.Bugzilla{},
 		&models.Cpe{},
 		&models.Debian{},
-	).Error; err != nil {
+	); err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}
 
-	errMsg := "Failed to create index. err: %s"
-	if err := d.conn.Model(&models.Definition{}).
-		AddIndex("idx_definition_root_id", "root_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-
-	if err := d.conn.Model(&models.Package{}).
-		AddIndex("idx_packages_definition_id", "definition_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Package{}).
-		AddIndex("idx_packages_name", "name").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-
-	if err := d.conn.Model(&models.Reference{}).
-		AddIndex("idx_reference_definition_id", "definition_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Advisory{}).
-		AddIndex("idx_advisories_definition_id", "definition_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Cve{}).
-		AddIndex("idx_cves_advisory_id", "advisory_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Bugzilla{}).
-		AddIndex("idx_bugzillas_advisory_id", "advisory_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Cpe{}).
-		AddIndex("idx_cpes_advisory_id", "advisory_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Debian{}).
-		AddIndex("idx_debian_definition_id", "definition_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if err := d.conn.Model(&models.Debian{}).
-		AddIndex("idx_debian_cve_id", "cve_id").Error; err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
 	return nil
 }
 
@@ -196,7 +182,12 @@ func (d *Driver) CloseDB() (err error) {
 	if d.conn == nil {
 		return
 	}
-	if err = d.conn.Close(); err != nil {
+
+	var sqlDB *sql.DB
+	if sqlDB, err = d.conn.DB(); err != nil {
+		return xerrors.Errorf("Failed to get DB Object. err : %w", err)
+	}
+	if err = sqlDB.Close(); err != nil {
 		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", d.name, err)
 	}
 	return
@@ -242,11 +233,11 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		return tx.Rollback().Error
 	}
 
-	if r.RecordNotFound() {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		if err := tx.Create(&meta).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("Failed to insert FetchMeta: %s", err)
@@ -278,15 +269,15 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 
 	root := models.Root{}
 	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
-	if r.RecordNotFound() {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		return 0, nil
 	}
-	count := 0
+	var count int64
 	if err := d.conn.Model(&models.Definition{}).Where(
 		"root_id = ?", root.ID).Count(&count).Error; err != nil {
 		return 0, err
 	}
-	return count, nil
+	return int(count), nil
 }
 
 // GetLastModified get last modified time of OVAL in roots
@@ -302,7 +293,7 @@ func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 
 	root := models.Root{}
 	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
-	if r.RecordNotFound() {
+	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		now := time.Now()
 		return now.AddDate(-100, 0, 0)
 	}
@@ -328,4 +319,16 @@ func getAmazonLinux1or2(osVersion string) string {
 		return "2"
 	}
 	return "1"
+}
+
+func splitChunkIntoDefinitions(definitions []models.Definition, rootID uint, chunkSize int) (chunks [][]models.Definition) {
+	for i := range definitions {
+		definitions[i].RootID = rootID
+	}
+
+	for chunkSize < len(definitions) {
+		definitions, chunks = definitions[chunkSize:], append(chunks, definitions[0:chunkSize:chunkSize])
+	}
+
+	return append(chunks, definitions)
 }

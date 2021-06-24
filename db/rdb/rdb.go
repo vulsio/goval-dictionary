@@ -3,8 +3,8 @@ package rdb
 import (
 	"fmt"
 	"strings"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -39,7 +39,7 @@ type OvalDB interface {
 	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
 }
 
-var ovalMap map[string]OvalDB = map[string]OvalDB{}
+var ovalMap = map[string]OvalDB{}
 
 // NewRDB return RDB driver
 func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locked bool, err error) {

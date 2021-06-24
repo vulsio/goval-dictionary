@@ -3,6 +3,7 @@ package rdb
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -38,11 +39,10 @@ type OvalDB interface {
 	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
 }
 
-var ovalMap map[string]OvalDB
+var ovalMap = map[string]OvalDB{}
 
 // NewRDB return RDB driver
 func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locked bool, err error) {
-	ovalMap = map[string]OvalDB{}
 	driver = &Driver{
 		name: dbType,
 	}
@@ -68,6 +68,13 @@ func (d *Driver) NewOvalDB(family string) error {
 	if _, ok := ovalMap[family]; ok {
 		return nil
 	}
+
+	// thread safety :
+	// enter a 'critical section' when modifying the global ovalMap
+	// otherwise a fatal 'concurrent map write' will occur and make the program crash
+	var mutex = &sync.Mutex{}
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	switch family {
 	case c.Debian:

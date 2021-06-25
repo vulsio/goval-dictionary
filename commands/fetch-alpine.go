@@ -136,7 +136,9 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			t.defs = append(t.defs, defs...)
 			m[r.Target] = t
 		} else {
+			ss := strings.Split(r.URL, "/")
 			m[r.Target] = T{
+				url:  strings.Join(ss[len(ss)-3:len(ss)-1], "/"),
 				defs: defs,
 			}
 		}
@@ -152,10 +154,9 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Timestamp:   time.Now(),
 		}
 
-		ss := strings.Split(t.url, "/")
 		fmeta := models.FetchMeta{
 			Timestamp: time.Now(),
-			FileName:  ss[len(ss)-1],
+			FileName:  t.url,
 		}
 
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))

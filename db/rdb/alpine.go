@@ -33,10 +33,16 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+	}
+
+	if r.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
 		return tx.Rollback().Error
 	}
+
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
@@ -111,7 +117,7 @@ func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Preload("References").
 			Find(&tmpDefs).Error
 
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		if len(tmpDefs) == 0 {
@@ -134,7 +140,7 @@ func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return defs, nil

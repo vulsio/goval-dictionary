@@ -165,7 +165,12 @@ func getLastModified() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
-		t := driver.GetLastModified(family, release)
+		t, err := driver.GetLastModified(family, release)
+		if err != nil {
+			log15.Error(fmt.Sprintf("Failed to GetLastModified: %s", err))
+			return c.JSON(http.StatusInternalServerError, nil)
+		}
+
 		return c.JSON(http.StatusOK, t)
 	}
 }

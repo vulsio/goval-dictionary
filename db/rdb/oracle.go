@@ -33,10 +33,16 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+	}
+
+	if r.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
 		return tx.Rollback().Error
 	}
+
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
@@ -102,7 +108,7 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		Name: packName,
 		Arch: arch,
 	}).Find(&packs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -110,13 +116,13 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 	for _, p := range packs {
 		def := models.Definition{}
 		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
 		root := models.Root{}
 		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
@@ -128,13 +134,13 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 	for i, def := range defs {
 		adv := models.Advisory{}
 		err = driver.Model(&def).Association("Advisory").Find(&adv)
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
 		cves := []models.Cve{}
 		err = driver.Model(&adv).Association("Cves").Find(&cves)
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		adv.Cves = cves
@@ -143,14 +149,14 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 
 		packs := []models.Package{}
 		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		defs[i].AffectedPacks = packs
 
 		refs := []models.Reference{}
 		err = driver.Model(&def).Association("References").Find(&refs)
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		defs[i].References = refs
@@ -171,7 +177,7 @@ func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return defs, nil

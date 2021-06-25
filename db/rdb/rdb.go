@@ -233,11 +233,16 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+	}
+
+	if oldmeta.Timestamp.Equal(meta.Timestamp) {
 		return tx.Rollback().Error
 	}
 
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+	if r.RowsAffected == 0 {
 		if err := tx.Create(&meta).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("Failed to insert FetchMeta: %s", err)
@@ -269,9 +274,10 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 
 	root := models.Root{}
 	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		return 0, nil
 	}
+
 	var count int64
 	if err := d.conn.Model(&models.Definition{}).Where(
 		"root_id = ?", root.ID).Count(&count).Error; err != nil {
@@ -281,7 +287,7 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 }
 
 // GetLastModified get last modified time of OVAL in roots
-func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
+func (d *Driver) GetLastModified(osFamily, osVer string) (time.Time, error) {
 	switch osFamily {
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
@@ -293,11 +299,15 @@ func (d *Driver) GetLastModified(osFamily, osVer string) time.Time {
 
 	root := models.Root{}
 	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
-	if !errors.Is(r.Error, gorm.ErrRecordNotFound) {
-		now := time.Now()
-		return now.AddDate(-100, 0, 0)
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		return time.Time{}, xerrors.Errorf("Failed to get root: %w", r.Error)
 	}
-	return root.Timestamp
+
+	if r.RowsAffected == 0 {
+		now := time.Now()
+		return now.AddDate(-100, 0, 0), nil
+	}
+	return root.Timestamp, nil
 }
 
 func major(osVer string) (majorVersion string) {

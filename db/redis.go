@@ -325,9 +325,9 @@ func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
 }
 
 // GetLastModified get last modified time of OVAL in roots
-func (d *RedisDriver) GetLastModified(osFamily, osVer string) time.Time {
+func (d *RedisDriver) GetLastModified(osFamily, osVer string) (time.Time, error) {
 	// TODO not implemented yet
-	return time.Now()
+	return time.Now(), nil
 }
 
 func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {

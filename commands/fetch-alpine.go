@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -151,9 +152,19 @@ func (p *FetchAlpineCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 			Timestamp:   time.Now(),
 		}
 
+		ss := strings.Split(t.url, "/")
+		fmeta := models.FetchMeta{
+			Timestamp: time.Now(),
+			FileName:  ss[len(ss)-1],
+		}
+
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
-		if err := driver.InsertOval(c.Alpine, &root, models.FetchMeta{}); err != nil {
+		if err := driver.InsertOval(c.Alpine, &root, fmeta); err != nil {
 			log15.Error("Failed to insert meta.", "err", err)
+			return subcommands.ExitFailure
+		}
+		if err := driver.InsertFetchMeta(fmeta); err != nil {
+			log15.Error("Failed to insert meta", "err", err)
 			return subcommands.ExitFailure
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))

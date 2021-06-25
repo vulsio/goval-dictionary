@@ -93,7 +93,7 @@ func (p *FetchAmazonCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
 	if err := execute(&root); err != nil {
-		log15.Error("Failed to Insert Amazon2", "err", err)
+		log15.Error("Failed to Insert Amazon1", "err", err)
 		return subcommands.ExitSuccess
 	}
 
@@ -130,8 +130,18 @@ func execute(root *models.Root) error {
 			log15.Error("Failed to close DB", "err", err)
 		}
 	}()
-	if err := driver.InsertOval(c.Amazon, root, models.FetchMeta{}); err != nil {
+
+	fmeta := models.FetchMeta{
+		Timestamp: time.Now(),
+		FileName:  fmt.Sprintf("FetchUpdateInfoAmazonLinux%s", root.OSVersion),
+	}
+
+	if err := driver.InsertOval(c.Amazon, root, fmeta); err != nil {
 		return fmt.Errorf("Failed to insert OVAL: %w", err)
+	}
+	if err := driver.InsertFetchMeta(fmeta); err != nil {
+		log15.Error("Failed to insert meta", "err", err)
+		return fmt.Errorf("Failed to insert FetchMeta: %w", err)
 	}
 	log15.Info("Finish", "Updated", len(root.Definitions))
 	return nil

@@ -33,8 +33,11 @@ const (
 	// Ubuntu19 is Eoan Ermine
 	Ubuntu19 = "eoan"
 
-	// Ubuntu20 is  Focal Fossa
+	// Ubuntu20 is Focal Fossa
 	Ubuntu20 = "focal"
+
+	// Ubuntu21 is Hirsute Hippo
+	Ubuntu21 = "hirsute"
 
 	// Debian7 is wheezy
 	Debian7 = "wheezy"

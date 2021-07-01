@@ -180,7 +180,7 @@ fetch-ubuntu:
                 [-log-json]
 
 For the first time, run the below command to fetch data for all versions.
-    $ goval-dictionary fetch-ubuntu 14 16 18 19 20
+    $ goval-dictionary fetch-ubuntu 14 16 18 19 20 21
 
   -dbpath string
         /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
@@ -205,7 +205,7 @@ For the first time, run the below command to fetch data for all versions.
 - Import OVAL data from Internet
 
 ```bash
-$ goval-dictionary fetch-ubuntu 14 16 18 19 20
+$ goval-dictionary fetch-ubuntu 14 16 18 19 20 21
 ```
 
 ### Usage: Fetch OVAL data from SUSE

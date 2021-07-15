@@ -102,7 +102,7 @@ For the first time, run the blow command to fetch data for all versions.
   -http-proxy string
         http://proxy-url:port (default: empty)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -no-details
@@ -150,7 +150,7 @@ For the first time, run the blow command to fetch data for all versions.
   -quiet
         quiet mode (no output)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
 ```
@@ -193,7 +193,7 @@ For the first time, run the below command to fetch data for all versions.
   -http-proxy string
         http://proxy-url:port (default: empty)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -no-details
@@ -246,7 +246,7 @@ For the first time, run the blow command to fetch data for all versions.
   -quiet
         quiet mode (no output)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -opensuse
@@ -299,7 +299,7 @@ For the first time, run the blow command to fetch data for all versions.
   -http-proxy string
         http://proxy-url:port (default: empty)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -no-details
@@ -347,7 +347,7 @@ The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
   -http-proxy string
         http://proxy-url:port (default: empty)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -quiet
@@ -392,7 +392,7 @@ fetch-amazon:
   -http-proxy string
         http://proxy-url:port (default: empty)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -no-details
@@ -877,7 +877,7 @@ server:
   -quiet
         quiet mode (no output)
   -log-dir string
-        /path/to/log (default "/var/log/vuls")
+        /path/to/log (default "/var/log/goval-dictionary")
   -log-json
         output log as JSON
   -port string

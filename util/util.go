@@ -25,9 +25,9 @@ func GenWorkers(num int) chan<- func() {
 
 // GetDefaultLogDir returns default log directory
 func GetDefaultLogDir() string {
-	defaultLogDir := "/var/log/vuls"
+	defaultLogDir := "/var/log/goval-dictionary"
 	if runtime.GOOS == "windows" {
-		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "vuls")
+		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "goval-dictionary")
 	}
 	return defaultLogDir
 }

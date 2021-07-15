@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
+	"github.com/spf13/viper"
 )
 
 // ConvertAmazonToModel Convert OVAL to models
@@ -54,7 +54,7 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 			References: refs,
 		}
 
-		if c.Conf.NoDetails {
+		if viper.GetBool("no-details") {
 			def.Description = ""
 			def.References = []Reference{}
 		}

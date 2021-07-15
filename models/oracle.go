@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
 
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -56,7 +57,7 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 				References:    copyRs,
 			}
 
-			if c.Conf.NoDetails {
+			if viper.GetBool("no-details") {
 				def.Title = ""
 				def.Description = ""
 				def.References = []Reference{}

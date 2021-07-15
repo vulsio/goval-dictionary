@@ -11,11 +11,15 @@ func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target: v,
-			url:    fmt.Sprintf(community, v),
-		}, fetchRequest{
-			target: v,
 			url:    fmt.Sprintf(main, v),
 		})
+
+		if v != "3.2" {
+			reqs = append(reqs, fetchRequest{
+				target: v,
+				url:    fmt.Sprintf(community, v),
+			})
+		}
 	}
 	return
 }

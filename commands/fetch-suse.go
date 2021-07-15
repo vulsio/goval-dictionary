@@ -28,8 +28,8 @@ var fetchSUSECmd = &cobra.Command{
 func init() {
 	fetchCmd.AddCommand(fetchSUSECmd)
 
-	serverCmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type (default: opensuse-leap")
-	_ = viper.BindPFlag("suse-type", serverCmd.PersistentFlags().Lookup("suse-type"))
+	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type")
+	_ = viper.BindPFlag("suse-type", fetchSUSECmd.PersistentFlags().Lookup("suse-type"))
 }
 
 func fetchSUSE(cmd *cobra.Command, args []string) (err error) {

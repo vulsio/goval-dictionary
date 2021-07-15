@@ -29,286 +29,129 @@ $ make install
 ## Usage
 
 ```bash
-$ goval-dictionary -h
-Usage: goval-dictionary <flags> <subcommand> <subcommand args>
+$ goval-dictionary help
+OVAL(Open Vulnerability and Assessment Language) dictionary
 
-Subcommands:
-        commands         list all command names
-        flags            describe all known top-level flags
-        help             describe subcommands and their syntax
+Usage:
+  goval-dictionary [command]
 
-Subcommands for fetch-alpine:
-        fetch-alpine     Fetch Vulnerability dictionary from Alpine secdb
+Available Commands:
+  completion  generate the autocompletion script for the specified shell
+  fetch       Fetch Vulnerability dictionary
+  help        Help about any command
+  select      Select from DB
+  server      Start OVAL dictionary HTTP server
 
-Subcommands for fetch-amazon:
-        fetch-amazon     Fetch Vulnerability dictionary from Amazon ALAS
+Flags:
+      --config string       config file (default is $HOME/.oval.yaml)
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --debug               debug mode (default: false)
+      --debug-sql           SQL debug mode
+  -h, --help                help for goval-dictionary
+      --http-proxy string   http://proxy-url:port (default: empty)
+      --log-dir string      /path/to/log (default "/var/log/goval-dictionary")
+      --log-json            output log as JSON
 
-Subcommands for fetch-debian:
-        fetch-debian     Fetch Vulnerability dictionary from Debian
-
-Subcommands for fetch-oracle:
-        fetch-oracle     Fetch Vulnerability dictionary from Oracle
-
-Subcommands for fetch-redhat:
-        fetch-redhat     Fetch Vulnerability dictionary from RedHat
-
-Subcommands for fetch-suse:
-        fetch-suse       Fetch Vulnerability dictionary from SUSE
-
-Subcommands for fetch-ubuntu:
-        fetch-ubuntu     Fetch Vulnerability dictionary from Ubuntu
-
-Subcommands for select:
-        select           Select from DB
-
-Subcommands for server:
-        server           Start OVAL dictionary HTTP server
-
-
-Use "goval-dictionary flags" for a list of top-level flags
+Use "goval-dictionary [command] --help" for more information about a command.
 ```
 
-### Usage: Fetch OVAL data from RedHat
+### Usage: Fetch OVAL data
+```bash
+$ goval-dictionary fetch --help
+Fetch Vulnerability dictionary
+
+Usage:
+  goval-dictionary fetch [command]
+
+Available Commands:
+  alpine      Fetch Vulnerability dictionary from Alpine secdb
+  amazon      Fetch Vulnerability dictionary from Amazon ALAS
+  debian      Fetch Vulnerability dictionary from Debian
+  oracle      Fetch Vulnerability dictionary from Oracle
+  redhat      Fetch Vulnerability dictionary from RedHat
+  suse        Fetch Vulnerability dictionary from SUSE
+  ubuntu      Fetch Vulnerability dictionary from Ubuntu
+
+Flags:
+  -h, --help         help for fetch
+      --no-details   without vulnerability details
+
+Global Flags:
+      --config string       config file (default is $HOME/.oval.yaml)
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --debug               debug mode (default: false)
+      --debug-sql           SQL debug mode
+      --http-proxy string   http://proxy-url:port (default: empty)
+      --log-dir string      /path/to/log (default "/var/log/goval-dictionary")
+      --log-json            output log as JSON
+
+Use "goval-dictionary fetch [command] --help" for more information about a command.
+```
+
+#### Usage: Fetch OVAL data from RedHat
 
 - [Redhat OVAL](https://www.redhat.com/security/data/oval/)
-
+- 
 ```bash
-$ goval-dictionary fetch-redhat -h
-fetch-redhat:
-        fetch-redhat
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-no-details]
-                [-log-dir=/path/to/log]
-                [-log-json]
-
-For the first time, run the blow command to fetch data for all versions.
-    $ goval-dictionary fetch-redhat 5 6 7 8
-        or
-    $ for i in {5..8}; do goval-dictionary fetch-redhat $i; done
-
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -no-details
-        without vulnerability details
-  -quiet
-        quiet mode (no output)
+$ goval-dictionary fetch redhat 5 6 7 8
 ```
 
-- Import OVAL data from Internet
-
-```bash
-$ goval-dictionary fetch-redhat 5 6 7 8
-```
-
-### Usage: Fetch OVAL data from Debian
+#### Usage: Fetch OVAL data from Debian
 
 - [Debian OVAL](https://www.debian.org/security/oval/)
 
 ```bash
-$ goval-dictionary fetch-debian -h
-fetch-debian:
-        fetch-debian
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-log-dir=/path/to/log]
-                [-log-json]
-
-For the first time, run the blow command to fetch data for all versions.
-    $ goval-dictionary fetch-debian 7 8 9 10
-
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -quiet
-        quiet mode (no output)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
+$ goval-dictionary fetch debian 7 8 9 10
 ```
 
-- Import OVAL data from Internet
-
-```bash
-$ goval-dictionary fetch-debian 7 8 9 10
-```
-
-### Usage: Fetch OVAL data from Ubuntu
+#### Usage: Fetch OVAL data from Ubuntu
 
 - [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
 
 ```bash
-$ goval-dictionary fetch-ubuntu -h
-fetch-ubuntu:
-        fetch-ubuntu
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-no-details]
-                [-log-dir=/path/to/log]
-                [-log-json]
-
-For the first time, run the below command to fetch data for all versions.
-    $ goval-dictionary fetch-ubuntu 14 16 18 19 20 21
-
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -no-details
-        without vulnerability details
-  -quiet
-        quiet mode (no output)
+$ goval-dictionary fetch ubuntu 14 16 18 19 20 21
 ```
 
-- Import OVAL data from Internet
-
-```bash
-$ goval-dictionary fetch-ubuntu 14 16 18 19 20 21
-```
-
-### Usage: Fetch OVAL data from SUSE
+#### Usage: Fetch OVAL data from SUSE
 
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 
 ```bash
-$ goval-dictionary fetch-suse -h
-fetch-suse:
-        fetch-suse
-                [-opensuse]
-                [-opensuse-leap]
-                [-suse-enterprise-server]
-                [-suse-enterprise-desktop]
-                [-suse-openstack-cloud]
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-log-dir=/path/to/log]
-                [-log-json]
+$ goval-dictionary fetch suse --help
+Fetch Vulnerability dictionary from SUSE
 
-For the first time, run the blow command to fetch data for all versions.
-    $ goval-dictionary fetch-suse -opensuse 13.2
+Usage:
+  goval-dictionary fetch suse [flags]
 
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -quiet
-        quiet mode (no output)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -opensuse
-        OpenSUSE
-  -opensuse-leap
-        OpenSUSE Leap
-  -suse-enterprise-server
-        SUSE Enterprise Server
+Flags:
+  -h, --help               help for suse
+      --suse-type string   Fetch SUSE Type (default "opensuse-leap")
+
+Global Flags:
+      --config string       config file (default is $HOME/.oval.yaml)
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --debug               debug mode (default: false)
+      --debug-sql           SQL debug mode
+      --http-proxy string   http://proxy-url:port (default: empty)
+      --log-dir string      /path/to/log (default "/var/log/goval-dictionary")
+      --log-json            output log as JSON
+      --no-details          without vulnerability details
 ```
 
-- Import OVAL data from Internet
-
 ```bash
-$ goval-dictionary fetch-suse -opensuse 13.2
+$ goval-dictionary fetch suse --suse-type opensuse 13.2
 ```
 
 ```bash
 $ goval-dictionary fetch-suse -suse-enterprise-server 12
 ```
 
-### Usage: Fetch OVAL data from Oracle
+#### Usage: Fetch OVAL data from Oracle
 
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
-
-```bash
-$ goval-dictionary fetch-oracle -h
-fetch-oracle:
-        fetch-oracle
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-no-details]
-                [-log-dir=/path/to/log]
-                [-log-json]
-
-For the first time, run the blow command to fetch data for all versions.
-    $ goval-dictionary fetch-oracle
-
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -no-details
-        without vulnerability details
-  -quiet
-        quiet mode (no output)
-```
-
-- Import OVAL data from Internet
 
 ```bash
  $ goval-dictionary fetch-oracle
@@ -316,92 +159,17 @@ For the first time, run the blow command to fetch data for all versions.
 
 ### Usage: Fetch alpine-secdb as OVAL data type
 
-- [Alpine Linux](https://git.alpinelinux.org/cgit/alpine-secdb/)
+- [Alpine Linux](https://secdb.alpinelinux.org/)
 alpine-secdb is provided in YAML format and not OVAL, but it is supported by goval-dictionary to make alpine-secdb easier to handle from Vuls.
-See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of supported alpines.
+See [here](https://secdb.alpinelinux.org/) for a list of supported alpines.
 
 ```bash
-$ goval-dictionary fetch-alpine -h
-fetch-alpine:
-        fetch-alpine
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-log-dir=/path/to/log]
-                [-log-json]
-
-The version list is here https://git.alpinelinux.org/cgit/alpine-secdb/tree/
-        $ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
-
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -quiet
-        quiet mode (no output)
+ $ goval-dictionary fetch-alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
 ```
 
-- Import alpine-secdb from Internet
-
-```bash
- $ goval-dictionary fetch-alpine 3.3 3.4 3.5 3.6
-```
-See [here](https://git.alpinelinux.org/cgit/alpine-secdb/tree/) for a list of supported alpines.
-
-### Usage: Fetch Amazon ALAS as OVAL data type
+#### Usage: Fetch Amazon ALAS as OVAL data type
 
 Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
-
-```bash
-$ goval-dictionary fetch-amazon -h
-fetch-amazon:
-        fetch-amazon
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-http-proxy=http://192.168.0.1:8080]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-no-details]
-                [-log-dir=/path/to/log]
-                [-log-json]
-
-        $ goval-dictionary fetch-amazon
-
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode
-  -debug-sql
-        SQL debug mode
-  -http-proxy string
-        http://proxy-url:port (default: empty)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -no-details
-        without vulnerability details
-  -quiet
-        quiet mode (no output)
-```
-
-- Import Amazon ALAS from Internet
 
 ```bash
  $ goval-dictionary fetch-amazon
@@ -413,11 +181,11 @@ Select from DB where package name is golang.
 
 <details>
 <summary>
-`$ goval-dictionary select -by-package redhat 7 golang x86_64`
+`$ goval-dictionary select --by-package redhat 7 golang x86_64`
 </summary>
 
 ```bash
-$ goval-dictionary select -by-package redhat 7 golang x86_64
+$ goval-dictionary select --by-package redhat 7 golang x86_64
 [Apr 10 10:22:43]  INFO Opening DB (sqlite3).
 CVE-2015-5739
     {3399 319 golang 0:1.6.3-1.el7_2.1}
@@ -645,7 +413,7 @@ CVE-YYYY-NNNN
 </summary>
 
 ```bash
-$ goval-dictionary select -by-cveid redhat 7 CVE-2017-6009
+$ goval-dictionary select --by-cveid redhat 7 CVE-2017-6009
 [Apr 12 12:12:36]  INFO Opening DB (sqlite3).
 RHSA-2017:0837: icoutils security update (Important)
 Important
@@ -851,38 +619,26 @@ Upper part format:
 ### Usage: Start goval-dictionary as server mode
 
 ```bash
-$ goval-dictionary server -h
-server:
-        server
-                [-bind=127.0.0.1]
-                [-port=8000]
-                [-dbpath=$PWD/oval.sqlite3 or connection string]
-                [-dbtype=sqlite3|mysql|postgres|redis]
-                [-debug]
-                [-debug-sql]
-                [-quiet]
-                [-log-dir=/path/to/log]
-                [-log-json]
+$ goval-dictionary server --help
+Start OVAL dictionary HTTP server
 
-  -bind string
-        HTTP server bind to IP address (default: loop back interface) (default "127.0.0.1")
-  -dbpath string
-        /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-  -dbtype string
-        Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
-  -debug
-        debug mode (default: false)
-  -debug-sql
-        SQL debug mode (default: false)
-  -quiet
-        quiet mode (no output)
-  -log-dir string
-        /path/to/log (default "/var/log/goval-dictionary")
-  -log-json
-        output log as JSON
-  -port string
-        HTTP server port number (default: 1324)
+Usage:
+  goval-dictionary server [flags]
 
+Flags:
+      --bind string   HTTP server bind to IP address (default "127.0.0.1")
+  -h, --help          help for server
+      --port string   HTTP server port number (default "1324")
+
+Global Flags:
+      --config string       config file (default is $HOME/.oval.yaml)
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --debug               debug mode (default: false)
+      --debug-sql           SQL debug mode
+      --http-proxy string   http://proxy-url:port (default: empty)
+      --log-dir string      /path/to/log (default "/var/log/goval-dictionary")
+      --log-json            output log as JSON
 ```
 
 #### cURL
@@ -969,7 +725,7 @@ see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
 - [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
-- [Alpine-secdb](https://git.alpinelinux.org/cgit/alpine-secdb/)
+- [Alpine-secdb](https://secdb.alpinelinux.org/)
 - [Amazon](https://alas.aws.amazon.com/alas.rss)
 
 ----

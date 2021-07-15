@@ -21,7 +21,7 @@ func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 }
 
 // FetchAlpineFiles fetch from alpine secdb
-// https://git.alpinelinux.org/cgit/alpine-secdb/tree/
+// https://secdb.alpinelinux.org/
 func FetchAlpineFiles(versions []string) ([]FetchResult, error) {
 	reqs := newAlpineFetchRequests(versions)
 	if len(reqs) == 0 {

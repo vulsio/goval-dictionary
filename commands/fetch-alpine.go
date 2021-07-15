@@ -19,7 +19,7 @@ import (
 )
 
 // fetchAlpineCmd is Subcommand for fetch Alpine secdb
-// https://git.alpinelinux.org/cgit/alpine-secdb/
+// https://secdb.alpinelinux.org/
 var fetchAlpineCmd = &cobra.Command{
 	Use:   "alpine",
 	Short: "Fetch Vulnerability dictionary from Alpine secdb",

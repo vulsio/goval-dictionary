@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/kotakanbe/goval-dictionary/config"
+	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -51,7 +51,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 				References:    rs,
 			}
 
-			if c.Conf.NoDetails {
+			if viper.GetBool("no-details") {
 				def.Title = ""
 				def.Description = ""
 				def.Advisory = Advisory{}

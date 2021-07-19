@@ -1,9 +1,10 @@
 package config
 
-import (
-	valid "github.com/asaskevich/govalidator"
-	"github.com/inconshreveable/log15"
-)
+// Version ... Version
+var Version = ""
+
+// Revision of Git
+var Revision string
 
 const (
 	// RedHat is
@@ -75,36 +76,3 @@ const (
 	// Amazon is
 	Amazon = "amazon"
 )
-
-// Conf has Configuration
-var Conf Config
-
-// Config has config
-type Config struct {
-	Debug     bool
-	DebugSQL  bool
-	Quiet     bool
-	NoDetails bool
-	DBPath    string
-	DBType    string
-	Bind      string `valid:"ipv4"`
-	Port      string `valid:"port"`
-	HTTPProxy string
-}
-
-// Validate validates configuration
-func (p *Config) Validate() bool {
-	if p.DBType == "sqlite3" {
-		if ok, _ := valid.IsFilePath(p.DBPath); !ok {
-			log15.Error("SQLite3 DB path must be a *Absolute* file path.", "dbpath", p.DBPath)
-			return false
-		}
-	}
-
-	_, err := valid.ValidateStruct(p)
-	if err != nil {
-		log15.Error("Invalid Struct", "err", err)
-		return false
-	}
-	return true
-}

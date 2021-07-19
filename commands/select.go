@@ -1,115 +1,80 @@
 package commands
 
 import (
-	"context"
-	"flag"
 	"fmt"
-	"os"
 
-	"github.com/google/subcommands"
 	"github.com/inconshreveable/log15"
 	"github.com/k0kubun/pp"
-	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 )
 
 // SelectCmd is Subcommand for fetch RedHat OVAL
-type SelectCmd struct {
-	LogDir  string
-	LogJSON bool
-
-	ByPackage bool
-	ByCveID   bool
+var selectCmd = &cobra.Command{
+	Use:   "select",
+	Short: "Select from DB",
+	Long:  `Select from DB`,
+	RunE:  executeSelect,
 }
 
-// Name return subcommand name
-func (*SelectCmd) Name() string { return "select" }
+func init() {
+	RootCmd.AddCommand(selectCmd)
 
-// Synopsis return synopsis
-func (*SelectCmd) Synopsis() string { return "Select from DB" }
+	selectCmd.PersistentFlags().Bool("by-package", false, "select OVAL by package name")
+	_ = viper.BindPFlag("by-package", selectCmd.PersistentFlags().Lookup("by-package"))
 
-// Usage return usage
-func (*SelectCmd) Usage() string {
-	return `select:
-	select
-		[-dbtype=sqlite3|mysql|postgres|redis]
-		[-dbpath=$PWD/oval.sqlite3 or connection string]
-		[-debug-sql]
-		[-quiet]
-		[-log-dir=/path/to/log]
-		[-log-json]
-
-		[-by-package] amazon 2 bind x86_64
-		[-by-cveid] redhat 7 CVE-2017-6009
-
-`
+	selectCmd.PersistentFlags().Bool("by-cveid", false, "select OVAL by CVE-ID")
+	_ = viper.BindPFlag("by-cveid", selectCmd.PersistentFlags().Lookup("by-cveid"))
 }
 
-// SetFlags set flag
-func (p *SelectCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&c.Conf.DebugSQL, "debug-sql", false, "SQL debug mode")
-	f.BoolVar(&c.Conf.Quiet, "quiet", false, "quiet mode (no output)")
+func executeSelect(cmd *cobra.Command, args []string) error {
+	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
 
-	defaultLogDir := util.GetDefaultLogDir()
-	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
-	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
+	flagPkg := viper.GetBool("by-package")
+	flagCveID := viper.GetBool("by-cveid")
 
-	pwd := os.Getenv("PWD")
-	f.StringVar(&c.Conf.DBPath, "dbpath", pwd+"/oval.sqlite3",
-		"/path/to/sqlite3 or SQL connection string")
+	if (!flagPkg && !flagCveID) || (flagPkg && flagCveID) {
+		log15.Error("Specify --by-package or --by-cveid")
+		return xerrors.New("Failed to select command. err: specify --by-package or --by-cveid")
+	}
 
-	f.StringVar(&c.Conf.DBType, "dbtype", "sqlite3",
-		"Database type to store data in (sqlite3 or mysql supported)")
-
-	f.BoolVar(&p.ByPackage, "by-package", false, "select OVAL by package name")
-	f.BoolVar(&p.ByCveID, "by-cveid", false, "select OVAL by CVE-ID")
-}
-
-// Execute execute
-func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
-	if p.ByPackage && f.NArg() != 4 {
-		log15.Crit(`
+	if flagPkg && len(args) != 4 {
+		log15.Error(`
 		Usage:
 		select OVAL by package name
-		./goval-dictionary select -by-package redhat 7 java-1.7.0-openjdk x86_64
+		./goval-dictionary select --by-package redhat 7 java-1.7.0-openjdk x86_64
 		`)
+		return xerrors.New("Failed to set by-package option args.")
 	}
 
-	if p.ByCveID && f.NArg() != 3 {
-		log15.Crit(`
+	if flagCveID && len(args) != 3 {
+		log15.Error(`
+		Usage:
 		select OVAL by CVE-ID
-		./goval-dictionary select -by-cveid redhat 7 CVE-2015-1111
+		./goval-dictionary select --by-cveid redhat 7 CVE-2015-1111
 		`)
+		return xerrors.New("Failed to set by-cveid option args.")
 	}
 
-	if !p.ByPackage && !p.ByCveID {
-		log15.Crit("Specify -by-package or -by-cveid")
-	}
-
-	var err error
-	var driver db.DB
-	driver, locked, err := db.NewDB(f.Args()[0], c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	driver, locked, err := db.NewDB(args[0], viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before select", "err", err)
-			return subcommands.ExitFailure
+			return err
 		}
 		log15.Error("Failed to open DB", "err", err)
-		return subcommands.ExitFailure
+		return err
 	}
 
-	// count, err := driver.CountDefs("redhat", "7")
-	// pp.Println("count: ", count, err)
-
-	var dfs []models.Definition
-	if p.ByPackage {
-		dfs, err = driver.GetByPackName(f.Args()[0], f.Args()[1], f.Args()[2], f.Args()[3])
+	if flagPkg {
+		dfs, err := driver.GetByPackName(args[0], args[1], args[2], args[3])
 		if err != nil {
 			//TODO Logger
-			log15.Crit("Failed to get cve by package.", "err", err)
+			log15.Error("Failed to get cve by package.", "err", err)
+			return err
 		}
 
 		for _, d := range dfs {
@@ -123,11 +88,10 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		fmt.Println("------------------")
 		pp.ColoringEnabled = false
 		_, _ = pp.Println(dfs)
-		return subcommands.ExitSuccess
 	}
 
-	if p.ByCveID {
-		dfs, err = driver.GetByCveID(f.Args()[0], f.Args()[1], f.Args()[2])
+	if flagCveID {
+		dfs, err := driver.GetByCveID(args[0], args[1], args[2])
 		if err != nil {
 			log15.Crit("Failed to get cve by cveID", "err", err)
 		}
@@ -138,8 +102,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		fmt.Println("------------------")
 		pp.ColoringEnabled = false
 		_, _ = pp.Println(dfs)
-		return subcommands.ExitSuccess
 	}
 
-	return subcommands.ExitSuccess
+	return nil
 }

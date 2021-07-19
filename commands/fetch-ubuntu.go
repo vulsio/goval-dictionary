@@ -1,107 +1,56 @@
 package commands
 
 import (
-	"context"
 	"encoding/xml"
-	"flag"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/google/subcommands"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/fetcher"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
+	"golang.org/x/xerrors"
 )
 
-// FetchUbuntuCmd is Subcommand for fetch RedHat OVAL
-type FetchUbuntuCmd struct {
-	LogDir  string
-	LogJSON bool
+// fetchUbuntuCmd is Subcommand for fetch Ubuntu OVAL
+var fetchUbuntuCmd = &cobra.Command{
+	Use:   "ubuntu",
+	Short: "Fetch Vulnerability dictionary from Ubuntu",
+	Long:  `Fetch Vulnerability dictionary from Ubuntu`,
+	RunE:  fetchUbuntu,
 }
 
-// Name return subcommand name
-func (*FetchUbuntuCmd) Name() string { return "fetch-ubuntu" }
-
-// Synopsis return synopsis
-func (*FetchUbuntuCmd) Synopsis() string { return "Fetch Vulnerability dictionary from Ubuntu" }
-
-// Usage return usage
-func (*FetchUbuntuCmd) Usage() string {
-	return `fetch-ubuntu:
-	fetch-ubuntu
-		[-dbtype=sqlite3|mysql|postgres|redis]
-		[-dbpath=$PWD/oval.sqlite3 or connection string]
-		[-http-proxy=http://192.168.0.1:8080]
-		[-debug]
-		[-debug-sql]
-		[-quiet]
-		[-no-details]
-		[-log-dir=/path/to/log]
-		[-log-json]
-
-For the first time, run the below command to fetch data for all versions.
-	$ goval-dictionary fetch-ubuntu 14 16 18 19 20
-
-`
+func init() {
+	fetchCmd.AddCommand(fetchUbuntuCmd)
 }
 
-// SetFlags set flag
-func (p *FetchUbuntuCmd) SetFlags(f *flag.FlagSet) {
-	f.BoolVar(&c.Conf.Debug, "debug", false, "debug mode")
-	f.BoolVar(&c.Conf.DebugSQL, "debug-sql", false, "SQL debug mode")
-	f.BoolVar(&c.Conf.Quiet, "quiet", false, "quiet mode (no output)")
-	f.BoolVar(&c.Conf.NoDetails, "no-details", false, "without vulnerability details")
+func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
+	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
 
-	defaultLogDir := util.GetDefaultLogDir()
-	f.StringVar(&p.LogDir, "log-dir", defaultLogDir, "/path/to/log")
-	f.BoolVar(&p.LogJSON, "log-json", false, "output log as JSON")
-
-	pwd := os.Getenv("PWD")
-	f.StringVar(&c.Conf.DBPath, "dbpath", pwd+"/oval.sqlite3",
-		"/path/to/sqlite3 or SQL connection string")
-
-	f.StringVar(&c.Conf.DBType, "dbtype", "sqlite3",
-		"Database type to store data in (sqlite3, mysql, postgres or redis supported)")
-
-	f.StringVar(
-		&c.Conf.HTTPProxy,
-		"http-proxy",
-		"",
-		"http://proxy-url:port (default: empty)",
-	)
-}
-
-// Execute execute
-func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	util.SetLogger(p.LogDir, c.Conf.Quiet, c.Conf.Debug, p.LogJSON)
-	if !c.Conf.Validate() {
-		return subcommands.ExitUsageError
-	}
-
-	if len(f.Args()) == 0 {
+	if len(args) == 0 {
 		log15.Error("Specify versions to fetch")
-		return subcommands.ExitUsageError
+		return xerrors.New("Failed to fetch ubuntu command. err: specify versions to fetch")
 	}
 
-	driver, locked, err := db.NewDB(c.Ubuntu, c.Conf.DBType, c.Conf.DBPath, c.Conf.DebugSQL)
+	driver, locked, err := db.NewDB(c.Ubuntu, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return subcommands.ExitFailure
+			return err
 		}
 		log15.Error("Failed to open DB", "err", err)
-		return subcommands.ExitFailure
+		return err
 	}
 
 	// Distinct
 	v := map[string]bool{}
 	vers := []string{}
-	for _, arg := range f.Args() {
+	for _, arg := range args {
 		v[arg] = true
 	}
 	for k := range v {
@@ -111,14 +60,14 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 	results, err := fetcher.FetchUbuntuFiles(vers)
 	if err != nil {
 		log15.Error("Failed to fetch files", "err", err)
-		return subcommands.ExitFailure
+		return err
 	}
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
-			return subcommands.ExitUsageError
+			return err
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
@@ -128,7 +77,7 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
 			log15.Error("Failed to parse time", "err", err)
-			return subcommands.ExitFailure
+			return err
 		}
 
 		root := models.Root{
@@ -146,14 +95,14 @@ func (p *FetchUbuntuCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interf
 
 		if err := driver.InsertOval(c.Ubuntu, &root, fmeta); err != nil {
 			log15.Error("Failed to insert OVAL", "err", err)
-			return subcommands.ExitFailure
+			return err
 		}
 		if err := driver.InsertFetchMeta(fmeta); err != nil {
 			log15.Error("Failed to insert meta", "err", err)
-			return subcommands.ExitFailure
+			return err
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
-	return subcommands.ExitSuccess
+	return nil
 }

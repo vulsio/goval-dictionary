@@ -12,8 +12,8 @@ import (
 
 	"github.com/htcat/htcat"
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/util"
+	"github.com/spf13/viper"
 )
 
 type fetchRequest struct {
@@ -101,8 +101,9 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err error) {
 	var proxyURL *url.URL
 	httpClient := &http.Client{}
-	if c.Conf.HTTPProxy != "" {
-		if proxyURL, err = url.Parse(c.Conf.HTTPProxy); err != nil {
+	httpProxy := viper.GetString("http-proxy")
+	if httpProxy != "" {
+		if proxyURL, err = url.Parse(httpProxy); err != nil {
 			return nil, fmt.Errorf("Failed to parse proxy url: %s", err)
 		}
 		httpClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
@@ -140,8 +141,9 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	var resp *http.Response
 
 	httpClient := &http.Client{}
-	if c.Conf.HTTPProxy != "" {
-		if proxyURL, err = url.Parse(c.Conf.HTTPProxy); err != nil {
+	httpProxy := viper.GetString("http-proxy")
+	if httpProxy != "" {
+		if proxyURL, err = url.Parse(httpProxy); err != nil {
 			return nil, fmt.Errorf("Failed to parse proxy url: %s", err)
 		}
 		httpClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}

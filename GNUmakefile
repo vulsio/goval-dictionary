@@ -25,8 +25,8 @@ SRCS = $(shell git ls-files '*.go')
 PKGS =  ./commands ./config ./db ./db/rdb ./fetcher ./models ./util
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
-LDFLAGS := -X 'main.version=$(VERSION)' \
-	-X 'main.revision=$(REVISION)'
+LDFLAGS := -X 'github.com/kotakanbe/goval-dictionary/config.Version=$(VERSION)' \
+	-X 'github.com/kotakanbe/goval-dictionary/config.Revision=$(REVISION)'
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 
@@ -93,37 +93,37 @@ clean-integration:
 	-docker rm redis-old redis-new
 
 fetch-rdb:
-	integration/goval-dict.old fetch-debian --dbpath=$(PWD)/integration/oval.old.sqlite3 7 8 9 10
-	integration/goval-dict.old fetch-ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14 16 18 19 20
-	integration/goval-dict.old fetch-redhat --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8
-	integration/goval-dict.old fetch-oracle --dbpath=$(PWD)/integration/oval.old.sqlite3
-	integration/goval-dict.old fetch-amazon --dbpath=$(PWD)/integration/oval.old.sqlite3
-	integration/goval-dict.old fetch-alpine --dbpath=$(PWD)/integration/oval.old.sqlite3 3.3 3.4 3.5 3.6
+	integration/goval-dict.old fetch debian --dbpath=$(PWD)/integration/oval.old.sqlite3 7 8 9 10
+	integration/goval-dict.old fetch ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14 16 18 19 20
+	integration/goval-dict.old fetch redhat --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8
+	integration/goval-dict.old fetch oracle --dbpath=$(PWD)/integration/oval.old.sqlite3
+	integration/goval-dict.old fetch amazon --dbpath=$(PWD)/integration/oval.old.sqlite3
+	integration/goval-dict.old fetch alpine --dbpath=$(PWD)/integration/oval.old.sqlite3 3.3 3.4 3.5 3.6
 
-	integration/goval-dict.new fetch-debian --dbpath=$(PWD)/integration/oval.new.sqlite3 7 8 9 10
-	integration/goval-dict.new fetch-ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14 16 18 19 20
-	integration/goval-dict.new fetch-redhat --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8
-	integration/goval-dict.new fetch-oracle --dbpath=$(PWD)/integration/oval.new.sqlite3
-	integration/goval-dict.new fetch-amazon --dbpath=$(PWD)/integration/oval.new.sqlite3
-	integration/goval-dict.new fetch-alpine --dbpath=$(PWD)/integration/oval.new.sqlite3 3.3 3.4 3.5 3.6
+	integration/goval-dict.new fetch debian --dbpath=$(PWD)/integration/oval.new.sqlite3 7 8 9 10
+	integration/goval-dict.new fetch ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14 16 18 19 20
+	integration/goval-dict.new fetch redhat --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8
+	integration/goval-dict.new fetch oracle --dbpath=$(PWD)/integration/oval.new.sqlite3
+	integration/goval-dict.new fetch amazon --dbpath=$(PWD)/integration/oval.new.sqlite3
+	integration/goval-dict.new fetch alpine --dbpath=$(PWD)/integration/oval.new.sqlite3 3.3 3.4 3.5 3.6
 
 fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
 	
-	integration/goval-dict.old fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10
-	integration/goval-dict.old fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
-	integration/goval-dict.old fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
-	integration/goval-dict.old fetch-oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
-	integration/goval-dict.old fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
-	integration/goval-dict.old fetch-alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.3 3.4 3.5 3.6
+	integration/goval-dict.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10
+	integration/goval-dict.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
+	integration/goval-dict.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
+	integration/goval-dict.old fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	integration/goval-dict.old fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	integration/goval-dict.old fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.3 3.4 3.5 3.6
 
-	integration/goval-dict.new fetch-debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 7 8 9 10
-	integration/goval-dict.new fetch-ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14 16 18 19 20
-	integration/goval-dict.new fetch-redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8
-	integration/goval-dict.new fetch-oracle --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
-	integration/goval-dict.new fetch-amazon --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
-	integration/goval-dict.new fetch-alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.3 3.4 3.5 3.6
+	integration/goval-dict.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 7 8 9 10
+	integration/goval-dict.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14 16 18 19 20
+	integration/goval-dict.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8
+	integration/goval-dict.new fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	integration/goval-dict.new fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	integration/goval-dict.new fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.3 3.4 3.5 3.6
 
 diff-cveid:
 	# @ python integration/diff_server_mode.py cveid debian 7 8 9 10

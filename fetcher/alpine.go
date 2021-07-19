@@ -11,17 +11,21 @@ func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target: v,
-			url:    fmt.Sprintf(community, v),
-		}, fetchRequest{
-			target: v,
 			url:    fmt.Sprintf(main, v),
 		})
+
+		if v != "3.2" {
+			reqs = append(reqs, fetchRequest{
+				target: v,
+				url:    fmt.Sprintf(community, v),
+			})
+		}
 	}
 	return
 }
 
 // FetchAlpineFiles fetch from alpine secdb
-// https://git.alpinelinux.org/cgit/alpine-secdb/tree/
+// https://secdb.alpinelinux.org/
 func FetchAlpineFiles(versions []string) ([]FetchResult, error) {
 	reqs := newAlpineFetchRequests(versions)
 	if len(reqs) == 0 {

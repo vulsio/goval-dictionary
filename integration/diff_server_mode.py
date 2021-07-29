@@ -9,6 +9,8 @@ from urllib.parse import quote
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
+import random
+import math
 
 def diff_response(args: Tuple[str, str, str, str]):
     path = ''
@@ -51,6 +53,8 @@ parser.add_argument('ostype', choices=['alpine', 'amazon', 'debian', 'oracle', '
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('release', nargs='+',
                     help='Specify the Release Version to be started in server mode when testing.')
+parser.add_argument("--sample_rate", type=float, default=0.01,
+                    help="Adjust the rate of data used for testing (len(test_data) * sample_rate)")
 parser.add_argument(
     '--debug', action=argparse.BooleanOptionalAction, help='print debug message')
 args = parser.parse_args()
@@ -123,6 +127,7 @@ for relVer in args.release:
 
     with open(list_path) as f:
         list = [s.strip() for s in f.readlines()]
+        list = random.sample(list, math.ceil(len(list) * args.sample_rate))
         with ThreadPoolExecutor() as executor:
             ins = ((args.mode, args.ostype, relVer, e) for e in list)
             executor.map(diff_response, ins)

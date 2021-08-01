@@ -99,6 +99,7 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
+	packs = filterByMajor(packs, osVer)
 
 	//TODO Preload
 	defs := []models.Definition{}

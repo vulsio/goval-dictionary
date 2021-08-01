@@ -155,7 +155,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	}
 
 	defs := []models.Definition{}
-	found := map[string]bool{}
+	foundDefID := map[string]bool{}
 	for _, v := range result.Val() {
 		f, ver, _ := splitHashKey(v)
 		if f != family || ver != osVer {
@@ -165,9 +165,21 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		if err != nil {
 			return nil, err
 		}
+
 		for _, vv := range tmpdefs {
-			if !found[vv.DefinitionID] {
-				found[vv.DefinitionID] = true
+			found := false
+			for _, pack := range vv.AffectedPacks {
+				if pack.Name == packName {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+
+			if !foundDefID[vv.DefinitionID] {
+				foundDefID[vv.DefinitionID] = true
 				defs = append(defs, vv)
 			}
 		}

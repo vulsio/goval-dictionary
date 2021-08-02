@@ -152,7 +152,7 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 }
 
 // GetByCveID select definition by CveID
-func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) ([]models.Definition, error) {
+func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, arch, cveID string) ([]models.Definition, error) {
 	tmpdefs := []models.Definition{}
 	err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Oracle, major(osVer)).

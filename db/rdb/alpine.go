@@ -104,7 +104,7 @@ func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 }
 
 // GetByCveID select definition by CveID
-func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, cveID string) ([]models.Definition, error) {
+func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, _, cveID string) ([]models.Definition, error) {
 	tmpdefs := []models.Definition{}
 	err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Alpine, majorDotMinor(osVer)).

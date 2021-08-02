@@ -188,9 +188,33 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
-func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definition, error) {
+func (d *RedisDriver) GetByCveID(family, osVer, arch, cveID string) ([]models.Definition, error) {
 	hashKey := getHashKey(family, osVer, cveID)
-	return getByHashKey(hashKey, d.conn)
+	defs, err := getByHashKey(hashKey, d.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range defs {
+		defs[i].AffectedPacks = fileterPacksByArch(defs[i].AffectedPacks, arch)
+	}
+
+	return defs, nil
+}
+
+func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
+	if arch == "" {
+		return packs
+	}
+
+	filtered := []models.Package{}
+	for _, pack := range packs {
+		if pack.Arch == arch {
+			filtered = append(filtered, pack)
+		}
+	}
+
+	return filtered
 }
 
 // InsertOval inserts OVAL

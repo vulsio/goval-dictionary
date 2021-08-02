@@ -78,7 +78,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		`)
 	}
 
-	if p.ByCveID && f.NArg() != 3 {
+	if p.ByCveID && f.NArg() != 4 {
 		log15.Crit(`
 		select OVAL by CVE-ID
 		./goval-dictionary select -by-cveid redhat 7 CVE-2015-1111
@@ -127,7 +127,7 @@ func (p *SelectCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	}
 
 	if p.ByCveID {
-		dfs, err = driver.GetByCveID(f.Args()[0], f.Args()[1], f.Args()[2])
+		dfs, err = driver.GetByCveID(f.Args()[0], f.Args()[1], f.Args()[2], f.Args()[3])
 		if err != nil {
 			log15.Crit("Failed to get cve by cveID", "err", err)
 		}

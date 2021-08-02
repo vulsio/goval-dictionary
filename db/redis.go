@@ -312,7 +312,9 @@ func getByHashKey(hashKey string, driver *redis.Client) ([]models.Definition, er
 		if osFamily == c.RedHat {
 			def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, osVer)
 		}
-		defs = append(defs, def)
+		if len(def.AffectedPacks) > 0 {
+			defs = append(defs, def)
+		}
 	}
 	return defs, nil
 }

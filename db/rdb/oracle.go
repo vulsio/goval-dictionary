@@ -153,7 +153,7 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 
 // GetByCveID select definition by CveID
 func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, arch, cveID string) ([]models.Definition, error) {
-	tmpdefs := []models.Definition{}
+	defs := []models.Definition{}
 	err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Oracle, major(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
@@ -163,19 +163,9 @@ func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, arch, cveID string) ([]model
 		Preload("Advisory.Cves").
 		Preload("AffectedPacks").
 		Preload("References").
-		Find(&tmpdefs).Error
+		Find(&defs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
-	}
-
-	defMap := map[string]models.Definition{}
-	for _, def := range tmpdefs {
-		defMap[def.DefinitionID] = def
-	}
-
-	defs := []models.Definition{}
-	for _, def := range defMap {
-		defs = append(defs, def)
 	}
 
 	return defs, nil

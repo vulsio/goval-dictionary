@@ -182,7 +182,7 @@ func filterByMajor(packs []models.Package, majorVer string) (filtered []models.P
 // GetByCveID select definition by CveID
 func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID string) ([]models.Definition, error) {
 	osVer = major(osVer)
-	tmpdefs := []models.Definition{}
+	defs := []models.Definition{}
 	err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.RedHat, osVer).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
@@ -194,17 +194,13 @@ func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID string) ([]models.Defi
 		Preload("Advisory.AffectedCPEList").
 		Preload("AffectedPacks").
 		Preload("References").
-		Find(&tmpdefs).Error
+		Find(&defs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 
-	defs := []models.Definition{}
-	for i := range tmpdefs {
-		tmpdefs[i].AffectedPacks = filterByMajor(tmpdefs[i].AffectedPacks, osVer)
-		if len(tmpdefs[i].AffectedPacks) > 0 {
-			defs = append(defs, tmpdefs[i])
-		}
+	for i := range defs {
+		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, osVer)
 	}
 
 	return defs, nil

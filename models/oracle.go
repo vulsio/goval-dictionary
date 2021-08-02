@@ -11,12 +11,12 @@ import (
 
 // ConvertOracleToModel Convert OVAL to models
 func ConvertOracleToModel(root *oval.Root) (roots []Root) {
-	m := map[string]Root{}
-
+	osVerDefs := map[string][]Definition{}
 	for _, ovaldef := range root.Definitions.Definitions {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
 			continue
 		}
+
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
 			rs = append(rs, Reference{
@@ -34,49 +34,41 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 			})
 		}
 
+		def := Definition{
+			DefinitionID: ovaldef.ID,
+			Title:        ovaldef.Title,
+			Description:  ovaldef.Description,
+			Advisory: Advisory{
+				Cves:     cves,
+				Severity: ovaldef.Advisory.Severity,
+			},
+			References: rs,
+		}
+		if c.Conf.NoDetails {
+			def.Title = ""
+			def.Description = ""
+			def.References = []Reference{}
+		}
+
+		osVerPacks := map[string][]Package{}
 		for _, distPack := range collectOraclePacks(ovaldef.Criteria) {
-			// If the same slice is used, it will only be stored once in the DB
-			copyRs := make([]Reference, len(rs))
-			copy(copyRs, rs)
+			osVerPacks[distPack.osVer] = append(osVerPacks[distPack.osVer], distPack.pack)
+		}
 
-			copyCves := make([]Cve, len(cves))
-			copy(copyCves, cves)
-
-			def := Definition{
-				DefinitionID: ovaldef.ID,
-				Title:        ovaldef.Title,
-				Description:  ovaldef.Description,
-				Advisory: Advisory{
-					Cves:     copyCves,
-					Severity: ovaldef.Advisory.Severity,
-				},
-				AffectedPacks: []Package{distPack.pack},
-				References:    copyRs,
-			}
-
-			if c.Conf.NoDetails {
-				def.Title = ""
-				def.Description = ""
-				def.References = []Reference{}
-			}
-
-			root, ok := m[distPack.osVer]
-			if ok {
-				root.Definitions = append(root.Definitions, def)
-				m[distPack.osVer] = root
-			} else {
-				m[distPack.osVer] = Root{
-					Family:      config.Oracle,
-					OSVersion:   distPack.osVer,
-					Definitions: []Definition{def},
-				}
-			}
+		for osVer, packs := range osVerPacks {
+			def.AffectedPacks = packs
+			osVerDefs[osVer] = append(osVerDefs[osVer], def)
 		}
 	}
 
-	for _, v := range m {
-		roots = append(roots, v)
+	for osVer, defs := range osVerDefs {
+		roots = append(roots, Root{
+			Family:      config.Oracle,
+			OSVersion:   osVer,
+			Definitions: defs,
+		})
 	}
+
 	return
 }
 

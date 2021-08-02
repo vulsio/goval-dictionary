@@ -43,6 +43,7 @@ func Start(logDir string) error {
 	e.GET("/health", health())
 	e.GET("/packs/:family/:release/:pack/:arch", getByPackName())
 	e.GET("/packs/:family/:release/:pack", getByPackName())
+	e.GET("/cves/:family/:release/:id/:arch", getByCveID())
 	e.GET("/cves/:family/:release/:id", getByCveID())
 	e.GET("/count/:family/:release", countOvalDefs())
 	e.GET("/lastmodified/:family/:release", getLastModified())
@@ -93,7 +94,8 @@ func getByCveID() echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		cveID := c.Param("id")
-		log15.Debug("Params", "Family", family, "Release", release, "CveID", cveID)
+		arch := c.Param("arch")
+		log15.Debug("Params", "Family", family, "Release", release, "Arch", arch, "CveID", cveID)
 
 		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
 		if err != nil {
@@ -107,7 +109,7 @@ func getByCveID() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
-		defs, err := driver.GetByCveID(family, release, cveID)
+		defs, err := driver.GetByCveID(family, release, arch, cveID)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
 		}

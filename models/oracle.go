@@ -5,7 +5,6 @@ import (
 
 	"github.com/ymomoi/goval-parser/oval"
 
-	"github.com/kotakanbe/goval-dictionary/config"
 	c "github.com/kotakanbe/goval-dictionary/config"
 )
 
@@ -34,36 +33,36 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 			})
 		}
 
-		def := Definition{
-			DefinitionID: ovaldef.ID,
-			Title:        ovaldef.Title,
-			Description:  ovaldef.Description,
-			Advisory: Advisory{
-				Cves:     cves,
-				Severity: ovaldef.Advisory.Severity,
-			},
-			References: rs,
-		}
-		if c.Conf.NoDetails {
-			def.Title = ""
-			def.Description = ""
-			def.References = []Reference{}
-		}
-
 		osVerPacks := map[string][]Package{}
 		for _, distPack := range collectOraclePacks(ovaldef.Criteria) {
 			osVerPacks[distPack.osVer] = append(osVerPacks[distPack.osVer], distPack.pack)
 		}
 
 		for osVer, packs := range osVerPacks {
-			def.AffectedPacks = packs
+			def := Definition{
+				DefinitionID: ovaldef.ID,
+				Title:        ovaldef.Title,
+				Description:  ovaldef.Description,
+				Advisory: Advisory{
+					Cves:     append([]Cve{}, cves...),
+					Severity: ovaldef.Advisory.Severity,
+				},
+				AffectedPacks: append([]Package{}, packs...),
+				References:    append([]Reference{}, rs...),
+			}
+			if c.Conf.NoDetails {
+				def.Title = ""
+				def.Description = ""
+				def.References = []Reference{}
+			}
+
 			osVerDefs[osVer] = append(osVerDefs[osVer], def)
 		}
 	}
 
 	for osVer, defs := range osVerDefs {
 		roots = append(roots, Root{
-			Family:      config.Oracle,
+			Family:      c.Oracle,
 			OSVersion:   osVer,
 			Definitions: defs,
 		})

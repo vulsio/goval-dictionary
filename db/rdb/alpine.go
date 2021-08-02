@@ -114,6 +114,7 @@ func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models
 		Preload("Advisory.Cves").
 		Preload("AffectedPacks").
 		Preload("References").
+		Distinct("definitions.definition_id").
 		Find(&defs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err

@@ -12,12 +12,15 @@ import os
 import random
 import math
 
-def diff_response(args: Tuple[str, str, str, str]):
+def diff_response(args: Tuple[str, str, str, str, str]):
     path = ''
     if args[0] == 'cveid':
-        path = f'cves/{args[1]}/{args[2]}/{args[3]}'
+        path = f'cves/{args[1]}/{args[2]}/{args[4]}'
     if args[0] == 'package':
-        path = f'packs/{args[1]}/{args[2]}/{quote(args[3])}'
+        path = f'packs/{args[1]}/{args[2]}/{quote(args[4])}'
+
+    if args[3] != "":
+        path = f'{path}/{args[3]}'
 
     session = requests.Session()
     retries = Retry(total=5,
@@ -51,6 +54,8 @@ parser.add_argument('mode', choices=['cveid', 'package'],
                     help='Specify the mode to test.')
 parser.add_argument('ostype', choices=['alpine', 'amazon', 'debian', 'oracle', 'redhat', 'suse', 'ubuntu'],
                     help='Specify the OS to be started in server mode when testing.')
+parser.add_argument('arch', choices=['x86_64', 'i386'],
+                    help='Specify the Architecture to be started in server mode when testing.')
 parser.add_argument('release', nargs='+',
                     help='Specify the Release Version to be started in server mode when testing.')
 parser.add_argument("--sample_rate", type=float, default=0.01,
@@ -75,7 +80,7 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 logger.info(
-    f'start server mode test(mode: {args.mode}, os: {args.ostype}, release: {args.release})')
+    f'start server mode test(mode: {args.mode}, os: {args.ostype}, arch: {args.arch}, release: {args.release})')
 
 if args.ostype == 'debian':
     if len(list(set(args.release) - set(['7', '8', '9', '10']))) > 0:
@@ -129,5 +134,5 @@ for relVer in args.release:
         list = [s.strip() for s in f.readlines()]
         list = random.sample(list, math.ceil(len(list) * args.sample_rate))
         with ThreadPoolExecutor() as executor:
-            ins = ((args.mode, args.ostype, relVer, e) for e in list)
+            ins = ((args.mode, args.ostype, args.arch, relVer, e) for e in list)
             executor.map(diff_response, ins)

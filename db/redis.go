@@ -141,22 +141,48 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		osVer = major(osVer)
 	}
 
-	zkey := hashKeyPrefix + packName
+	var results []string
 	switch family {
 	case c.Amazon, c.Oracle:
 		// affected packages for Amazon and Oracle OVAL needs to consider arch
-		zkey = hashKeyPrefix + packName + hashKeySeparator + arch
-	}
+		if arch == "" {
+			pattern := hashKeyPrefix + packName + hashKeySeparator + "*"
+			keysResult := d.conn.Keys(pattern)
+			if keysResult.Err() != nil {
+				log15.Error("Failed to get definition from package", "err", keysResult.Err())
+				return nil, keysResult.Err()
+			}
 
-	var result *redis.StringSliceCmd
-	if result = d.conn.ZRange(zkey, 0, -1); result.Err() != nil {
-		log15.Error("Failed to get definition from package", "err", result.Err())
-		return nil, result.Err()
+			for _, key := range keysResult.Val() {
+				result := d.conn.ZRange(key, 0, -1)
+				if result.Err() != nil {
+					log15.Error("Failed to get definition from package", "err", result.Err())
+					return nil, result.Err()
+				}
+				results = append(results, result.Val()...)
+			}
+		} else {
+			zkey := hashKeyPrefix + packName + hashKeySeparator + arch
+			result := d.conn.ZRange(zkey, 0, -1)
+			if result.Err() != nil {
+				log15.Error("Failed to get definition from package", "err", result.Err())
+				return nil, result.Err()
+			}
+			results = append(results, result.Val()...)
+		}
+	default:
+		zkey := hashKeyPrefix + packName
+		result := d.conn.ZRange(zkey, 0, -1)
+		if result.Err() != nil {
+			log15.Error("Failed to get definition from package", "err", result.Err())
+			return nil, result.Err()
+		}
+		results = append(results, result.Val()...)
 	}
 
 	defs := []models.Definition{}
 	foundDefID := map[string]bool{}
-	for _, v := range result.Val() {
+	for _, v := range results {
 		f, ver, _ := splitHashKey(v)
 		if f != family || ver != osVer {
 			continue

@@ -152,8 +152,9 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 }
 
 // GetByCveID select definition by CveID
-func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) ([]models.Definition, error) {
+	tmpdefs := []models.Definition{}
+	err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Oracle, major(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").
@@ -162,10 +163,20 @@ func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models
 		Preload("Advisory.Cves").
 		Preload("AffectedPacks").
 		Preload("References").
-		Distinct("definitions.definition_id").
-		Find(&defs).Error
+		Find(&tmpdefs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
+
+	defMap := map[string]models.Definition{}
+	for _, def := range tmpdefs {
+		defMap[def.DefinitionID] = def
+	}
+
+	defs := []models.Definition{}
+	for _, def := range defMap {
+		defs = append(defs, def)
+	}
+
 	return defs, nil
 }

@@ -74,8 +74,9 @@ Available Commands:
   ubuntu      Fetch Vulnerability dictionary from Ubuntu
 
 Flags:
-  -h, --help         help for fetch
-      --no-details   without vulnerability details
+      --expire uint   timeout to set for Redis keys
+  -h, --help          help for fetch
+      --no-details    without vulnerability details
 
 Global Flags:
       --config string       config file (default is $HOME/.oval.yaml)

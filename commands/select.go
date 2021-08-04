@@ -5,6 +5,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/k0kubun/pp"
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
@@ -41,22 +42,51 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 		return xerrors.New("Failed to select command. err: specify --by-package or --by-cveid")
 	}
 
-	if flagPkg && len(args) != 4 {
-		log15.Error(`
-		Usage:
-		select OVAL by package name
-		./goval-dictionary select --by-package redhat 7 java-1.7.0-openjdk x86_64
-		`)
-		return xerrors.New("Failed to set by-package option args.")
+	if len(args) < 3 {
+		if flagPkg {
+			log15.Error(`
+			Usage:
+			select OVAL by package name
+			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+		if flagCveID {
+			log15.Error(`
+			Usage:
+			select OVAL by CVE-ID
+			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+		return xerrors.New("too few arguments.")
+	} else if len(args) > 4 {
+		if flagPkg {
+			log15.Error(`
+			Usage:
+			select OVAL by package name
+			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+		if flagCveID {
+			log15.Error(`
+			Usage:
+			select OVAL by CVE-ID
+			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+		return xerrors.New("too many arguments.")
 	}
 
-	if flagCveID && len(args) != 4 {
-		log15.Error(`
-		Usage:
-		select OVAL by CVE-ID
-		./goval-dictionary select --by-cveid redhat 7 CVE-2015-1111 x86_64
-		`)
-		return xerrors.New("Failed to set by-cveid option args.")
+	family := args[0]
+	release := args[1]
+	arg := args[2]
+	arch := ""
+	if len(args) == 4 {
+		switch family {
+		case config.Amazon, config.Oracle:
+			arch = args[3]
+		default:
+			log15.Error(fmt.Sprintf("Family: %s cannot use the Architecture argument.", family))
+		}
 	}
 
 	driver, locked, err := db.NewDB(args[0], viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
@@ -70,7 +100,7 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagPkg {
-		dfs, err := driver.GetByPackName(args[0], args[1], args[2], args[3])
+		dfs, err := driver.GetByPackName(family, release, arg, arch)
 		if err != nil {
 			//TODO Logger
 			log15.Error("Failed to get cve by package.", "err", err)
@@ -91,7 +121,7 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagCveID {
-		dfs, err := driver.GetByCveID(args[0], args[1], args[2], args[3])
+		dfs, err := driver.GetByCveID(family, release, arch, arg)
 		if err != nil {
 			log15.Crit("Failed to get cve by cveID", "err", err)
 		}

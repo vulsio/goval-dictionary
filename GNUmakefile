@@ -130,7 +130,9 @@ diff-cveid:
 	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid ubuntu 14 16 18 19 20
 	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid redhat 5 6 7 8
 	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 cveid oracle 5 6 7 8
 	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid amazon 1 2
+	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 cveid amazon 1 2
 	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
 
 
@@ -139,7 +141,9 @@ diff-package:
 	@ python integration/diff_server_mode.py --sample_rate 0.01 package ubuntu 14 16 18 19 20
 	@ python integration/diff_server_mode.py --sample_rate 0.01 package redhat 5 6 7 8
 	@ python integration/diff_server_mode.py --sample_rate 0.01 package oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 package oracle 5 6 7 8
 	@ python integration/diff_server_mode.py --sample_rate 0.01 package amazon 1 2
+	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 package amazon 1 2
 	@ python integration/diff_server_mode.py --sample_rate 0.01 package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
 
 diff-server-rdb:

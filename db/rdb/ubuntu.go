@@ -101,12 +101,13 @@ func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs []models.Definition, err error) {
+func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
+	defs := []models.Definition{}
 	// Specify limit number to avoid `too many SQL variable`.
 	// https://github.com/future-architect/vuls/issues/886
 	limit, tmpDefs := 998, []models.Definition{}
 	for i := 0; true; i++ {
-		err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+		err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 			config.Ubuntu, major(osVer)).
 			Joins("JOIN packages ON packages.definition_id = definitions.id").
 			Where("packages.name = ?", packName).
@@ -128,8 +129,9 @@ func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 }
 
 // GetByCveID select definition by CveID
-func (o *Ubuntu) GetByCveID(driver *gorm.DB, osVer, _, cveID string) (defs []models.Definition, err error) {
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
+func (o *Ubuntu) GetByCveID(driver *gorm.DB, osVer, _, cveID string) ([]models.Definition, error) {
+	defs := []models.Definition{}
+	err := driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Ubuntu, major(osVer)).
 		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
 		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).

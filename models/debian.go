@@ -73,7 +73,8 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			defs = append(defs, def)
 		}
 	}
-	return
+
+	return AggregateAffectedPackages(defs)
 }
 
 func collectDebianPacks(cri oval.Criteria) []distroPackage {

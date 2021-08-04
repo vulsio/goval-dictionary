@@ -91,7 +91,7 @@ func getByPackName() echo.HandlerFunc {
 
 		defs, err := driver.GetByPackName(family, release, decodePack, arch)
 		if err != nil {
-			log15.Error("Failed to get by CveID.", "err", err)
+			log15.Error("Failed to get by Package Name.", "err", err)
 		}
 		return c.JSON(http.StatusOK, defs)
 	}

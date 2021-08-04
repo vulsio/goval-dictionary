@@ -6,12 +6,10 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
-
-	c "github.com/kotakanbe/goval-dictionary/config"
 )
 
 // ConvertOracleToModel Convert OVAL to models
-func ConvertOracleToModel(root *oval.Root) (roots []Root) {
+func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 	osVerDefs := map[string][]Definition{}
 	for _, ovaldef := range root.Definitions.Definitions {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
@@ -65,15 +63,7 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 		}
 	}
 
-	for osVer, defs := range osVerDefs {
-		roots = append(roots, Root{
-			Family:      c.Oracle,
-			OSVersion:   osVer,
-			Definitions: defs,
-		})
-	}
-
-	return
+	return osVerDefs
 }
 
 func collectOraclePacks(cri oval.Criteria) []distroPackage {

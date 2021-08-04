@@ -71,5 +71,6 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 
 		defs = append(defs, def)
 	}
-	return
+
+	return AggregateAffectedPackages(defs)
 }

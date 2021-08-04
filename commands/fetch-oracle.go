@@ -47,6 +47,8 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	osVerDefs := map[string][]models.Definition{}
+	fmeta := models.FetchMeta{}
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
@@ -64,24 +66,34 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		ss := strings.Split(r.URL, "/")
-		fmeta := models.FetchMeta{
+		fmeta = models.FetchMeta{
 			Timestamp: t,
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertOracleToModel(&ovalroot)
-		for _, root := range roots {
-			root.Timestamp = time.Now()
-			if err := driver.InsertOval(c.Oracle, &root, fmeta); err != nil {
-				log15.Error("Failed to insert oval", "err", err)
-				return err
-			}
-			log15.Info("Finish", "Updated", len(root.Definitions))
+		for osVer, defs := range models.ConvertOracleToModel(&ovalroot) {
+			osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
 		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
+	}
+
+	for osVer, defs := range osVerDefs {
+		root := models.Root{
+			Family:      c.Oracle,
+			OSVersion:   osVer,
+			Definitions: models.AggregateAffectedPackages(defs),
+			Timestamp:   time.Now(),
+		}
+
+		if err := driver.InsertOval(c.Oracle, &root, fmeta); err != nil {
+			log15.Error("Failed to insert oval", "err", err)
 			return err
 		}
+		log15.Info("Finish", "Updated", len(root.Definitions))
+	}
+
+	if err := driver.InsertFetchMeta(fmeta); err != nil {
+		log15.Error("Failed to insert meta", "err", err)
+		return err
 	}
 
 	return nil

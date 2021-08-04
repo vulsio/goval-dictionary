@@ -12,7 +12,8 @@ Use `127.0.0.1:1325` and `127.0.0.1:1326` to diff the server mode between the la
 If you have prepared the two addresses yourself, you can use the following Python script.
 ```terminal
 $ python diff_server_mode.py debian --help
-usage: diff_server_mode.py [-h] [--debug | --no-debug]
+usage: diff_server_mode.py [-h] [--arch {x86_64,i386,ia64,i686,sparc64,aarch64,noarch}]
+                           [--sample_rate SAMPLE_RATE] [--debug | --no-debug]
                            {cveid,package} {alpine,amazon,debian,oracle,redhat,suse,ubuntu} release
                            [release ...]
 
@@ -24,6 +25,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --arch {x86_64,i386,ia64,i686,sparc64,aarch64,noarch}
+                        Specify the Architecture to be started in server mode when testing.
+  --sample_rate SAMPLE_RATE
+                        Adjust the rate of data used for testing (len(test_data) * sample_rate)
   --debug, --no-debug   print debug message
 ```
 

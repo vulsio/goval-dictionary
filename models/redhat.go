@@ -97,7 +97,8 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 
 		defs = append(defs, def)
 	}
-	return
+
+	return AggregateAffectedPackages(defs)
 }
 
 func collectRedHatPacks(cri oval.Criteria) []Package {

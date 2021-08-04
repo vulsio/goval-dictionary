@@ -194,6 +194,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 		for _, vv := range tmpdefs {
 			found := false
+			vv.AffectedPacks = fileterPacksByArch(vv.AffectedPacks, arch)
 			for _, pack := range vv.AffectedPacks {
 				if pack.Name == packName {
 					found = true
@@ -245,11 +246,9 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
-	definitions := aggregateAffectedPackages(root.Definitions)
 	total := map[string]struct{}{}
-	for chunked := range chunkSlice(definitions, 10) {
-		var pipe redis.Pipeliner
-		pipe = d.conn.Pipeline()
+	for chunked := range chunkSlice(root.Definitions, 10) {
+		pipe := d.conn.Pipeline()
 		for _, def := range chunked {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {

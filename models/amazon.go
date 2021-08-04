@@ -61,5 +61,6 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 
 		defs = append(defs, def)
 	}
-	return
+
+	return AggregateAffectedPackages(defs)
 }

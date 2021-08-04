@@ -107,12 +107,14 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		Where(&models.Package{
 			Name: packName,
 			Arch: arch,
-		}).Find(&packs).Error
+		}).
+		Distinct("`packages`.`definition_id`").
+		Find(&packs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
-	uniqDefs := map[string]models.Definition{}
+	defs := []models.Definition{}
 	for _, p := range packs {
 		def := models.Definition{}
 		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
@@ -127,14 +129,10 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		}
 
 		if root.Family == config.Amazon && root.OSVersion == getAmazonLinux1or2(osVer) {
-			uniqDefs[def.DefinitionID] = def
+			defs = append(defs, def)
 		}
 	}
 
-	defs := []models.Definition{}
-	for _, def := range uniqDefs {
-		defs = append(defs, def)
-	}
 	for i, def := range defs {
 		adv := models.Advisory{}
 		err = driver.Model(&def).Association("Advisory").Find(&adv)

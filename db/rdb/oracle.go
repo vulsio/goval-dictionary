@@ -109,6 +109,7 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 			Name: packName,
 			Arch: arch,
 		}).
+		Distinct("`packages`.`definition_id`").
 		Find(&packs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err

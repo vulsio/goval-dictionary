@@ -114,3 +114,21 @@ type Debian struct {
 
 	Date time.Time
 }
+
+// AggregateAffectedPackages :
+func AggregateAffectedPackages(rootDefinitions []Definition) []Definition {
+	defMap := map[string]Definition{}
+	for _, def := range rootDefinitions {
+		if d, ok := defMap[def.DefinitionID]; ok {
+			d.AffectedPacks = append(d.AffectedPacks, def.AffectedPacks...)
+			defMap[def.DefinitionID] = d
+			continue
+		}
+		defMap[def.DefinitionID] = def
+	}
+	definitions := []Definition{}
+	for _, def := range defMap {
+		definitions = append(definitions, def)
+	}
+	return definitions
+}

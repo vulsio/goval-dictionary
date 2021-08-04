@@ -83,7 +83,8 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 
 		defs = append(defs, def)
 	}
-	return
+
+	return AggregateAffectedPackages(defs)
 }
 
 func collectUbuntuPacks(cri oval.Criteria) []Package {

@@ -2,7 +2,9 @@ package models
 
 import (
 	"strings"
+	"time"
 
+	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
 
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -41,16 +43,19 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 		for osVer, packs := range osVerPacks {
 			def := Definition{
 				DefinitionID: ovaldef.ID,
-				Title:        ovaldef.Title,
-				Description:  ovaldef.Description,
+				Title:        strings.TrimSpace(ovaldef.Title),
+				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
 					Cves:     append([]Cve{}, cves...),
 					Severity: ovaldef.Advisory.Severity,
+					Issued:   time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Updated:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				AffectedPacks: append([]Package{}, packs...),
 				References:    append([]Reference{}, rs...),
 			}
-			if c.Conf.NoDetails {
+
+			if viper.GetBool("no-details") {
 				def.Title = ""
 				def.Description = ""
 				def.References = []Reference{}

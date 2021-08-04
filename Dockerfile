@@ -11,12 +11,12 @@ COPY . $GOPATH/src/$REPOSITORY
 RUN cd $GOPATH/src/$REPOSITORY && make install
 
 
-FROM alpine:3.11
+FROM alpine:3.14
 
-MAINTAINER sadayuki-matsuno
+LABEL maintainer sadayuki-matsuno
 
-ENV LOGDIR /var/log/vuls
-ENV WORKDIR /vuls
+ENV LOGDIR /var/log/goval-dictionary
+ENV WORKDIR /goval-dictionary
 
 RUN apk add --no-cache ca-certificates \
     && mkdir -p $WORKDIR $LOGDIR

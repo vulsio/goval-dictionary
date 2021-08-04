@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/kotakanbe/goval-dictionary/config"
+	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -30,7 +30,13 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 
 		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
 			const timeformat = "2006-01-02"
-			t, _ := time.Parse(timeformat, ovaldef.Debian.Date)
+
+			var t time.Time
+			if ovaldef.Debian.Date == "" {
+				t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+			} else {
+				t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
+			}
 
 			def := Definition{
 				DefinitionID: ovaldef.ID,
@@ -45,7 +51,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 				References:    rs,
 			}
 
-			if c.Conf.NoDetails {
+			if viper.GetBool("no-details") {
 				def.Title = ""
 				def.Description = ""
 				def.Advisory = Advisory{}

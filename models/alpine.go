@@ -2,6 +2,9 @@ package models
 
 import (
 	"strings"
+	"time"
+
+	"github.com/spf13/viper"
 )
 
 // AlpineSecDB is a struct of alpine secdb
@@ -49,7 +52,9 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 		def := Definition{
 			DefinitionID: "def-" + cveID,
 			Advisory: Advisory{
-				Cves: []Cve{{CveID: cveID}},
+				Cves:    []Cve{{CveID: cveID}},
+				Issued:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Updated: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
 			References: []Reference{
 				{
@@ -59,6 +64,11 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 			},
 			AffectedPacks: packs,
 		}
+
+		if viper.GetBool("no-details") {
+			def.References = []Reference{}
+		}
+
 		defs = append(defs, def)
 	}
 	return

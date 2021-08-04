@@ -25,19 +25,17 @@ Please re-run the command using ```-debug``` and provide the output below.
 
 * Go environment (`go env`):
 
-* Vuls environment:
+* goval-dictionary environment:
 
 Hash : ____
 
 To check the commit hash of HEAD
-$ vuls -v
+$ goval-dictionary -v
 
 or
 
-$ cd $GOPATH/src/github.com/future-architect/vuls 
+$ cd $GOPATH/src/github.com/kotakanbe/goval-dictionary 
 $ git rev-parse --short HEAD 
-
-* config.toml:
 
 * command:
 

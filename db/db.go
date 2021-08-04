@@ -18,7 +18,7 @@ type DB interface {
 	InsertOval(string, *models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
 	CountDefs(string, string) (int, error)
-	GetLastModified(string, string) time.Time
+	GetLastModified(string, string) (time.Time, error)
 }
 
 // NewDB return DB accessor.

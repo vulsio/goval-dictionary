@@ -1,13 +1,11 @@
 package util
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/inconshreveable/log15"
-	"github.com/k0kubun/pp"
 )
 
 // GenWorkers generate workers
@@ -25,15 +23,15 @@ func GenWorkers(num int) chan<- func() {
 
 // GetDefaultLogDir returns default log directory
 func GetDefaultLogDir() string {
-	defaultLogDir := "/var/log/vuls"
+	defaultLogDir := "/var/log/goval-dictionary"
 	if runtime.GOOS == "windows" {
-		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "vuls")
+		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "goval-dictionary")
 	}
 	return defaultLogDir
 }
 
 // SetLogger set logger
-func SetLogger(logDir string, quiet, debug, logJSON bool) {
+func SetLogger(logDir string, debug, logJSON bool) {
 	stderrHandler := log15.StderrHandler
 	logFormat := log15.LogfmtFormat()
 	if logJSON {
@@ -44,10 +42,6 @@ func SetLogger(logDir string, quiet, debug, logJSON bool) {
 	lvlHandler := log15.LvlFilterHandler(log15.LvlInfo, stderrHandler)
 	if debug {
 		lvlHandler = log15.LvlFilterHandler(log15.LvlDebug, stderrHandler)
-	}
-	if quiet {
-		lvlHandler = log15.LvlFilterHandler(log15.LvlDebug, log15.DiscardHandler())
-		pp.SetDefaultOutput(ioutil.Discard)
 	}
 
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {

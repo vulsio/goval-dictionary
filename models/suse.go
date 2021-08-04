@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -30,6 +31,12 @@ func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
 				Description:   ovaldef.Description,
 				AffectedPacks: []Package{distPack.pack},
 				References:    rs,
+			}
+
+			if viper.GetBool("no-details") {
+				def.Title = ""
+				def.Description = ""
+				def.References = []Reference{}
 			}
 
 			root, ok := m[distPack.osVer]

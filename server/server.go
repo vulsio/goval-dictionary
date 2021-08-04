@@ -3,21 +3,22 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/spf13/viper"
 )
 
 // Start starts CVE dictionary HTTP Server.
 func Start(logDir string) error {
 	e := echo.New()
-	e.Debug = config.Conf.Debug
+	e.Debug = viper.GetBool("debug")
 
 	// Middleware
 	e.Use(middleware.Logger())
@@ -49,7 +50,7 @@ func Start(logDir string) error {
 	e.GET("/lastmodified/:family/:release", getLastModified())
 	//  e.Post("/cpes", getByPackName())
 
-	bindURL := fmt.Sprintf("%s:%s", config.Conf.Bind, config.Conf.Port)
+	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening...", "URL", bindURL)
 	return e.Start(bindURL)
 }
@@ -67,9 +68,15 @@ func getByPackName() echo.HandlerFunc {
 		release := c.Param("release")
 		pack := c.Param("pack")
 		arch := c.Param("arch")
-		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack, "arch", arch)
+		decodePack, err := url.QueryUnescape(pack)
+		if err != nil {
+			log15.Error(fmt.Sprintf("Failed to Decode Package Name: %s", err))
+			return c.JSON(http.StatusBadRequest, nil)
+		}
 
-		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack, "DecodePack", decodePack, "arch", arch)
+
+		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Open DB: %s", err)
 			if locked {
@@ -81,7 +88,8 @@ func getByPackName() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
-		defs, err := driver.GetByPackName(family, release, pack, arch)
+
+		defs, err := driver.GetByPackName(family, release, decodePack, arch)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
 		}
@@ -97,7 +105,7 @@ func getByCveID() echo.HandlerFunc {
 		arch := c.Param("arch")
 		log15.Debug("Params", "Family", family, "Release", release, "Arch", arch, "CveID", cveID)
 
-		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Open DB: %s", err)
 			if locked {
@@ -122,7 +130,7 @@ func countOvalDefs() echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("Params", "Family", family, "Release", release)
-		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Open DB: %s", err)
 			if locked {
@@ -148,7 +156,7 @@ func getLastModified() echo.HandlerFunc {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("getLastModified", "Family", family, "Release", release)
-		driver, locked, err := db.NewDB(family, config.Conf.DBType, config.Conf.DBPath, config.Conf.DebugSQL)
+		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Open DB: %s", err)
 			if locked {
@@ -160,7 +168,12 @@ func getLastModified() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
-		t := driver.GetLastModified(family, release)
+		t, err := driver.GetLastModified(family, release)
+		if err != nil {
+			log15.Error(fmt.Sprintf("Failed to GetLastModified: %s", err))
+			return c.JSON(http.StatusInternalServerError, nil)
+		}
+
 		return c.JSON(http.StatusOK, t)
 	}
 }

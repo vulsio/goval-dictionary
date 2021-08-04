@@ -1,13 +1,15 @@
 package rdb
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"golang.org/x/xerrors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // RedHat is a struct for DBAccess
@@ -26,68 +28,76 @@ func (o *RedHat) Name() string {
 }
 
 // InsertOval inserts RedHat OVAL
-func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) (err error) {
+	log15.Debug("in RedHat")
 	tx := driver.Begin()
 
 	oldmeta := models.FetchMeta{}
 	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
-	if !r.RecordNotFound() && oldmeta.Timestamp.Equal(meta.Timestamp) {
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+	}
+
+	if r.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
 		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
 		return tx.Rollback().Error
 	}
+
 	log15.Info("Refreshing...", "Family", root.Family, "Version", root.OSVersion)
 
 	old := models.Root{}
 	r = tx.Where(&models.Root{Family: root.Family, OSVersion: root.OSVersion}).First(&old)
-	if !r.RecordNotFound() {
+	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return xerrors.Errorf("Failed to select old defs: %w", r.Error)
+	}
+
+	if r.RowsAffected > 0 {
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
-		if err := tx.Model(&old).Related(&defs, "Definitions").Error; err != nil {
+		if err := tx.Model(&old).Association("Definitions").Find(&defs); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to select old defs: %s", err)
+			return xerrors.Errorf("Failed to select old defs: %w", err)
 		}
 		for _, def := range defs {
 			adv := models.Advisory{}
-			tx.Model(&def).Related(&adv, "Advisory")
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cve{}).Error; err != nil {
+			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Bugzilla{}).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Where("id = ?", adv.ID).Delete(&adv).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			if err := tx.Unscoped().Where("advisory_id = ?", adv.ID).Delete(&models.Cpe{}).Error; err != nil {
+
+			if err := tx.Select(clause.Associations).Unscoped().Where("definition_id = ?", def.ID).Delete(&def).Error; err != nil {
 				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Advisory{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id= ?", def.ID).Delete(&models.Package{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
-			}
-			if err := tx.Unscoped().Where("definition_id = ?", def.ID).Delete(&models.Reference{}).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("Failed to delete: %s", err)
+				return xerrors.Errorf("Failed to delete: %w", err)
 			}
 		}
 		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to delete: %s", err)
+			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 	}
 
-	if err := tx.Create(&root).Error; err != nil {
+	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("Failed to insert. err: %+v", err)
+		return xerrors.Errorf("Failed to insert. err: %w", err)
 	}
+
+	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 50) {
+		if err := tx.Create(&chunk).Error; err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to insert. err: %w", err)
+		}
+	}
+
 	return tx.Commit().Error
 }
 
@@ -96,7 +106,7 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 	osVer = major(osVer)
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	packs = filterByMajor(packs, osVer)
@@ -106,13 +116,13 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 	for _, p := range packs {
 		def := models.Definition{}
 		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
 		root := models.Root{}
 		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
@@ -123,28 +133,28 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 
 	for i, def := range defs {
 		adv := models.Advisory{}
-		err = driver.Model(&def).Related(&adv, "Advisory").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		err = driver.Model(&def).Association("Advisory").Find(&adv)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
 		cves := []models.Cve{}
-		err = driver.Model(&adv).Related(&cves, "Cves").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		err = driver.Model(&adv).Association("Cves").Find(&cves)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		adv.Cves = cves
 
 		bugs := []models.Bugzilla{}
-		err = driver.Model(&adv).Related(&bugs, "Bugzillas").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		err = driver.Model(&adv).Association("Bugzillas").Find(&bugs)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		adv.Bugzillas = bugs
 
 		cpes := []models.Cpe{}
-		err = driver.Model(&adv).Related(&cpes, "AffectedCPEList").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		err = driver.Model(&adv).Association("AffectedCPEList").Find(&cpes)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		adv.AffectedCPEList = cpes
@@ -152,15 +162,15 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		err = driver.Model(&def).Related(&packs, "AffectedPacks").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		defs[i].AffectedPacks = filterByMajor(packs, osVer)
 
 		refs := []models.Reference{}
-		err = driver.Model(&def).Related(&refs, "References").Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		err = driver.Model(&def).Association("References").Find(&refs)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		defs[i].References = refs
@@ -195,7 +205,7 @@ func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, _, cveID string) ([]models.D
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 

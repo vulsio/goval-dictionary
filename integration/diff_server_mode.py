@@ -16,12 +16,12 @@ import math
 def diff_response(args: Tuple[str, str, str, str, str]):
     path = ''
     if args[0] == 'cveid':
-        path = f'cves/{args[1]}/{args[2]}/{args[4]}'
+        path = f'cves/{args[1]}/{args[3]}/{args[4]}'
     if args[0] == 'package':
-        path = f'packs/{args[1]}/{args[2]}/{quote(args[4])}'
+        path = f'packs/{args[1]}/{args[3]}/{quote(args[4])}'
 
     if args[3] != "":
-        path = f'{path}/{args[3]}'
+        path = f'{path}/{args[2]}'
 
     session = requests.Session()
     retries = Retry(total=5,

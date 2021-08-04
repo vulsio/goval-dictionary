@@ -10,6 +10,7 @@ import (
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 )
 
@@ -183,6 +184,8 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definiti
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
+	expire := viper.GetUint("expire")
+
 	definitions := aggregateAffectedPackages(root.Definitions)
 	total := map[string]struct{}{}
 	for chunked := range chunkSlice(definitions, 10) {
@@ -211,6 +214,12 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				if result := pipe.HSet(hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
+				if expire > 0 {
+					if result := pipe.Expire(hashKey, time.Duration(expire*uint(time.Second))); result.Err() != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				}
+
 				for _, pack := range def.AffectedPacks {
 					zkey := hashKeyPrefix + pack.Name
 					switch family {
@@ -225,6 +234,12 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 							Member: hashKey,
 						}); result.Err() != nil {
 						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
+					}
+
+					if expire > 0 {
+						if result := pipe.Expire(zkey, time.Duration(expire*uint(time.Second))); result.Err() != nil {
+							return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+						}
 					}
 				}
 				total[cveID] = struct{}{}

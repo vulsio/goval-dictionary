@@ -17,4 +17,7 @@ func init() {
 
 	fetchCmd.PersistentFlags().Bool("no-details", false, "without vulnerability details")
 	_ = viper.BindPFlag("no-details", fetchCmd.PersistentFlags().Lookup("no-details"))
+
+	fetchCmd.PersistentFlags().Uint("expire", 0, "timeout to set for Redis keys")
+	_ = viper.BindPFlag("expire", fetchCmd.PersistentFlags().Lookup("expire"))
 }

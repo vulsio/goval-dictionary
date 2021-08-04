@@ -193,8 +193,14 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		}
 
 		for _, vv := range tmpdefs {
+			switch family {
+			case c.Amazon, c.Oracle:
+				vv.AffectedPacks = fileterPacksByArch(vv.AffectedPacks, arch)
+			case c.RedHat:
+				vv.AffectedPacks = filterByRedHatMajor(vv.AffectedPacks, osVer)
+			}
+
 			found := false
-			vv.AffectedPacks = fileterPacksByArch(vv.AffectedPacks, arch)
 			for _, pack := range vv.AffectedPacks {
 				if pack.Name == packName {
 					found = true
@@ -223,7 +229,12 @@ func (d *RedisDriver) GetByCveID(family, osVer, arch, cveID string) ([]models.De
 	}
 
 	for i := range defs {
-		defs[i].AffectedPacks = fileterPacksByArch(defs[i].AffectedPacks, arch)
+		switch family {
+		case c.Amazon, c.Oracle:
+			defs[i].AffectedPacks = fileterPacksByArch(defs[i].AffectedPacks, arch)
+		case c.RedHat:
+			defs[i].AffectedPacks = filterByRedHatMajor(defs[i].AffectedPacks, osVer)
+		}
 	}
 
 	return defs, nil
@@ -356,10 +367,6 @@ func getByHashKey(hashKey string, driver *redis.Client) ([]models.Definition, er
 		if err := json.Unmarshal([]byte(v), &def); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
 			return nil, err
-		}
-		osFamily, osVer, _ := splitHashKey(hashKey)
-		if osFamily == c.RedHat {
-			def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, osVer)
 		}
 		defs = append(defs, def)
 	}

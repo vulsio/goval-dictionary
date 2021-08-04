@@ -102,9 +102,6 @@ func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 // GetByPackName select definitions by packName
 func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([]models.Definition, error) {
-	if arch == "" {
-		return nil, xerrors.Errorf("Arch have to be passed via arg for fileter packages")
-	}
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{
 		Name: packName,

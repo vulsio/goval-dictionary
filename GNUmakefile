@@ -126,21 +126,21 @@ fetch-redis:
 	integration/goval-dict.new fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
 
 diff-cveid:
-	# @ python integration/diff_server_mode.py cveid debian 7 8 9 10 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py cveid ubuntu 14 16 18 19 20 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py cveid redhat 5 6 7 8 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py cveid oracle 5 6 7 8 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py cveid amazon 1 2 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 --sample_rate 0.01
+	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid debian 7 8 9 10
+	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid ubuntu 14 16 18 19 20
+	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid redhat 5 6 7 8
+	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid amazon 1 2
+	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
 
 
 diff-package:
-	# @ python integration/diff_server_mode.py package debian 7 8 9 10 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py package ubuntu 14 16 18 19 20 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py package redhat 5 6 7 8 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py package oracle 5 6 7 8 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py package amazon 1 2 --sample_rate 0.01
-	# @ python integration/diff_server_mode.py package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 --sample_rate 0.01
+	@ python integration/diff_server_mode.py --sample_rate 0.01 package debian 7 8 9 10
+	@ python integration/diff_server_mode.py --sample_rate 0.01 package ubuntu 14 16 18 19 20
+	@ python integration/diff_server_mode.py --sample_rate 0.01 package redhat 5 6 7 8
+	@ python integration/diff_server_mode.py --sample_rate 0.01 package oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample_rate 0.01 package amazon 1 2
+	@ python integration/diff_server_mode.py --sample_rate 0.01 package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
 
 diff-server-rdb:
 	integration/goval-dict.old server --dbpath=$(PWD)/integration/oval.old.sqlite3 --port 1325 > /dev/null & 

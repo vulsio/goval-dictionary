@@ -12,6 +12,7 @@ import os
 import random
 import math
 
+
 def diff_response(args: Tuple[str, str, str, str, str]):
     path = ''
     if args[0] == 'cveid':
@@ -54,7 +55,7 @@ parser.add_argument('mode', choices=['cveid', 'package'],
                     help='Specify the mode to test.')
 parser.add_argument('ostype', choices=['alpine', 'amazon', 'debian', 'oracle', 'redhat', 'suse', 'ubuntu'],
                     help='Specify the OS to be started in server mode when testing.')
-parser.add_argument('arch', choices=['x86_64', 'i386'],
+parser.add_argument('--arch', default="", choices=['x86_64', 'i386', 'ia64', 'i686', 'sparc64', 'aarch64', 'noarch'],
                     help='Specify the Architecture to be started in server mode when testing.')
 parser.add_argument('release', nargs='+',
                     help='Specify the Release Version to be started in server mode when testing.')
@@ -108,7 +109,7 @@ elif args.ostype == 'amazon':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'alpine':
-    if len(list(set(args.release) - set(['3.3', '3.4', '3.5', '3.6']))) > 0:
+    if len(list(set(args.release) - set(['3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
@@ -134,5 +135,6 @@ for relVer in args.release:
         list = [s.strip() for s in f.readlines()]
         list = random.sample(list, math.ceil(len(list) * args.sample_rate))
         with ThreadPoolExecutor() as executor:
-            ins = ((args.mode, args.ostype, args.arch, relVer, e) for e in list)
+            ins = ((args.mode, args.ostype, args.arch, relVer, e)
+                   for e in list)
             executor.map(diff_response, ins)

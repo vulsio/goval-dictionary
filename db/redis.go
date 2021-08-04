@@ -215,7 +215,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
 				if expire > 0 {
-					if result := pipe.Expire(hashKey, time.Duration(expire*uint(time.Second))); result.Err() != nil {
+					if err := pipe.Expire(hashKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 					}
 				}
@@ -237,7 +237,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 					}
 
 					if expire > 0 {
-						if result := pipe.Expire(zkey, time.Duration(expire*uint(time.Second))); result.Err() != nil {
+						if err := pipe.Expire(zkey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 							return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 						}
 					}

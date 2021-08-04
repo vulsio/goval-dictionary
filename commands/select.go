@@ -54,7 +54,7 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 		log15.Error(`
 		Usage:
 		select OVAL by CVE-ID
-		./goval-dictionary select --by-cveid redhat 7 CVE-2015-1111 x86)64
+		./goval-dictionary select --by-cveid redhat 7 CVE-2015-1111 x86_64
 		`)
 		return xerrors.New("Failed to set by-cveid option args.")
 	}

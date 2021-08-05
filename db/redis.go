@@ -189,8 +189,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 	definitions := aggregateAffectedPackages(root.Definitions)
 	total := map[string]struct{}{}
 	for chunked := range chunkSlice(definitions, 10) {
-		var pipe redis.Pipeliner
-		pipe = d.conn.Pipeline()
+		pipe := d.conn.Pipeline()
 		for _, def := range chunked {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
@@ -218,6 +217,10 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 					if err := pipe.Expire(hashKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 					}
+				} else {
+					if err := pipe.Persist(hashKey).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
 				}
 
 				for _, pack := range def.AffectedPacks {
@@ -235,9 +238,12 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 						}); result.Err() != nil {
 						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
 					}
-
 					if expire > 0 {
 						if err := pipe.Expire(zkey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+							return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+						}
+					} else {
+						if err := pipe.Persist(zkey).Err(); err != nil {
 							return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 						}
 					}

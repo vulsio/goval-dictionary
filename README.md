@@ -74,7 +74,7 @@ Available Commands:
   ubuntu      Fetch Vulnerability dictionary from Ubuntu
 
 Flags:
-      --expire uint   timeout to set for Redis keys
+      --expire uint   timeout to set for Redis keys in seconds. If set to 0, the key is persistent.
   -h, --help          help for fetch
       --no-details    without vulnerability details
 

@@ -17,52 +17,104 @@ type susePackage struct {
 }
 
 // ConvertSUSEToModel Convert OVAL to models
-func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
-	m := map[string]Root{}
+func ConvertSUSEToModel(root *oval.Root) (roots []Root) {
+	m := map[string]map[string]Root{}
 	for _, ovaldef := range root.Definitions.Definitions {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
 			continue
 		}
-		rs := []Reference{}
+		references := []Reference{}
 		for _, r := range ovaldef.References {
-			rs = append(rs, Reference{
+			references = append(references, Reference{
 				Source: r.Source,
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
 		}
 
+		cpes := []Cpe{}
+		for _, cpe := range ovaldef.Advisory.AffectedCPEList {
+			cpes = append(cpes, Cpe{
+				Cpe: cpe,
+			})
+		}
+
+		cves := []Cve{}
+		for _, c := range ovaldef.Advisory.Cves {
+			cves = append(cves, Cve{
+				CveID:  c.CveID,
+				Impact: c.Impact,
+				Href:   c.Href,
+			})
+		}
+
+		bugzillas := []Bugzilla{}
+		for _, b := range ovaldef.Advisory.Bugzillas {
+			bugzillas = append(bugzillas, Bugzilla{
+				URL:   b.URL,
+				Title: b.Title,
+			})
+		}
+
+		osVerPackages := map[string]map[string][]Package{}
 		for _, distPack := range collectSUSEPacks(ovaldef.Criteria) {
-			def := Definition{
-				DefinitionID:  ovaldef.ID,
-				Title:         ovaldef.Title,
-				Description:   ovaldef.Description,
-				AffectedPacks: []Package{distPack.pack},
-				References:    rs,
+			if _, ok := osVerPackages[distPack.os]; !ok {
+				osVerPackages[distPack.os] = map[string][]Package{}
 			}
-
-			if viper.GetBool("no-details") {
-				def.Title = ""
-				def.Description = ""
-				def.References = []Reference{}
-			}
-
-			root, ok := m[distPack.osVer]
-			if ok {
-				root.Definitions = append(root.Definitions, def)
-				m[distPack.osVer] = root
+			if _, ok := osVerPackages[distPack.os][distPack.osVer]; !ok {
+				osVerPackages[distPack.os][distPack.osVer] = append([]Package{}, distPack.pack)
 			} else {
-				m[distPack.osVer] = Root{
-					Family:      suseType,
-					OSVersion:   distPack.osVer,
-					Definitions: []Definition{def},
+				osVerPackages[distPack.os][distPack.osVer] = append(osVerPackages[distPack.os][distPack.osVer], distPack.pack)
+			}
+
+		}
+
+		for os, verPackages := range osVerPackages {
+			for ver, packs := range verPackages {
+				def := Definition{
+					DefinitionID: ovaldef.ID,
+					Title:        ovaldef.Title,
+					Description:  ovaldef.Description,
+					Advisory: Advisory{
+						Cves:            append([]Cve{}, cves...),
+						Severity:        ovaldef.Advisory.Severity,
+						AffectedCPEList: append([]Cpe{}, cpes...),
+						Bugzillas:       append([]Bugzilla{}, bugzillas...),
+					},
+					AffectedPacks: packs,
+					References:    append([]Reference{}, references...),
 				}
+
+				if viper.GetBool("no-details") {
+					def.Title = ""
+					def.Description = ""
+					def.References = []Reference{}
+				}
+
+				if _, ok := m[os]; !ok {
+					m[os] = map[string]Root{}
+				}
+				if root, ok := m[os][ver]; !ok {
+					m[os][ver] = Root{
+						Family:      os,
+						OSVersion:   ver,
+						Definitions: []Definition{def},
+					}
+				} else {
+					root.Definitions = append(root.Definitions, def)
+					m[os][ver] = root
+				}
+
 			}
 		}
 	}
+
 	for _, v := range m {
-		roots = append(roots, v)
+		for _, vv := range v {
+			roots = append(roots, vv)
+		}
 	}
+
 	return
 }
 

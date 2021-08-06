@@ -104,10 +104,10 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertSUSEToModel(&ovalroot, suseType)
+		roots := models.ConvertSUSEToModel(&ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
-			if err := driver.InsertOval(suseType, &root, fmeta); err != nil {
+			if err := driver.InsertOval(root.Family, &root, fmeta); err != nil {
 				log15.Error("Failed to insert oval", "err", err)
 				return err
 			}

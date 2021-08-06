@@ -80,22 +80,10 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 		return xerrors.Errorf("Failed to insert. err: %w", err)
 	}
 
-	switch tx.Dialector.Name() {
-	case DialectSqlite3:
-	case DialectMysql:
-		for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 50) {
-			if err := tx.Create(&chunk).Error; err != nil {
-				tx.Rollback()
-				return xerrors.Errorf("Failed to insert. err: %w", err)
-			}
-		}
-	case DialectPostgreSQL:
-		for _, def := range root.Definitions {
-			def.RootID = root.ID
-			if err := tx.Create(&def).Error; err != nil {
-				tx.Rollback()
-				return xerrors.Errorf("Failed to insert. err: %w", err)
-			}
+	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 50) {
+		if err := tx.Create(&chunk).Error; err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
 	}
 

@@ -14,7 +14,7 @@ func TestWalkSUSE(t *testing.T) {
 		cri      oval.Criteria
 		expected []susePackage
 	}{
-		// Package
+		// no OS Package
 		{
 			cri: oval.Criteria{
 				Criterions: []oval.Criterion{
@@ -22,15 +22,7 @@ func TestWalkSUSE(t *testing.T) {
 					{Comment: "kernel-default is not affected"},
 				},
 			},
-			expected: []susePackage{
-				{
-					osVer: "",
-					pack: Package{
-						Name:    "mailx",
-						Version: "12.5-20.4.1",
-					},
-				},
-			},
+			expected: []susePackage{},
 		},
 		//
 		{
@@ -58,6 +50,7 @@ func TestWalkSUSE(t *testing.T) {
 					{
 						Criterions: []oval.Criterion{
 							{Comment: "mailx-12.5-20.4.1 is installed"},
+							{Comment: "kernel-default is not affected"},
 						},
 					},
 				},
@@ -269,8 +262,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12-ltss",
+					os:    config.SUSEEnterpriseServerLTSS,
+					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
 						Version: "6.6p1-54.15.2",
@@ -294,8 +287,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12.sp1-ltss",
+					os:    config.SUSEEnterpriseServerLTSS,
+					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh",
 						Version: "6.6p1-54.15.2",
@@ -319,8 +312,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12.sp2-bcl",
+					os:    config.SUSEEnterpriseServerBCL,
+					osVer: "12.sp2",
 					pack: Package{
 						Name:    "glibc",
 						Version: "2.22-62.22.5",
@@ -344,8 +337,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12.sp2-espos",
+					os:    config.SUSEEnterpriseServerESPOS,
+					osVer: "12.sp2",
 					pack: Package{
 						Name:    "glibc",
 						Version: "2.22-62.22.5",
@@ -369,8 +362,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12.sp3-teradata",
+					os:    config.SUSEEnterpriseServerTERADATA,
+					osVer: "12.sp3",
 					pack: Package{
 						Name:    "glibc",
 						Version: "2.22-62.22.5",
@@ -469,8 +462,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerSAP,
-					osVer: "12-ltss",
+					os:    config.SUSEEnterpriseServerSAPLTSS,
+					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
 						Version: "6.6p1-54.15.2",
@@ -519,8 +512,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerSAP,
-					osVer: "12.sp1-ltss",
+					os:    config.SUSEEnterpriseServerSAPLTSS,
+					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh",
 						Version: "6.6p1-54.15.2",
@@ -796,32 +789,32 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12-ltss",
+					os:    config.SUSEEnterpriseServerLTSS,
+					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
 						Version: "6.6p1-54.15.2",
 					},
 				},
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12-ltss",
+					os:    config.SUSEEnterpriseServerLTSS,
+					osVer: "12.sp1",
+					pack: Package{
+						Name:    "openssh",
+						Version: "6.6p1-54.15.2",
+					},
+				},
+				{
+					os:    config.SUSEEnterpriseServerLTSS,
+					osVer: "12",
 					pack: Package{
 						Name:    "openssh-askpass-gnome",
 						Version: "6.6p1-54.15.1",
 					},
 				},
 				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12.sp1-ltss",
-					pack: Package{
-						Name:    "openssh",
-						Version: "6.6p1-54.15.2",
-					},
-				},
-				{
-					os:    config.SUSEEnterpriseServer,
-					osVer: "12.sp1-ltss",
+					os:    config.SUSEEnterpriseServerLTSS,
+					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh-askpass-gnome",
 						Version: "6.6p1-54.15.1",

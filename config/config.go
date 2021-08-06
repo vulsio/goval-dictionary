@@ -61,11 +61,26 @@ const (
 	// SUSEEnterpriseServer is
 	SUSEEnterpriseServer = "suse.linux.enterprise.server"
 
+	// SUSEEnterpriseServerLTSS is
+	SUSEEnterpriseServerLTSS = "suse.linux.enterprise.server.ltss"
+
+	// SUSEEnterpriseServerBCL is
+	SUSEEnterpriseServerBCL = "suse.linux.enterprise.server.bcl"
+
+	// SUSEEnterpriseServerESPOS is
+	SUSEEnterpriseServerESPOS = "suse.linux.enterprise.server.espos"
+
+	// SUSEEnterpriseServerTERADATA is
+	SUSEEnterpriseServerTERADATA = "suse.linux.enterprise.server.teradata"
+
 	// SUSEEnterpriseServerRaspberryPi is SUSE Linux Enterprise Server for Raspberry Pi
 	SUSEEnterpriseServerRaspberryPi = "suse.linux.enterprise.server.raspberrypi"
 
 	// SUSEEnterpriseServerSAP is SUSE Linux Enterprise Server for SAP Applications
 	SUSEEnterpriseServerSAP = "suse.linux.enterprise.sap"
+
+	// SUSEEnterpriseServerSAPLTSS is
+	SUSEEnterpriseServerSAPLTSS = "suse.linux.enterprise.sap.ltss"
 
 	// SUSEEnterpriseWorkstation is SUSE Linux Enterprise Workstation Extension
 	SUSEEnterpriseWorkstation = "suse.linux.enterprise.workstation"

@@ -8,6 +8,12 @@ import (
 	"github.com/ymomoi/goval-parser/oval"
 )
 
+type susePackage struct {
+	os    string
+	osVer string
+	pack  Package
+}
+
 // ConvertSUSEToModel Convert OVAL to models
 func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
 	m := map[string]Root{}
@@ -58,11 +64,11 @@ func ConvertSUSEToModel(root *oval.Root, suseType string) (roots []Root) {
 	return
 }
 
-func collectSUSEPacks(cri oval.Criteria) []distroPackage {
-	return walkSUSE(cri, "", []distroPackage{})
+func collectSUSEPacks(cri oval.Criteria) []susePackage {
+	return walkSUSE(cri, "", []susePackage{})
 }
 
-func walkSUSE(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {
+func walkSUSE(cri oval.Criteria, osVer string, acc []susePackage) []susePackage {
 	for _, c := range cri.Criterions {
 		if strings.HasPrefix(c.Comment, "openSUSE ") {
 			continue
@@ -94,7 +100,7 @@ func walkSUSE(cri oval.Criteria, osVer string, acc []distroPackage) []distroPack
 		name := fmt.Sprintf("%s", strings.Join(ss[0:len(ss)-2], "-"))
 		version := fmt.Sprintf("%s-%s", ss[len(ss)-2], ss[len(ss)-1])
 
-		acc = append(acc, distroPackage{
+		acc = append(acc, susePackage{
 			osVer: osVer,
 			pack: Package{
 				Name:    name,

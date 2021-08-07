@@ -2,6 +2,7 @@ package rdb
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -95,12 +96,15 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 	// SLES: OVAL provided in each major version.
 	// OpenSUSE : OVAL is separate for each minor version.
 	// http://ftp.suse.com/pub/projects/security/oval/
-	switch o.Family {
-	case c.SUSEEnterpriseServer,
-		c.SUSEEnterpriseDesktop,
-		c.SUSEOpenstackCloud:
+	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
 		osVer = major(osVer)
+	} else {
+		osVer = majorDotMinor(osVer)
 	}
+
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -149,6 +153,15 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
 func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
+		osVer = major(osVer)
+	} else {
+		osVer = majorDotMinor(osVer)
+	}
+
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		o.Name(), osVer).
 		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).

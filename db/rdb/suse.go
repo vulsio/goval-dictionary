@@ -164,7 +164,8 @@ func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.D
 
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		o.Name(), osVer).
-		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
+		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
+		Joins("JOIN cves ON cves.advisory_id = advisories.id").
 		Where("cves.cve_id = ?", cveID).
 		Preload("AffectedPacks").
 		Preload("References").

@@ -1039,3 +1039,154 @@ func TestWalkSUSE(t *testing.T) {
 		}
 	}
 }
+
+func TestGetMoreAccurateOSNameVersion(t *testing.T) {
+	type expected struct {
+		os    string
+		osVer string
+	}
+	var tests = []struct {
+		os       string
+		s        string
+		expected expected
+	}{
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "12",
+			expected: expected{
+				os:    config.SUSEEnterpriseServer,
+				osVer: "12",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "12-LTSS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
+				osVer: "12",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "11-SECURITY",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "security"),
+				osVer: "11",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "11-CLIENT-TOOLS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "client.tools"),
+				osVer: "11",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "12 SP1",
+			expected: expected{
+				os:    config.SUSEEnterpriseServer,
+				osVer: "12.sp1",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "12 SP1-LTSS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
+				osVer: "12.sp1",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "11 SP1-CLIENT-TOOLS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "client.tools"),
+				osVer: "11.sp1",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 12",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
+				osVer: "12",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 12-LTSS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
+				osVer: "12",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 11-SECURITY",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.security"),
+				osVer: "11",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 11-CLIENT-TOOLS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.client.tools"),
+				osVer: "11",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 12 SP1",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
+				osVer: "12.sp1",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 12 SP1-LTSS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
+				osVer: "12.sp1",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "SAP Applications 11 SP1-CLIENT-TOOLS",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.client.tools"),
+				osVer: "11.sp1",
+			},
+		},
+		{
+			os: config.SUSEEnterpriseServer,
+			s:  "Python 2 15 SP1",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "python.2"),
+				osVer: "15.sp1",
+			},
+		},
+	}
+
+	for i, tt := range tests {
+		osName, osVer, err := getMoreAccurateOSNameVersion(tt.s, tt.os)
+		if err != nil {
+			t.Errorf("[%d] getMoreAccurateOSNameVersion err: %w", i, err)
+		}
+
+		actual := expected{
+			os:    osName,
+			osVer: osVer,
+		}
+
+		if !reflect.DeepEqual(tt.expected, actual) {
+			e := pp.Sprintf("%v", tt.expected)
+			a := pp.Sprintf("%v", actual)
+			t.Errorf("[%d]: expected: %s\n, actual: %s\n", i, e, a)
+		}
+	}
+}

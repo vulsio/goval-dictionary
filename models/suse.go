@@ -333,12 +333,14 @@ func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
 	// "12"
 	// "12-LTSS"
 	// "11-SECURITY"
+	// "11-CLIENT-TOOLS"
 	// "12 SP1"
 	// "12 SP1-LTSS"
 	// "11 SP1-CLIENT-TOOLS"
 	// "SAP Applications 12"
 	// "SAP Applications 12-LTSS"
 	// "SAP Applications 11-SECURITY"
+	// "SAP Applications 11-CLIENT-TOOLS"
 	// "SAP Applications 12 SP1"
 	// "SAP Applications 12 SP1-LTSS"
 	// "SAP Applications 11 SP1-CLIENT-TOOLS"
@@ -355,9 +357,10 @@ func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
 			// "Python"
 			// "12-LTSS"
 			// "11-SECURITY"
+			// "11-CLIENT-TOOLS"
 			if strings.Contains(sss, "-") {
 				ssss := strings.Split(sss, "-")
-				if len(ssss) != 2 {
+				if len(ssss) < 2 {
 					return "", "", xerrors.Errorf("Failed to parse. err: (int)-(string) is expected. (actual: %s)", sss)
 				}
 
@@ -366,7 +369,7 @@ func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
 					return "", "", xerrors.Errorf("Failed to parse. err: version is expected. (actual: %s)", ssss[0])
 				}
 
-				name = fmt.Sprintf("%s.%s", name, strings.ToLower(ssss[1]))
+				name = fmt.Sprintf("%s.%s", name, strings.ToLower(strings.Join(ssss[1:], ".")))
 				version = ssss[0]
 				osVerIndex = i
 				break

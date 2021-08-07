@@ -99,7 +99,7 @@ fetch-rdb:
 	integration/goval-dict.old fetch oracle --dbpath=$(PWD)/integration/oval.old.sqlite3
 	integration/goval-dict.old fetch amazon --dbpath=$(PWD)/integration/oval.old.sqlite3
 	integration/goval-dict.old fetch alpine --dbpath=$(PWD)/integration/oval.old.sqlite3 3.3 3.4 3.5 3.6
-	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
+	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type suse-enterprise-desktop 10 11 12 15
@@ -111,7 +111,7 @@ fetch-rdb:
 	integration/goval-dict.new fetch oracle --dbpath=$(PWD)/integration/oval.new.sqlite3
 	integration/goval-dict.new fetch amazon --dbpath=$(PWD)/integration/oval.new.sqlite3
 	integration/goval-dict.new fetch alpine --dbpath=$(PWD)/integration/oval.new.sqlite3 3.3 3.4 3.5 3.6
-	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
+	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type suse-enterprise-desktop 10 11 12 15
@@ -127,7 +127,7 @@ fetch-redis:
 	integration/goval-dict.old fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
 	integration/goval-dict.old fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
 	integration/goval-dict.old fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.3 3.4 3.5 3.6
-	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
+	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-desktop 10 11 12 15
@@ -139,7 +139,7 @@ fetch-redis:
 	integration/goval-dict.new fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
 	integration/goval-dict.new fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
 	integration/goval-dict.new fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.3 3.4 3.5 3.6
-	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
+	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-desktop 10 11 12 15

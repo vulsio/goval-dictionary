@@ -42,13 +42,54 @@ func ConvertSUSEToModel(xmlName string, root *oval.Root) (roots []Root) {
 			})
 		}
 
-		cves := []Cve{}
+		cveMap := map[string]Cve{}
 		for _, c := range ovaldef.Advisory.Cves {
-			cves = append(cves, Cve{
+			cveMap[c.CveID] = Cve{
 				CveID:  c.CveID,
 				Impact: c.Impact,
 				Href:   c.Href,
-			})
+			}
+		}
+
+		for _, r := range ovaldef.References {
+			var cveid string
+
+			if r.Source == "SUSE CVE" {
+				if strings.HasPrefix(r.RefID, "CVE-") {
+					cveid = r.RefID
+				}
+
+				if strings.HasPrefix(r.RefID, "SUSE CVE-") {
+					cveid = strings.TrimPrefix(r.RefID, "SUSE ")
+				}
+			}
+
+			if r.Source == "CVE" {
+				if strings.HasPrefix(r.RefID, "CVE-") {
+					cveid = r.RefID
+				}
+
+				if strings.HasPrefix(r.RefID, "Mitre CVE-") {
+					cveid = strings.TrimPrefix(r.RefID, "Mitre ")
+				}
+			}
+
+			if cveid == "" {
+				continue
+			}
+
+			if _, ok := cveMap[cveid]; !ok {
+				cveMap[cveid] = Cve{
+					CveID: cveid,
+					Href:  r.RefURL,
+				}
+			}
+
+		}
+
+		cves := []Cve{}
+		for _, cve := range cveMap {
+			cves = append(cves, cve)
 		}
 
 		bugzillas := []Bugzilla{}

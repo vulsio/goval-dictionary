@@ -52,6 +52,7 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			Description:  d.Description,
 			Advisory: Advisory{
 				Severity: d.Advisory.Severity,
+				Cves:     []Cve{{CveID: cveID}},
 				Issued:   time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Updated:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},

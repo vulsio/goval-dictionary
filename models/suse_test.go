@@ -754,7 +754,7 @@ func TestWalkSUSE(t *testing.T) {
 					},
 				},
 				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS  is installed"},
+					{Comment: "SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS is installed"},
 				},
 			},
 			expected: []susePackage{
@@ -968,7 +968,7 @@ func TestWalkSUSE(t *testing.T) {
 			expected: []susePackage{
 				{
 					os:    fmt.Sprintf("%s.%s", config.SUSEOpenstackCloud, "ltss"),
-					osVer: "9",
+					osVer: "6",
 					pack: Package{
 						Name:    "glibc",
 						Version: "2.22-62.22.5",

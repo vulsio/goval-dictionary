@@ -124,10 +124,10 @@ func collectSUSEPacks(xmlName string, cri oval.Criteria) []susePackage {
 	xmlName = strings.TrimSuffix(xmlName, ".xml")
 
 	switch {
-	case strings.Contains(xmlName, "opensuse.10"), strings.Contains(xmlName, "opensuse.11"), strings.Contains(xmlName, "suse.enterprise.linux.server.9"), strings.Contains(xmlName, "suse.enterprise.linux.desktop.10"), strings.Contains(xmlName, "suse.enterprise.linux.server.10"):
+	case strings.Contains(xmlName, "opensuse.10") || strings.Contains(xmlName, "opensuse.11") || strings.Contains(xmlName, "suse.linux.enterprise.desktop.10") || strings.Contains(xmlName, "suse.linux.enterprise.server.9") || strings.Contains(xmlName, "suse.linux.enterprise.server.10"):
 		return walkSUSEFirst(cri, []susePackage{}, []susePackage{})
 	case strings.Contains(xmlName, "opensuse.12"):
-		return walkSUSESecond(cri, []susePackage{{os: config.OpenSUSE, osVer: strings.TrimPrefix(xmlName, "opensuse")}}, []susePackage{})
+		return walkSUSESecond(cri, []susePackage{{os: config.OpenSUSE, osVer: strings.TrimPrefix(xmlName, "opensuse.")}}, []susePackage{})
 	default:
 		return walkSUSESecond(cri, []susePackage{}, []susePackage{})
 	}
@@ -142,13 +142,13 @@ func walkSUSEFirst(cri oval.Criteria, osVerPackages, acc []susePackage) []susePa
 			var name, version string
 			switch {
 			case strings.HasPrefix(comment, "suse"):
-				comment = strings.TrimPrefix(c.Comment, "suse")
+				comment = strings.TrimPrefix(comment, "suse")
 				name = config.OpenSUSE
-				version = fmt.Sprintf("%s.%s", comment[0:1], comment[2:])
+				version = fmt.Sprintf("%s.%s", comment[:2], comment[2:])
 			case strings.HasPrefix(comment, "sled"):
-				comment = strings.TrimPrefix(c.Comment, "sled")
+				comment = strings.TrimPrefix(comment, "sled")
 				ss := strings.Split(comment, "-")
-				switch len_ss := len(ss); len_ss {
+				switch len(ss) {
 				case 0:
 					log15.Warn(fmt.Sprintf("Failed to parse. err: unexpected string: %s", comment))
 					continue
@@ -168,9 +168,9 @@ func walkSUSEFirst(cri oval.Criteria, osVerPackages, acc []susePackage) []susePa
 					version = fmt.Sprintf("%s.%s", ss[0], ss[1])
 				}
 			case strings.HasPrefix(comment, "sles"):
-				comment = strings.TrimPrefix(c.Comment, "sles")
+				comment = strings.TrimPrefix(comment, "sles")
 				ss := strings.Split(comment, "-")
-				switch len_ss := len(ss); len_ss {
+				switch len(ss) {
 				case 0:
 					log15.Warn(fmt.Sprintf("Failed to parse. err: unexpected string: %s", comment))
 					continue
@@ -332,7 +332,7 @@ func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
 	// s:
 	// "12"
 	// "12-LTSS"
-	// 11-SECURITY
+	// "11-SECURITY"
 	// "12 SP1"
 	// "12 SP1-LTSS"
 	// "11 SP1-CLIENT-TOOLS"
@@ -393,7 +393,7 @@ func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
 		return name, version, nil
 	}
 
-	ss = ss[osVerIndex:]
+	ss = ss[osVerIndex+1:]
 	if len(ss) != 1 {
 		return "", "", xerrors.Errorf("Failed to parse. err:  unexpected Slice length: %s", ss)
 	}
@@ -416,10 +416,10 @@ func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
 			}
 		}
 
-		name = fmt.Sprintf("%s.%s", name, strings.Join(sss[1:], "."))
+		name = fmt.Sprintf("%s.%s", name, strings.ToLower(strings.Join(sss[1:], ".")))
 	} else {
-		if strings.HasPrefix(ss[1], "SP") {
-			version = fmt.Sprintf("%s.%s", version, strings.ToLower(ss[1]))
+		if strings.HasPrefix(ss[0], "SP") {
+			version = fmt.Sprintf("%s.%s", version, strings.ToLower(ss[0]))
 		} else {
 			return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
 		}

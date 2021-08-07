@@ -19,7 +19,7 @@ type susePackage struct {
 }
 
 // ConvertSUSEToModel Convert OVAL to models
-func ConvertSUSEToModel(root *oval.Root) (roots []Root) {
+func ConvertSUSEToModel(xmlName string, root *oval.Root) (roots []Root) {
 	m := map[string]map[string]Root{}
 	for _, ovaldef := range root.Definitions.Definitions {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
@@ -59,7 +59,7 @@ func ConvertSUSEToModel(root *oval.Root) (roots []Root) {
 		}
 
 		osVerPackages := map[string]map[string][]Package{}
-		for _, distPack := range collectSUSEPacks(root.XMLName.Local, ovaldef.Criteria) {
+		for _, distPack := range collectSUSEPacks(xmlName, ovaldef.Criteria) {
 			if _, ok := osVerPackages[distPack.os]; !ok {
 				osVerPackages[distPack.os] = map[string][]Package{}
 			}

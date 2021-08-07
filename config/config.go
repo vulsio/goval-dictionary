@@ -61,50 +61,11 @@ const (
 	// SUSEEnterpriseServer is
 	SUSEEnterpriseServer = "suse.linux.enterprise.server"
 
-	// SUSEEnterpriseServerLTSS is
-	SUSEEnterpriseServerLTSS = "suse.linux.enterprise.server.ltss"
-
-	// SUSEEnterpriseServerBCL is
-	SUSEEnterpriseServerBCL = "suse.linux.enterprise.server.bcl"
-
-	// SUSEEnterpriseServerESPOS is
-	SUSEEnterpriseServerESPOS = "suse.linux.enterprise.server.espos"
-
-	// SUSEEnterpriseServerTERADATA is
-	SUSEEnterpriseServerTERADATA = "suse.linux.enterprise.server.teradata"
-
-	// SUSEEnterpriseServerRaspberryPi is SUSE Linux Enterprise Server for Raspberry Pi
-	SUSEEnterpriseServerRaspberryPi = "suse.linux.enterprise.server.raspberrypi"
-
-	// SUSEEnterpriseServerSAP is SUSE Linux Enterprise Server for SAP Applications
-	SUSEEnterpriseServerSAP = "suse.linux.enterprise.sap"
-
-	// SUSEEnterpriseServerSAPLTSS is
-	SUSEEnterpriseServerSAPLTSS = "suse.linux.enterprise.sap.ltss"
+	// SUSEEnterpriseModule is
+	SUSEEnterpriseModule = "suse.linux.enterprise.module"
 
 	// SUSEEnterpriseWorkstation is SUSE Linux Enterprise Workstation Extension
 	SUSEEnterpriseWorkstation = "suse.linux.enterprise.workstation"
-
-	// SUSEEnterpriseModuleAdvancedSystemsManagement is SUSE Linux Enterprise Module for Advanced Systems Management
-	SUSEEnterpriseModuleAdvancedSystemsManagement = "suse.linux.enterprise.module.advanced.systems.management"
-
-	// SUSEEnterpriseModuleContainers is SUSE Linux Enterprise Module for Containers
-	SUSEEnterpriseModuleContainers = "suse.linux.enterprise.module.containers"
-
-	// SUSEEnterpriseModuleHPC is SUSE Linux Enterprise Module for High Performance Computing
-	SUSEEnterpriseModuleHPC = "suse.linux.enterprise.module.hpc"
-
-	// SUSEEnterpriseModuleLegacy is SUSE Linux Enterprise Module for Legacy
-	SUSEEnterpriseModuleLegacy = "suse.linux.enterprise.module.legacy"
-
-	// SUSEEnterpriseModulePublicCloud is SUSE Linux Enterprise Module for Public Cloud
-	SUSEEnterpriseModulePublicCloud = "suse.linux.enterprise.module.public.cloud"
-
-	// SUSEEnterpriseModuleToolchain is SUSE Linux Enterprise Module for Toolchain
-	SUSEEnterpriseModuleToolchain = "suse.linux.enterprise.module.toolchain"
-
-	// SUSEEnterpriseModuleWebScripting is SUSE Linux Enterprise Module for Web Scripting
-	SUSEEnterpriseModuleWebScripting = "suse.linux.enterprise.module.web.scripting"
 
 	// SUSEEnterpriseDesktop is
 	SUSEEnterpriseDesktop = "suse.linux.enterprise.desktop"

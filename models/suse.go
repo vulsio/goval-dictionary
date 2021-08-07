@@ -2,12 +2,14 @@ package models
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/inconshreveable/log15"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
+	"golang.org/x/xerrors"
 )
 
 type susePackage struct {
@@ -57,7 +59,7 @@ func ConvertSUSEToModel(root *oval.Root) (roots []Root) {
 		}
 
 		osVerPackages := map[string]map[string][]Package{}
-		for _, distPack := range collectSUSEPacks(ovaldef.Criteria) {
+		for _, distPack := range collectSUSEPacks(root.XMLName.Local, ovaldef.Criteria) {
 			if _, ok := osVerPackages[distPack.os]; !ok {
 				osVerPackages[distPack.os] = map[string][]Package{}
 			}
@@ -118,11 +120,119 @@ func ConvertSUSEToModel(root *oval.Root) (roots []Root) {
 	return
 }
 
-func collectSUSEPacks(cri oval.Criteria) []susePackage {
-	return walkSUSE(cri, []susePackage{}, []susePackage{})
+func collectSUSEPacks(xmlName string, cri oval.Criteria) []susePackage {
+	xmlName = strings.TrimSuffix(xmlName, ".xml")
+
+	switch {
+	case strings.Contains(xmlName, "opensuse.10"), strings.Contains(xmlName, "opensuse.11"), strings.Contains(xmlName, "suse.enterprise.linux.server.9"), strings.Contains(xmlName, "suse.enterprise.linux.desktop.10"), strings.Contains(xmlName, "suse.enterprise.linux.server.10"):
+		return walkSUSEFirst(cri, []susePackage{}, []susePackage{})
+	case strings.Contains(xmlName, "opensuse.12"):
+		return walkSUSESecond(cri, []susePackage{{os: config.OpenSUSE, osVer: strings.TrimPrefix(xmlName, "opensuse")}}, []susePackage{})
+	default:
+		return walkSUSESecond(cri, []susePackage{}, []susePackage{})
+	}
 }
 
-func walkSUSE(cri oval.Criteria, osVerPackages, acc []susePackage) []susePackage {
+// comment="(os) is installed"
+// comment="(package) less then (ver)"
+func walkSUSEFirst(cri oval.Criteria, osVerPackages, acc []susePackage) []susePackage {
+	for _, c := range cri.Criterions {
+		if strings.HasSuffix(c.Comment, " is installed") {
+			comment := strings.TrimSuffix(c.Comment, " is installed")
+			var name, version string
+			switch {
+			case strings.HasPrefix(comment, "suse"):
+				comment = strings.TrimPrefix(c.Comment, "suse")
+				name = config.OpenSUSE
+				version = fmt.Sprintf("%s.%s", comment[0:1], comment[2:])
+			case strings.HasPrefix(comment, "sled"):
+				comment = strings.TrimPrefix(c.Comment, "sled")
+				ss := strings.Split(comment, "-")
+				switch len_ss := len(ss); len_ss {
+				case 0:
+					log15.Warn(fmt.Sprintf("Failed to parse. err: unexpected string: %s", comment))
+					continue
+				case 1:
+					name = config.SUSEEnterpriseDesktop
+					version = ss[0]
+				case 2:
+					if strings.HasPrefix(ss[1], "sp") {
+						name = config.SUSEEnterpriseDesktop
+						version = strings.Join(ss, ".")
+					} else {
+						name = fmt.Sprintf("%s.%s", config.SUSEEnterpriseDesktop, ss[1])
+						version = ss[0]
+					}
+				default:
+					name = fmt.Sprintf("%s.%s", config.SUSEEnterpriseDesktop, strings.Join(ss[2:], "."))
+					version = fmt.Sprintf("%s.%s", ss[0], ss[1])
+				}
+			case strings.HasPrefix(comment, "sles"):
+				comment = strings.TrimPrefix(c.Comment, "sles")
+				ss := strings.Split(comment, "-")
+				switch len_ss := len(ss); len_ss {
+				case 0:
+					log15.Warn(fmt.Sprintf("Failed to parse. err: unexpected string: %s", comment))
+					continue
+				case 1:
+					name = config.SUSEEnterpriseServer
+					version = ss[0]
+				case 2:
+					if strings.HasPrefix(ss[1], "sp") {
+						name = config.SUSEEnterpriseServer
+						version = strings.Join(ss, ".")
+					} else {
+						name = fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, ss[1])
+						version = ss[0]
+					}
+				default:
+					name = fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, strings.Join(ss[2:], "."))
+					version = fmt.Sprintf("%s.%s", ss[0], ss[1])
+				}
+			case strings.HasPrefix(comment, "core9"):
+				name = config.SUSEEnterpriseServer
+				version = "9"
+			}
+
+			osVerPackages = append(osVerPackages, susePackage{
+				os:    name,
+				osVer: version,
+			})
+		}
+
+		if strings.Contains(c.Comment, "less than") {
+			ss := strings.Split(c.Comment, " less than ")
+			if len(ss) != 2 {
+				continue
+			}
+
+			packName := ss[0]
+			packVer := ss[1]
+			for _, p := range osVerPackages {
+				log15.Debug("append acc package", "os", p.os, "osVer", p.osVer, "pack.Name", packName, "pack.Version", packVer)
+				acc = append(acc, susePackage{
+					os:    p.os,
+					osVer: p.osVer,
+					pack: Package{
+						Name:    packName,
+						Version: packVer,
+					},
+				})
+			}
+		}
+	}
+
+	if len(cri.Criterias) == 0 {
+		return acc
+	}
+	for _, c := range cri.Criterias {
+		acc = walkSUSEFirst(c, osVerPackages, acc)
+	}
+	return acc
+}
+
+// opensuse13, opensuse.leap, SLED 11 >, SLES 11 >, openstack
+func walkSUSESecond(cri oval.Criteria, osVerPackages, acc []susePackage) []susePackage {
 	for _, c := range cri.Criterions {
 		comment := ""
 		if strings.HasSuffix(c.Comment, " is installed") {
@@ -131,11 +241,11 @@ func walkSUSE(cri oval.Criteria, osVerPackages, acc []susePackage) []susePackage
 			continue
 		}
 
-		// os or package
-		if strings.Contains(comment, "openSUSE") {
+		switch {
+		case strings.HasPrefix(comment, "openSUSE"):
 			comment = strings.TrimPrefix(comment, "openSUSE ")
 			name := config.OpenSUSE
-			if strings.Contains(comment, "Leap") {
+			if strings.HasPrefix(comment, "Leap") {
 				name = config.OpenSUSELeap
 				comment = strings.TrimPrefix(comment, "Leap ")
 			}
@@ -143,124 +253,52 @@ func walkSUSE(cri oval.Criteria, osVerPackages, acc []susePackage) []susePackage
 				os:    name,
 				osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
 			})
-		} else if strings.Contains(comment, "SUSE Linux Enterprise") {
+		case strings.HasPrefix(comment, "SUSE Linux Enterprise"):
 			comment = strings.TrimPrefix(comment, "SUSE Linux Enterprise ")
-			if strings.Contains(comment, "Desktop") {
+			var family string
+			switch {
+			case strings.HasPrefix(comment, "Desktop"):
 				comment = strings.TrimPrefix(comment, "Desktop ")
-				osVerPackages = append(osVerPackages, susePackage{
-					os:    config.SUSEEnterpriseDesktop,
-					osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-				})
-			} else if strings.Contains(comment, "Server") {
+				family = config.SUSEEnterpriseDesktop
+			case strings.HasPrefix(comment, "Server"):
 				comment = strings.TrimPrefix(comment, "Server ")
-				if strings.Contains(comment, "for SAP Applications") {
-					comment = strings.TrimPrefix(comment, "for SAP Applications ")
-					if strings.Contains(comment, "-LTSS") {
-						comment = strings.TrimSuffix(comment, "-LTSS")
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServerSAPLTSS,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					} else {
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServerSAP,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					}
-				} else if strings.Contains(comment, "for Raspberry Pi") {
-					comment = strings.TrimPrefix(comment, "for Raspberry Pi ")
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseServerRaspberryPi,
-						osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-					})
-				} else {
-					if strings.Contains(comment, "-LTSS") {
-						comment = strings.TrimSuffix(comment, "-LTSS")
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServerLTSS,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					} else if strings.Contains(comment, "-BCL") {
-						comment = strings.TrimSuffix(comment, "-BCL")
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServerBCL,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					} else if strings.Contains(comment, "-ESPOS") {
-						comment = strings.TrimSuffix(comment, "-ESPOS")
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServerESPOS,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					} else if strings.Contains(comment, "-TERADATA") {
-						comment = strings.TrimSuffix(comment, "-TERADATA")
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServerTERADATA,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					} else {
-						osVerPackages = append(osVerPackages, susePackage{
-							os:    config.SUSEEnterpriseServer,
-							osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-						})
-					}
+				if strings.HasPrefix(comment, "for") {
+					comment = strings.TrimPrefix(comment, "for ")
 				}
-			} else if strings.Contains(comment, "Workstation Extension") {
+				family = config.SUSEEnterpriseServer
+			case strings.HasPrefix(comment, "Workstation Extension"):
 				comment = strings.TrimPrefix(comment, "Workstation Extension ")
-				osVerPackages = append(osVerPackages, susePackage{
-					os:    config.SUSEEnterpriseWorkstation,
-					osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
-				})
-			} else if strings.Contains(comment, "Module for") {
+				family = config.SUSEEnterpriseWorkstation
+			case strings.HasPrefix(comment, "Module for"):
 				comment = strings.TrimPrefix(comment, "Module for ")
-				if strings.Contains(comment, "Advanced Systems Management") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModuleAdvancedSystemsManagement,
-						osVer: strings.TrimPrefix(comment, "Advanced Systems Management "),
-					})
-				} else if strings.Contains(comment, "Containers") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModuleContainers,
-						osVer: strings.TrimPrefix(comment, "Containers "),
-					})
-				} else if strings.Contains(comment, "High Performance Computing") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModuleHPC,
-						osVer: strings.TrimPrefix(comment, "High Performance Computing "),
-					})
-				} else if strings.Contains(comment, "Legacy") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModuleLegacy,
-						osVer: strings.TrimPrefix(comment, "Legacy "),
-					})
-				} else if strings.Contains(comment, "Public Cloud") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModulePublicCloud,
-						osVer: strings.TrimPrefix(comment, "Public Cloud "),
-					})
-				} else if strings.Contains(comment, "Toolchain") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModuleToolchain,
-						osVer: strings.TrimPrefix(comment, "Toolchain "),
-					})
-				} else if strings.Contains(comment, "Web Scripting") {
-					osVerPackages = append(osVerPackages, susePackage{
-						os:    config.SUSEEnterpriseModuleWebScripting,
-						osVer: strings.TrimPrefix(comment, "Web Scripting "),
-					})
-				} else {
-					log15.Warn("unsupport os name", "osName", fmt.Sprintf("SUSE Linux Enterprise Module for %s", comment))
-				}
-			} else {
-				log15.Warn("unsupport os name", "osName", fmt.Sprintf("SUSE Linux Enterprise %s", comment))
+				family = config.SUSEEnterpriseModule
+			default:
+				log15.Warn("not support OS Name. currently, only SUSE Linux Enterprise (Desktop|Server|Workstation Extension|Module) is supported", "c.Comment", c.Comment)
 			}
 
-		} else if strings.Contains(comment, "SUSE OpenStack Cloud") {
+			osName, osVer, err := getMoreAccurateOSNameVersion(comment, family)
+			if err != nil {
+				log15.Warn(err.Error())
+				continue
+			}
+
 			osVerPackages = append(osVerPackages, susePackage{
-				os:    config.SUSEOpenstackCloud,
-				osVer: strings.TrimPrefix(comment, "SUSE OpenStack Cloud "),
+				os:    osName,
+				osVer: osVer,
 			})
-		} else {
+		case strings.HasPrefix(comment, "SUSE OpenStack Cloud"):
+			comment = strings.TrimPrefix(comment, "SUSE OpenStack Cloud ")
+			osName, osVer, err := getMoreAccurateOSNameVersion(comment, config.SUSEOpenstackCloud)
+			if err != nil {
+				log15.Warn(err.Error())
+				continue
+			}
+
+			osVerPackages = append(osVerPackages, susePackage{
+				os:    osName,
+				osVer: osVer,
+			})
+		default:
 			ss := strings.Split(comment, "-")
 			packName := strings.Join(ss[0:len(ss)-2], "-")
 			packVer := strings.Join(ss[len(ss)-2:], "-")
@@ -282,7 +320,110 @@ func walkSUSE(cri oval.Criteria, osVerPackages, acc []susePackage) []susePackage
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkSUSE(c, osVerPackages, acc)
+		acc = walkSUSESecond(c, osVerPackages, acc)
 	}
 	return acc
+}
+
+func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
+	name := osName
+	version := ""
+
+	// s:
+	// "12"
+	// "12-LTSS"
+	// 11-SECURITY
+	// "12 SP1"
+	// "12 SP1-LTSS"
+	// "11 SP1-CLIENT-TOOLS"
+	// "SAP Applications 12"
+	// "SAP Applications 12-LTSS"
+	// "SAP Applications 11-SECURITY"
+	// "SAP Applications 12 SP1"
+	// "SAP Applications 12 SP1-LTSS"
+	// "SAP Applications 11 SP1-CLIENT-TOOLS"
+	// "Python 2 15 SP1"
+	ss := strings.Split(s, " ")
+	osVerIndex := 0
+	isPythonFlag := false
+	for i, sss := range ss {
+		_, err := strconv.Atoi(sss)
+		if err != nil {
+			// sss:
+			// "SAP"
+			// "Applications"
+			// "Python"
+			// "12-LTSS"
+			// "11-SECURITY"
+			if strings.Contains(sss, "-") {
+				ssss := strings.Split(sss, "-")
+				if len(ssss) != 2 {
+					return "", "", xerrors.Errorf("Failed to parse. err: (int)-(string) is expected. (actual: %s)", sss)
+				}
+
+				_, err = strconv.Atoi(ssss[0])
+				if err != nil {
+					return "", "", xerrors.Errorf("Failed to parse. err: version is expected. (actual: %s)", ssss[0])
+				}
+
+				name = fmt.Sprintf("%s.%s", name, strings.ToLower(ssss[1]))
+				version = ssss[0]
+				osVerIndex = i
+				break
+			} else {
+				if sss == "Python" {
+					isPythonFlag = true
+				}
+				name = fmt.Sprintf("%s.%s", name, strings.ToLower(sss))
+			}
+			continue
+		}
+
+		if !isPythonFlag {
+			version = sss
+			osVerIndex = i
+			break
+		} else {
+			name = fmt.Sprintf("%s.%s", name, sss)
+			isPythonFlag = false
+		}
+	}
+
+	if osVerIndex == len(ss)-1 {
+		return name, version, nil
+	}
+
+	ss = ss[osVerIndex:]
+	if len(ss) != 1 {
+		return "", "", xerrors.Errorf("Failed to parse. err:  unexpected Slice length: %s", ss)
+	}
+
+	// ss[0]:
+	// "SP1"
+	// "SP1-LTSS"
+	// "SP1-CLIENT-TOOLS"
+	if strings.Contains(ss[0], "-") {
+		sss := strings.Split(ss[0], "-")
+		if len(sss) < 2 {
+			return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
+		}
+
+		if sss[0] != "" {
+			if strings.HasPrefix(sss[0], "SP") {
+				version = fmt.Sprintf("%s.%s", version, strings.ToLower(sss[0]))
+			} else {
+				return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
+			}
+		}
+
+		name = fmt.Sprintf("%s.%s", name, strings.Join(sss[1:], "."))
+	} else {
+		if strings.HasPrefix(ss[1], "SP") {
+			version = fmt.Sprintf("%s.%s", version, strings.ToLower(ss[1]))
+		} else {
+			return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
+		}
+	}
+
+	return name, version, nil
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -11,11 +12,23 @@ import (
 
 func TestWalkSUSE(t *testing.T) {
 	var tests = []struct {
+		xmlName  string
 		cri      oval.Criteria
 		expected []susePackage
 	}{
-		// no OS Package
+		// no OS Package for WalkSUSEFirst
 		{
+			xmlName: "opensuse.10.2",
+			cri: oval.Criteria{
+				Criterions: []oval.Criterion{
+					{Comment: "apache2-mod_jk less than 4.1.30-13.4"},
+				},
+			},
+			expected: []susePackage{},
+		},
+		// no OS Package for WalkSUSESecond
+		{
+			xmlName: "opensuse.13.1",
 			cri: oval.Criteria{
 				Criterions: []oval.Criterion{
 					{Comment: "mailx-12.5-20.4.1 is installed"},
@@ -24,8 +37,9 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{},
 		},
-		//
+		// OS and Package in the same hierarchy
 		{
+			xmlName: "suse.openstack.cloud.7",
 			cri: oval.Criteria{
 				Criterions: []oval.Criterion{
 					{Comment: "SUSE OpenStack Cloud 7 is installed"},
@@ -43,8 +57,249 @@ func TestWalkSUSE(t *testing.T) {
 				},
 			},
 		},
+		// WalkSUSEFirst
 		// openSUSE
 		{
+			xmlName: "opensuse.10.2",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "suse102 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    config.OpenSUSE,
+					osVer: "10.2",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Desktop 10
+		{
+			xmlName: "suse.linux.enterprise.desktop.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sled10 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    config.SUSEEnterpriseDesktop,
+					osVer: "10",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Desktop 10 SP1
+		{
+			xmlName: "suse.linux.enterprise.desktop.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sled10-sp1 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    config.SUSEEnterpriseDesktop,
+					osVer: "10.sp1",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Desktop 10 SP1-ONLINE
+		{
+			xmlName: "suse.linux.enterprise.desktop.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sled10-sp1-online is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseDesktop, "online"),
+					osVer: "10.sp1",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Server 9
+		{
+			xmlName: "suse.linux.enterprise.server.9",
+			cri: oval.Criteria{
+				Criterions: []oval.Criterion{
+					{Comment: "mailx-12.5-20.4.1 is installed"},
+					{Comment: "kernel-default is not affected"},
+				},
+			},
+			expected: []susePackage{},
+		},
+		// SUSE Linux Enterprise Server 10
+		{
+			xmlName: "suse.linux.enterprise.server.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sles10 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    config.SUSEEnterpriseServer,
+					osVer: "10",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Server 10-LTSS
+		{
+			xmlName: "suse.linux.enterprise.server.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sles10-ltss is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
+					osVer: "10",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Server 10 SP1
+		{
+			xmlName: "suse.linux.enterprise.server.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sles10-sp1 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    config.SUSEEnterpriseServer,
+					osVer: "10.sp1",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Server 10 SP1-ONLINE
+		{
+			xmlName: "suse.linux.enterprise.server.10",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "cron less than 4.1-70"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "sles10-sp1-online is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "online"),
+					osVer: "10.sp1",
+					pack: Package{
+						Name:    "cron",
+						Version: "4.1-70",
+					},
+				},
+			},
+		},
+		// WalkSUSESecond
+		// openSUSE 12
+		{
+			xmlName: "opensuse.12.1",
+			cri: oval.Criteria{
+				Criterions: []oval.Criterion{
+					{Comment: "mailx-12.5-20.4.1 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    config.OpenSUSE,
+					osVer: "12.1",
+					pack: Package{
+						Name:    "mailx",
+						Version: "12.5-20.4.1",
+					},
+				},
+			},
+		},
+		// openSUSE
+		{
+			xmlName: "opensuse.13.2",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -71,6 +326,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// openSUSE NonFree
 		{
+			xmlName: "opensuse.13.2",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -96,6 +352,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// openSUSE Leap
 		{
+			xmlName: "opensuse.leap.42.2",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -122,6 +379,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// openSUSE Leap NonFree
 		{
+			xmlName: "opensuse.leap.42.2",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -148,6 +406,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Desktop 12
 		{
+			xmlName: "suse.linux.enterprise.desktop.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -173,6 +432,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Desktop 12 SP1
 		{
+			xmlName: "suse.linux.enterprise.desktop.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -198,6 +458,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server 12
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -223,6 +484,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server 12 SP1
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -248,6 +510,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server 12-LTSS
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -262,7 +525,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
@@ -273,6 +536,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server 12 SP1-LTSS
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -287,7 +551,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh",
@@ -296,83 +560,35 @@ func TestWalkSUSE(t *testing.T) {
 				},
 			},
 		},
-		// SUSE Linux Enterprise Server 12 SP2-BCL
+		// SUSE Linux Enterprise Server 11 SP1-CLIENT-TOOLS
 		{
+			xmlName: "suse.linux.enterprise.server.11",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
 						Criterions: []oval.Criterion{
-							{Comment: "glibc-2.22-62.22.5 is installed"},
+							{Comment: "openssh-6.6p1-54.15.2 is installed"},
 						},
 					},
 				},
 				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12 SP2-BCL is installed"},
+					{Comment: "SUSE Linux Enterprise Server 11 SP1-CLIENT-TOOLS is installed"},
 				},
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerBCL,
-					osVer: "12.sp2",
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "client.tools"),
+					osVer: "11.sp1",
 					pack: Package{
-						Name:    "glibc",
-						Version: "2.22-62.22.5",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 12 SP2-ESPOS
-		{
-			cri: oval.Criteria{
-				Criterias: []oval.Criteria{
-					{
-						Criterions: []oval.Criterion{
-							{Comment: "glibc-2.22-62.22.5 is installed"},
-						},
-					},
-				},
-				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12 SP2-ESPOS is installed"},
-				},
-			},
-			expected: []susePackage{
-				{
-					os:    config.SUSEEnterpriseServerESPOS,
-					osVer: "12.sp2",
-					pack: Package{
-						Name:    "glibc",
-						Version: "2.22-62.22.5",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 12 SP3-TERADATA
-		{
-			cri: oval.Criteria{
-				Criterias: []oval.Criteria{
-					{
-						Criterions: []oval.Criterion{
-							{Comment: "glibc-2.22-62.22.5 is installed"},
-						},
-					},
-				},
-				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12 SP3-TERADATA is installed"},
-				},
-			},
-			expected: []susePackage{
-				{
-					os:    config.SUSEEnterpriseServerTERADATA,
-					osVer: "12.sp3",
-					pack: Package{
-						Name:    "glibc",
-						Version: "2.22-62.22.5",
+						Name:    "openssh",
+						Version: "6.6p1-54.15.2",
 					},
 				},
 			},
 		},
 		// SUSE Linux Enterprise Server for Raspberry Pi 12
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -387,7 +603,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerRaspberryPi,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "raspberry.pi"),
 					osVer: "12",
 					pack: Package{
 						Name:    "krb5",
@@ -398,6 +614,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server for Raspberry Pi 12 SP2
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -412,7 +629,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerRaspberryPi,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "raspberry.pi"),
 					osVer: "12.sp2",
 					pack: Package{
 						Name:    "krb5",
@@ -423,6 +640,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server for SAP Applications 12
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -437,7 +655,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerSAP,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
 					osVer: "12",
 					pack: Package{
 						Name:    "krb5",
@@ -448,6 +666,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server for SAP Applications 12-LTSS
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -462,7 +681,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerSAPLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
 					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
@@ -473,6 +692,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server for SAP Applications 12 SP1
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -487,7 +707,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerSAP,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
 					osVer: "12.sp1",
 					pack: Package{
 						Name:    "libecpg6",
@@ -498,6 +718,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Server for SAP Applications 12 SP1-LTSS
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -512,8 +733,34 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerSAPLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
 					osVer: "12.sp1",
+					pack: Package{
+						Name:    "openssh",
+						Version: "6.6p1-54.15.2",
+					},
+				},
+			},
+		},
+		// SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS
+		{
+			xmlName: "suse.linux.enterprise.server.11",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "openssh-6.6p1-54.15.2 is installed"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS  is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.client.tools"),
+					osVer: "11.sp1",
 					pack: Package{
 						Name:    "openssh",
 						Version: "6.6p1-54.15.2",
@@ -523,6 +770,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Workstation Extension 12
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -548,6 +796,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Workstation Extension 12 SP1
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -573,6 +822,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Module for Advanced Systems Management 12
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -587,7 +837,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseModuleAdvancedSystemsManagement,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "advanced.systems.management"),
 					osVer: "12",
 					pack: Package{
 						Name:    "puppet-server",
@@ -598,6 +848,7 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		// SUSE Linux Enterprise Module for Containers 12
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -612,7 +863,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseModuleContainers,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "containers"),
 					osVer: "12",
 					pack: Package{
 						Name:    "sles12-docker-image",
@@ -621,133 +872,35 @@ func TestWalkSUSE(t *testing.T) {
 				},
 			},
 		},
-		// SUSE Linux Enterprise Module for High Performance Computing 12
+		// SUSE Linux Enterprise Module for Python 2 15 SP1
 		{
+			xmlName: "suse.linux.enterprise.server.15",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
 						Criterions: []oval.Criterion{
-							{Comment: "libnss_slurm2_20_02-20.02.3-3.5.1 is installed"},
+							{Comment: "python-curses-2.7.17-7.32.2 is installed"},
 						},
 					},
 				},
 				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Module for High Performance Computing 12 is installed"},
+					{Comment: "SUSE Linux Enterprise Module for Python 2 15 SP1 is installed"},
 				},
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseModuleHPC,
-					osVer: "12",
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "python.2"),
+					osVer: "15.sp1",
 					pack: Package{
-						Name:    "libnss_slurm2_20_02",
-						Version: "20.02.3-3.5.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Legacy 12
-		{
-			cri: oval.Criteria{
-				Criterias: []oval.Criteria{
-					{
-						Criterions: []oval.Criterion{
-							{Comment: "libopenssl0_9_8-0.9.8j-97.1 is installed"},
-						},
-					},
-				},
-				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Legacy 12 is installed"},
-				},
-			},
-			expected: []susePackage{
-				{
-					os:    config.SUSEEnterpriseModuleLegacy,
-					osVer: "12",
-					pack: Package{
-						Name:    "libopenssl0_9_8",
-						Version: "0.9.8j-97.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Public Cloud 12
-		{
-			cri: oval.Criteria{
-				Criterias: []oval.Criteria{
-					{
-						Criterions: []oval.Criterion{
-							{Comment: "kernel-ec2-3.12.74-60.64.40.1 is installed"},
-						},
-					},
-				},
-				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Public Cloud 12 is installed"},
-				},
-			},
-			expected: []susePackage{
-				{
-					os:    config.SUSEEnterpriseModulePublicCloud,
-					osVer: "12",
-					pack: Package{
-						Name:    "kernel-ec2",
-						Version: "3.12.74-60.64.40.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Toolchain 12
-		{
-			cri: oval.Criteria{
-				Criterias: []oval.Criteria{
-					{
-						Criterions: []oval.Criterion{
-							{Comment: "gcc5-ada-5.3.1+r233831-9.1 is installed"},
-						},
-					},
-				},
-				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Toolchain 12 is installed"},
-				},
-			},
-			expected: []susePackage{
-				{
-					os:    config.SUSEEnterpriseModuleToolchain,
-					osVer: "12",
-					pack: Package{
-						Name:    "gcc5-ada",
-						Version: "5.3.1+r233831-9.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Web Scripting 12
-		{
-			cri: oval.Criteria{
-				Criterias: []oval.Criteria{
-					{
-						Criterions: []oval.Criterion{
-							{Comment: "apache2-mod_php5-5.5.14-33.2 is installed"},
-						},
-					},
-				},
-				Criterions: []oval.Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Web Scripting 12 is installed"},
-				},
-			},
-			expected: []susePackage{
-				{
-					os:    config.SUSEEnterpriseModuleWebScripting,
-					osVer: "12",
-					pack: Package{
-						Name:    "apache2-mod_php5",
-						Version: "5.5.14-33.2",
+						Name:    "python-curses",
+						Version: "2.7.17-7.32.2",
 					},
 				},
 			},
 		},
 		// SUSE OpenStack Cloud 7
 		{
+			xmlName: "suse.openstack.cloud.7",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -771,8 +924,61 @@ func TestWalkSUSE(t *testing.T) {
 				},
 			},
 		},
+		// SUSE OpenStack Cloud Crowbar 9
+		{
+			xmlName: "suse.openstack.cloud.9",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "glibc-2.22-62.22.5 is installed"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "SUSE OpenStack Cloud Crowbar 9 is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    fmt.Sprintf("%s.%s", config.SUSEOpenstackCloud, "crowbar"),
+					osVer: "9",
+					pack: Package{
+						Name:    "glibc",
+						Version: "2.22-62.22.5",
+					},
+				},
+			},
+		},
+		// SUSE OpenStack Cloud 6-LTSS
+		{
+			xmlName: "suse.openstack.cloud.6",
+			cri: oval.Criteria{
+				Criterias: []oval.Criteria{
+					{
+						Criterions: []oval.Criterion{
+							{Comment: "glibc-2.22-62.22.5 is installed"},
+						},
+					},
+				},
+				Criterions: []oval.Criterion{
+					{Comment: "SUSE OpenStack Cloud 6-LTSS is installed"},
+				},
+			},
+			expected: []susePackage{
+				{
+					os:    fmt.Sprintf("%s.%s", config.SUSEOpenstackCloud, "ltss"),
+					osVer: "9",
+					pack: Package{
+						Name:    "glibc",
+						Version: "2.22-62.22.5",
+					},
+				},
+			},
+		},
 		// Multi OS and Multi Package
 		{
+			xmlName: "suse.linux.enterprise.server.12",
 			cri: oval.Criteria{
 				Criterias: []oval.Criteria{
 					{
@@ -789,7 +995,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.SUSEEnterpriseServerLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
@@ -797,7 +1003,7 @@ func TestWalkSUSE(t *testing.T) {
 					},
 				},
 				{
-					os:    config.SUSEEnterpriseServerLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh",
@@ -805,7 +1011,7 @@ func TestWalkSUSE(t *testing.T) {
 					},
 				},
 				{
-					os:    config.SUSEEnterpriseServerLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 					osVer: "12",
 					pack: Package{
 						Name:    "openssh-askpass-gnome",
@@ -813,7 +1019,7 @@ func TestWalkSUSE(t *testing.T) {
 					},
 				},
 				{
-					os:    config.SUSEEnterpriseServerLTSS,
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh-askpass-gnome",
@@ -825,7 +1031,7 @@ func TestWalkSUSE(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		actual := collectSUSEPacks(tt.cri)
+		actual := collectSUSEPacks(tt.xmlName, tt.cri)
 		if !reflect.DeepEqual(tt.expected, actual) {
 			e := pp.Sprintf("%v", tt.expected)
 			a := pp.Sprintf("%v", actual)

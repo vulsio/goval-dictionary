@@ -16,7 +16,7 @@
 	fetch-rdb \
 	fetch-redis \
 	diff-cveid \
-	diff-pakcage \
+	diff-package \
 	diff-server-rdb \
 	diff-server-redis \
 	diff-server-rdb-redis

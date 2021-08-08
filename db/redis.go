@@ -190,7 +190,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	}
 
 	defs := []models.Definition{}
-	for defKey, _ := range defKeys {
+	for defKey := range defKeys {
 		defstr, err := d.conn.Get(defKey).Result()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
@@ -256,7 +256,8 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 
 func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
 	for _, p := range packs {
-		if strings.Contains(p.Version, ".el"+majorVer) {
+		if strings.Contains(p.Version, ".el"+majorVer) ||
+			strings.Contains(p.Version, ".module+el"+majorVer) {
 			filtered = append(filtered, p)
 		}
 	}

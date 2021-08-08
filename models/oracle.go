@@ -16,6 +16,14 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 			continue
 		}
 
+		cveMap := map[string]Cve{}
+		for _, c := range ovaldef.Advisory.Cves {
+			cveMap[c.CveID] = Cve{
+				CveID: c.CveID,
+				Href:  c.Href,
+			}
+		}
+
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
 			rs = append(rs, Reference{
@@ -23,14 +31,20 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
+
+			if r.Source == "CVE" {
+				if _, ok := cveMap[r.RefID]; !ok {
+					cveMap[r.RefID] = Cve{
+						CveID: r.RefID,
+						Href:  r.RefURL,
+					}
+				}
+			}
 		}
 
 		cves := []Cve{}
-		for _, c := range ovaldef.Advisory.Cves {
-			cves = append(cves, Cve{
-				CveID: c.CveID,
-				Href:  c.Href,
-			})
+		for _, cve := range cveMap {
+			cves = append(cves, cve)
 		}
 
 		osVerPacks := map[string][]Package{}
@@ -44,10 +58,12 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				Title:        strings.TrimSpace(ovaldef.Title),
 				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
-					Cves:     append([]Cve{}, cves...),
-					Severity: ovaldef.Advisory.Severity,
-					Issued:   time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-					Updated:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Severity:        ovaldef.Advisory.Severity,
+					Bugzillas:       []Bugzilla{},
+					AffectedCPEList: []Cpe{},
+					Cves:            append([]Cve{}, cves...),
+					Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				AffectedPacks: append([]Package{}, packs...),
 				References:    append([]Reference{}, rs...),
@@ -56,6 +72,11 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 			if viper.GetBool("no-details") {
 				def.Title = ""
 				def.Description = ""
+				def.Advisory.Severity = ""
+				def.Advisory.Bugzillas = []Bugzilla{}
+				def.Advisory.AffectedCPEList = []Cpe{}
+				def.Advisory.Issued = time.Time{}
+				def.Advisory.Updated = time.Time{}
 				def.References = []Reference{}
 			}
 

@@ -73,6 +73,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			Title:        ovaldef.Title,
 			Description:  description,
 			Advisory: Advisory{
+				Severity:        "",
 				Cves:            cves,
 				Bugzillas:       []Bugzilla{},
 				AffectedCPEList: []Cpe{},
@@ -86,6 +87,11 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 		if viper.GetBool("no-details") {
 			def.Title = ""
 			def.Description = ""
+			def.Advisory.Severity = ""
+			def.Advisory.Bugzillas = []Bugzilla{}
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Issued = time.Time{}
+			def.Advisory.Updated = time.Time{}
 			def.References = []Reference{}
 		}
 

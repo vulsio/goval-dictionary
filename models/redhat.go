@@ -17,6 +17,20 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 		if strings.Contains(d.Description, "** REJECT **") {
 			continue
 		}
+
+		cveMap := map[string]Cve{}
+		for _, c := range d.Advisory.Cves {
+			cveMap[c.CveID] = Cve{
+				CveID:  c.CveID,
+				Cvss2:  c.Cvss2,
+				Cvss3:  c.Cvss3,
+				Cwe:    c.Cwe,
+				Impact: c.Impact,
+				Href:   c.Href,
+				Public: c.Public,
+			}
+		}
+
 		rs := []Reference{}
 		for _, r := range d.References {
 			rs = append(rs, Reference{
@@ -24,6 +38,15 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
+
+			if r.Source == "CVE" {
+				if _, ok := cveMap[r.RefID]; !ok {
+					cveMap[r.RefID] = Cve{
+						CveID: r.RefID,
+						Href:  r.RefURL,
+					}
+				}
+			}
 		}
 
 		cl := []Cpe{}
@@ -34,16 +57,8 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 		}
 
 		cves := []Cve{}
-		for _, c := range d.Advisory.Cves {
-			cves = append(cves, Cve{
-				CveID:  c.CveID,
-				Cvss2:  c.Cvss2,
-				Cvss3:  c.Cvss3,
-				Cwe:    c.Cwe,
-				Impact: c.Impact,
-				Href:   c.Href,
-				Public: c.Public,
-			})
+		for _, cve := range cveMap {
+			cves = append(cves, cve)
 		}
 
 		bs := []Bugzilla{}
@@ -88,8 +103,8 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			def.Title = ""
 			def.Description = ""
 			def.Advisory.Severity = ""
-			def.Advisory.AffectedCPEList = nil
-			def.Advisory.Bugzillas = nil
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Bugzillas = []Bugzilla{}
 			def.Advisory.Issued = time.Time{}
 			def.Advisory.Updated = time.Time{}
 			def.References = []Reference{}

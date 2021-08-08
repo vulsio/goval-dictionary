@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -51,21 +52,33 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 	for cveID, packs := range cveIDPacks {
 		def := Definition{
 			DefinitionID: "def-" + cveID,
+			Title:        cveID,
+			Description:  "",
 			Advisory: Advisory{
-				Cves:    []Cve{{CveID: cveID}},
-				Issued:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Updated: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Severity:        "",
+				Cves:            []Cve{{CveID: cveID, Href: fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", cveID)}},
+				Bugzillas:       []Bugzilla{},
+				AffectedCPEList: []Cpe{},
+				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
+			AffectedPacks: packs,
 			References: []Reference{
 				{
 					Source: "CVE",
 					RefID:  cveID,
 				},
 			},
-			AffectedPacks: packs,
 		}
 
 		if viper.GetBool("no-details") {
+			def.Title = ""
+			def.Description = ""
+			def.Advisory.Severity = ""
+			def.Advisory.Bugzillas = []Bugzilla{}
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Issued = time.Time{}
+			def.Advisory.Updated = time.Time{}
 			def.References = []Reference{}
 		}
 

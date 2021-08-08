@@ -69,6 +69,11 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 		if viper.GetBool("no-details") {
 			def.Title = ""
 			def.Description = ""
+			def.Advisory.Severity = ""
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Bugzillas = []Bugzilla{}
+			def.Advisory.Issued = time.Time{}
+			def.Advisory.Updated = time.Time{}
 			def.References = []Reference{}
 		}
 

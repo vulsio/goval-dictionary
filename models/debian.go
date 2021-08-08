@@ -55,39 +55,41 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			description = fmt.Sprintf("%s\n[MoreInfo]\n%s", description, ovaldef.Debian.MoreInfo)
 		}
 
-		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
+		var t time.Time
+		if ovaldef.Debian.Date == "" {
+			t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		} else {
 			const timeformat = "2006-01-02"
-
-			var t time.Time
-			if ovaldef.Debian.Date == "" {
-				t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-			} else {
-				t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
-			}
-
-			def := Definition{
-				DefinitionID: ovaldef.ID,
-				Title:        ovaldef.Title,
-				Description:  description,
-				Advisory: Advisory{
-					Cves:            cves,
-					Bugzillas:       []Bugzilla{},
-					AffectedCPEList: []Cpe{},
-					Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-					Updated:         t,
-				},
-				AffectedPacks: []Package{distPack.pack},
-				References:    rs,
-			}
-
-			if viper.GetBool("no-details") {
-				def.Title = ""
-				def.Description = ""
-				def.References = []Reference{}
-			}
-
-			defs = append(defs, def)
+			t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
 		}
+
+		packs := []Package{}
+		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
+			packs = append(packs, distPack.pack)
+		}
+
+		def := Definition{
+			DefinitionID: ovaldef.ID,
+			Title:        ovaldef.Title,
+			Description:  description,
+			Advisory: Advisory{
+				Cves:            cves,
+				Bugzillas:       []Bugzilla{},
+				AffectedCPEList: []Cpe{},
+				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Updated:         t,
+			},
+			AffectedPacks: packs,
+			References:    rs,
+		}
+
+		if viper.GetBool("no-details") {
+			def.Title = ""
+			def.Description = ""
+			def.References = []Reference{}
+		}
+
+		defs = append(defs, def)
 	}
 	return
 }

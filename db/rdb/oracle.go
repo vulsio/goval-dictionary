@@ -104,10 +104,13 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([]models.Definition, error) {
 	osVer = major(osVer)
 	packs := []models.Package{}
-	err := driver.Where(&models.Package{
-		Name: packName,
-		Arch: arch,
-	}).Find(&packs).Error
+	err := driver.
+		Where(&models.Package{
+			Name: packName,
+			Arch: arch,
+		}).
+		Distinct("`packages`.`definition_id`").
+		Find(&packs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -148,7 +151,7 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
-		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
+		err = driver.Model(&def).Where(&models.Package{Arch: arch}).Association("AffectedPacks").Find(&packs)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -166,19 +169,27 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 }
 
 // GetByCveID select definition by CveID
-func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
-		config.Oracle, major(osVer)).
+func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID, arch string) ([]models.Definition, error) {
+	defs := []models.Definition{}
+	q := driver.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Oracle, major(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").
 		Where("cves.cve_id = ?", cveID).
 		Preload("Advisory").
 		Preload("Advisory.Cves").
-		Preload("AffectedPacks").
-		Preload("References").
-		Find(&defs).Error
+		Preload("References")
+
+	if arch == "" {
+		q = q.Preload("AffectedPacks")
+	} else {
+		q = q.Preload("AffectedPacks", "arch = ?", arch)
+	}
+
+	err := q.Find(&defs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+
 	return defs, nil
 }

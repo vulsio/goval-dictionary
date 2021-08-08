@@ -189,7 +189,7 @@ func filterByMajor(packs []models.Package, majorVer string) (filtered []models.P
 }
 
 // GetByCveID select definition by CveID
-func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []models.Definition, err error) {
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.RedHat, major(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").

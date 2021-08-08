@@ -13,8 +13,8 @@ type DB interface {
 	Name() string
 	NewOvalDB(string) error
 	CloseDB() error
-	GetByPackName(string, string, string, string) ([]models.Definition, error)
-	GetByCveID(string, string, string) ([]models.Definition, error)
+	GetByPackName(family string, osVer string, packName string, arch string) ([]models.Definition, error)
+	GetByCveID(family string, osVer string, cveID string, arch string) ([]models.Definition, error)
 	InsertOval(string, *models.Root, models.FetchMeta) error
 	InsertFetchMeta(models.FetchMeta) error
 	CountDefs(string, string) (int, error)

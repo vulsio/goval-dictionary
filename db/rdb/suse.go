@@ -160,7 +160,7 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 // GetByCveID select definitions by CveID
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
-func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []models.Definition, err error) {
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		o.Name(), osVer).
 		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).

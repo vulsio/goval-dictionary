@@ -16,32 +16,34 @@ import (
 /**
 # Redis Data Structure
 
-- HASH
-  ┌───┬────────────────┬─────────────┬────────────────┬──────────────────┐
-  │NO │      HASH      │    FIELD    │     VALUE      │     PURPOSE      │
-  └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
-  ┌───┬────────────────┬─────────────┬────────────────┬──────────────────┐
-  │ 1 │OVAL#$OSFAMILY::│$DEFINITIONID│   $OVALJSON    │ TO GET OVALJSON  │
-  │   │$VERSION::$CVEID│             │                │   BY CVEID&OS    │
-  └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
+- Strings
+  ┌───┬─────────────────────────────────────────┬─────────────┬─────────────────┐
+  │NO │                  HASH                   │    VALUE    │     PURPOSE     │
+  └───┴─────────────────────────────────────────┴─────────────┴─────────────────┘
+  ┌───┬─────────────────────────────────────────┬─────────────┬─────────────────┐
+  │ 1 │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │  $OVALJSON  │ TO GET OVALJSON │
+  └───┴─────────────────────────────────────────┴─────────────┴─────────────────┘
 
-- ZINDEX
-  ┌───┬────────────────┬─────────────┬────────────────┬──────────────────┐
-  │NO │      KEY       │    SCORE    │     MEMBER     │     PURPOSE      │
-  └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
-  ┌───┬────────────────┬─────────────┬────────────────┬──────────────────┐
-  │ 2 │  $PACKAGENAME  │      0      │OVAL#$OSFAMILY::│TO GET []CVEID&OS │
-  │   │      or        │             │$VERSION::$CVEID│  BY PACKAGENAME  │
-  │   │  $PACKAGENAME::│             │                │                  │
-  │   │  $ARCH         │             │                │For Amazon/Oracle │
-  └───┴────────────────┴─────────────┴────────────────┴──────────────────┘
+- Sets
+  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
+  │NO │ KEY                                           │ MEMBER                                  │ PURPOSE                                  │
+  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
+  │ 2 │ OVAL#$OSFAMILY::$VERSION::$PACKAGENAME        │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
+  │ 3 │ OVAL#$OSFAMILY::$VERSION::$PACKAGENAME::$ARCH │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle │
+  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
+  │ 4 │ OVAL#$OSFAMILY::$VERSION::$CVEID              │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
 **/
 
 // Supported DB dialects.
 const (
-	dialectRedis     = "redis"
-	hashKeyPrefix    = "OVAL#"
-	hashKeySeparator = "::"
+	dialectRedis = "redis"
+	keyPrefix    = "OVAL#"
+	keySeparator = "::"
 )
 
 // RedisDriver is Driver for Redis
@@ -141,100 +143,226 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		osVer = major(osVer)
 	}
 
-	zkey := hashKeyPrefix + packName
+	key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, family, keySeparator, osVer, keySeparator, packName)
+	defKeys := map[string]bool{}
 	switch family {
 	case c.Amazon, c.Oracle:
 		// affected packages for Amazon and Oracle OVAL needs to consider arch
-		zkey = hashKeyPrefix + packName + hashKeySeparator + arch
-	}
+		if arch != "" {
+			key = fmt.Sprintf("%s%s%s", key, keySeparator, arch)
+			keys, err := d.conn.SMembers(key).Result()
+			if err != nil {
+				return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+			}
 
-	var result *redis.StringSliceCmd
-	if result = d.conn.ZRange(zkey, 0, -1); result.Err() != nil {
-		log15.Error("Failed to get definition from package", "err", result.Err())
-		return nil, result.Err()
+			for _, k := range keys {
+				defKeys[k] = true
+			}
+		} else {
+			key = fmt.Sprintf("%s%s%s", key, keySeparator, "*")
+			keys, err := d.conn.Keys(key).Result()
+			if err != nil {
+				return nil, fmt.Errorf("Failed to Keys(%s). err: %s", key, err)
+			}
+
+			for _, k := range keys {
+				dkeys, err := d.conn.SMembers(k).Result()
+				if err != nil {
+					return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+				}
+
+				for _, dkey := range dkeys {
+					if _, ok := defKeys[dkey]; !ok {
+						defKeys[dkey] = true
+					}
+				}
+			}
+		}
+	default:
+		keys, err := d.conn.SMembers(key).Result()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+		}
+
+		for _, k := range keys {
+			defKeys[k] = true
+		}
 	}
 
 	defs := []models.Definition{}
-	found := map[string]bool{}
-	for _, v := range result.Val() {
-		f, ver, _ := splitHashKey(v)
-		if f != family || ver != osVer {
-			continue
-		}
-		tmpdefs, err := getByHashKey(v, d.conn)
+	for defKey, _ := range defKeys {
+		defstr, err := d.conn.Get(defKey).Result()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
 		}
-		for _, vv := range tmpdefs {
-			if !found[vv.DefinitionID] {
-				found[vv.DefinitionID] = true
-				defs = append(defs, vv)
-			}
+		if defstr != "" {
+			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
 		}
+
+		_, version, _, err := splitDefKey(defKey)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to splitDefKey. err: %s", err)
+		}
+		def, err := restoreDefinition(defstr, family, version, arch)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
+		}
+		defs = append(defs, def)
 	}
+
 	return defs, nil
 }
 
+func splitDefKey(defkey string) (string, string, string, error) {
+	ss := strings.Split(strings.TrimPrefix(defkey, keyPrefix), keySeparator)
+	if len(ss) != 3 {
+		return "", "", "", fmt.Errorf("Failed to parse defkey(%s) correctly.", defkey)
+	}
+
+	return ss[0], ss[1], ss[2], nil
+}
+
+func restoreDefinition(defstr, family, version, arch string) (models.Definition, error) {
+	var def models.Definition
+	if err := json.Unmarshal([]byte(defstr), &def); err != nil {
+		log15.Error("Failed to Unmarshal json.", "err", err)
+		return models.Definition{}, err
+	}
+
+	switch family {
+	case c.Amazon, c.Oracle:
+		def.AffectedPacks = fileterPacksByArch(def.AffectedPacks, arch)
+	case c.RedHat:
+		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, version)
+	}
+
+	return def, nil
+}
+
+func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
+	if arch == "" {
+		return packs
+	}
+
+	filtered := []models.Package{}
+	for _, pack := range packs {
+		if pack.Arch == arch {
+			filtered = append(filtered, pack)
+		}
+	}
+
+	return filtered
+}
+
+func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
+	for _, p := range packs {
+		if strings.Contains(p.Version, ".el"+majorVer) {
+			filtered = append(filtered, p)
+		}
+	}
+	return
+}
+
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
-func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definition, error) {
-	hashKey := getHashKey(family, osVer, cveID)
-	return getByHashKey(hashKey, d.conn)
+func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
+	switch family {
+	case c.CentOS:
+		family = c.RedHat
+	case c.Raspbian:
+		family = c.Debian
+	}
+
+	if family == c.Amazon {
+		osVer = getAmazonLinux1or2(osVer)
+	} else if family != c.Alpine {
+		// OVAL is provided for each major for all other OSes except alpine,
+		// But Alpine provides it for each major.minor
+		osVer = major(osVer)
+	}
+
+	key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, family, keySeparator, osVer, keySeparator, cveID)
+	defKeys, err := d.conn.SMembers(key).Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+	}
+
+	defs := []models.Definition{}
+	for _, defKey := range defKeys {
+		defstr, err := d.conn.Get(defKey).Result()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
+		}
+		if defstr != "" {
+			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
+		}
+
+		_, version, _, err := splitDefKey(defKey)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to splitDefKey. err: %s", err)
+		}
+		def, err := restoreDefinition(defstr, family, version, arch)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
+		}
+		defs = append(defs, def)
+	}
+
+	return defs, nil
 }
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
 	definitions := aggregateAffectedPackages(root.Definitions)
-	total := map[string]struct{}{}
 	for chunked := range chunkSlice(definitions, 10) {
-		var pipe redis.Pipeliner
-		pipe = d.conn.Pipeline()
+		pipe := d.conn.Pipeline()
 		for _, def := range chunked {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
+
+			defKey := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, def.DefinitionID)
+			if err := pipe.Set(defKey, dj, time.Duration(0)).Err(); err != nil {
+				return fmt.Errorf("Failed to SET definition id. err: %s", err)
+			}
+
 			cveIDs := map[string]struct{}{}
+			for _, cve := range def.Advisory.Cves {
+				cveIDs[cve.CveID] = struct{}{}
+			}
 			for _, ref := range def.References {
 				if ref.Source != "CVE" || ref.RefID == "" {
 					continue
 				}
 				cveIDs[ref.RefID] = struct{}{}
 			}
-			for _, cve := range def.Advisory.Cves {
-				cveIDs[cve.CveID] = struct{}{}
-			}
 			if def.Debian.CveID != "" {
 				cveIDs[def.Debian.CveID] = struct{}{}
 			}
+
 			for cveID := range cveIDs {
-				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
-				if result := pipe.HSet(hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
-					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
+				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, cveID)
+				if err := pipe.SAdd(key, defKey).Err(); err != nil {
+					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
 				}
-				for _, pack := range def.AffectedPacks {
-					zkey := hashKeyPrefix + pack.Name
-					switch family {
-					case c.Amazon, c.Oracle:
-						// affected packages for Amazon OVAL needs to consider arch
-						zkey = hashKeyPrefix + pack.Name + hashKeySeparator + pack.Arch
-					}
-					if result := pipe.ZAdd(
-						zkey,
-						redis.Z{
-							Score:  0,
-							Member: hashKey,
-						}); result.Err() != nil {
-						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
-					}
+			}
+
+			for _, pack := range def.AffectedPacks {
+				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, pack.Name)
+				switch family {
+				case c.Amazon, c.Oracle:
+					// affected packages for Amazon OVAL needs to consider arch
+					key = fmt.Sprintf("%s%s%s", key, keySeparator, pack.Arch)
 				}
-				total[cveID] = struct{}{}
+				if err := pipe.SAdd(key, defKey).Err(); err != nil {
+					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
+				}
 			}
 		}
 		if _, err = pipe.Exec(); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
 	}
-	log15.Info("Total CVE-IDs: ", "count", len(total))
 	return nil
 }
 
@@ -306,12 +434,12 @@ func getByHashKey(hashKey string, driver *redis.Client) ([]models.Definition, er
 }
 
 func getHashKey(family, osVer, cveID string) string {
-	return hashKeyPrefix + family + hashKeySeparator + osVer + hashKeySeparator + cveID
+	return keyPrefix + family + keySeparator + osVer + keySeparator + cveID
 }
 
 func splitHashKey(hashKey string) (osFamily, osVer, cveID string) {
-	keyWithoutPrefix := hashKey[len(hashKeyPrefix):]
-	keys := strings.Split(keyWithoutPrefix, hashKeySeparator)
+	keyWithoutPrefix := hashKey[len(keyPrefix):]
+	keys := strings.Split(keyWithoutPrefix, keySeparator)
 	if len(keys) != 3 {
 		return "", "", ""
 	}
@@ -328,15 +456,6 @@ func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
 func (d *RedisDriver) GetLastModified(osFamily, osVer string) (time.Time, error) {
 	// TODO not implemented yet
 	return time.Now(), nil
-}
-
-func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
-	for _, p := range packs {
-		if strings.Contains(p.Version, ".el"+majorVer) {
-			filtered = append(filtered, p)
-		}
-	}
-	return
 }
 
 // getAmazonLinux2 returns AmazonLinux1 or 2

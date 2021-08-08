@@ -169,7 +169,6 @@ func (d *Driver) MigrateDB() error {
 		&models.Cve{},
 		&models.Bugzilla{},
 		&models.Cpe{},
-		&models.Debian{},
 	); err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}

@@ -101,7 +101,6 @@ func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Joins("JOIN packages ON packages.definition_id = definitions.id").
 			Where("packages.name = ?", packName).
 			Limit(limit).Offset(i * limit).
-			Preload("Debian").
 			Preload("AffectedPacks").
 			Preload("References").
 			Find(&tmpDefs).Error
@@ -122,7 +121,6 @@ func (o *Debian) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []mod
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		config.Debian, major(osVer)).
 		Where("definitions.title = ?", cveID).
-		Preload("Debian").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

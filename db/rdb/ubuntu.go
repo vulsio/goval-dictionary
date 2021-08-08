@@ -111,7 +111,6 @@ func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Joins("JOIN packages ON packages.definition_id = definitions.id").
 			Where("packages.name = ?", packName).
 			Limit(limit).Offset(i * limit).
-			Preload("Debian").
 			Preload("Advisory").
 			Preload("AffectedPacks").
 			Preload("References").
@@ -133,7 +132,6 @@ func (o *Ubuntu) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []mod
 		config.Ubuntu, major(osVer)).
 		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
 		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).
-		Preload("Debian").
 		Preload("Advisory").
 		Preload("AffectedPacks").
 		Preload("References").

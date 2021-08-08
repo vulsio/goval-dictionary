@@ -26,6 +26,9 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
+		description := ovaldef.Description
+		if ovaldef.Debian.MoreInfo != "" {
+			description = fmt.Sprintf("%s\n[MoreInfo]\n%s", description, ovaldef.Debian.MoreInfo)
 		}
 
 		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {

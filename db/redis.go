@@ -327,22 +327,8 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				return fmt.Errorf("Failed to SET definition id. err: %s", err)
 			}
 
-			cveIDs := map[string]struct{}{}
 			for _, cve := range def.Advisory.Cves {
-				cveIDs[cve.CveID] = struct{}{}
-			}
-			for _, ref := range def.References {
-				if ref.Source != "CVE" || ref.RefID == "" {
-					continue
-				}
-				cveIDs[ref.RefID] = struct{}{}
-			}
-			if def.Debian.CveID != "" {
-				cveIDs[def.Debian.CveID] = struct{}{}
-			}
-
-			for cveID := range cveIDs {
-				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, cveID)
+				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, cve.CveID)
 				if err := pipe.SAdd(key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
 				}

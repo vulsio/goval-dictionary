@@ -341,8 +341,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.OpenSUSE,
-					osVer: "13.2.nonfree",
+					os:    fmt.Sprintf("%s.%s", config.OpenSUSE, "nonfree"),
+					osVer: "13.2",
 					pack: Package{
 						Name:    "mailx",
 						Version: "12.5-20.4.1",
@@ -395,8 +395,8 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    config.OpenSUSELeap,
-					osVer: "42.2.nonfree",
+					os:    fmt.Sprintf("%s.%s", config.OpenSUSELeap, "nonfree"),
+					osVer: "42.2",
 					pack: Package{
 						Name:    "libunrar-devel",
 						Version: "5.5.5-3.1",
@@ -603,7 +603,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "raspberry.pi"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.raspberry.pi"),
 					osVer: "12",
 					pack: Package{
 						Name:    "krb5",
@@ -629,7 +629,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "raspberry.pi"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.raspberry.pi"),
 					osVer: "12.sp2",
 					pack: Package{
 						Name:    "krb5",
@@ -655,7 +655,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications"),
 					osVer: "12",
 					pack: Package{
 						Name:    "krb5",
@@ -681,7 +681,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.ltss"),
 					osVer: "12",
 					pack: Package{
 						Name:    "openssh",
@@ -707,7 +707,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications"),
 					osVer: "12.sp1",
 					pack: Package{
 						Name:    "libecpg6",
@@ -733,7 +733,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.ltss"),
 					osVer: "12.sp1",
 					pack: Package{
 						Name:    "openssh",
@@ -759,7 +759,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.client.tools"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.client.tools"),
 					osVer: "11.sp1",
 					pack: Package{
 						Name:    "openssh",
@@ -837,7 +837,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "advanced.systems.management"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "for.advanced.systems.management"),
 					osVer: "12",
 					pack: Package{
 						Name:    "puppet-server",
@@ -863,7 +863,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "containers"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "for.containers"),
 					osVer: "12",
 					pack: Package{
 						Name:    "sles12-docker-image",
@@ -889,7 +889,7 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			expected: []susePackage{
 				{
-					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "python.2"),
+					os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseModule, "for.python.2"),
 					osVer: "15.sp1",
 					pack: Package{
 						Name:    "python-curses",
@@ -1040,142 +1040,154 @@ func TestWalkSUSE(t *testing.T) {
 	}
 }
 
-func TestGetMoreAccurateOSNameVersion(t *testing.T) {
+func TestGetOSNameVersion(t *testing.T) {
 	type expected struct {
 		os    string
 		osVer string
 	}
 	var tests = []struct {
-		os       string
 		s        string
 		expected expected
 	}{
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "12",
+			s: "openSUSE 13.2",
+			expected: expected{
+				os:    config.OpenSUSE,
+				osVer: "13.2",
+			},
+		},
+		{
+			s: "openSUSE 13.2 NonFree",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.OpenSUSE, "nonfree"),
+				osVer: "13.2",
+			},
+		},
+		{
+			s: "openSUSE Leap 42.2",
+			expected: expected{
+				os:    config.OpenSUSELeap,
+				osVer: "42.2",
+			},
+		},
+		{
+			s: "openSUSE Leap 42.2 NonFree",
+			expected: expected{
+				os:    fmt.Sprintf("%s.%s", config.OpenSUSELeap, "nonfree"),
+				osVer: "42.2",
+			},
+		},
+		{
+			s: "SUSE Linux Enterprise Server 12",
 			expected: expected{
 				os:    config.SUSEEnterpriseServer,
 				osVer: "12",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "12-LTSS",
+			s: "SUSE Linux Enterprise Server 12-LTSS",
 			expected: expected{
 				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 				osVer: "12",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "11-SECURITY",
+			s: "SUSE Linux Enterprise Server 11-SECURITY",
 			expected: expected{
 				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "security"),
 				osVer: "11",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "11-CLIENT-TOOLS",
+			s: "SUSE Linux Enterprise Server 11-CLIENT-TOOLS",
 			expected: expected{
 				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "client.tools"),
 				osVer: "11",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "12 SP1",
+			s: "SUSE Linux Enterprise Server 12 SP1",
 			expected: expected{
 				os:    config.SUSEEnterpriseServer,
 				osVer: "12.sp1",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "12 SP1-LTSS",
+			s: "SUSE Linux Enterprise Server 12 SP1-LTSS",
 			expected: expected{
 				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "ltss"),
 				osVer: "12.sp1",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "11 SP1-CLIENT-TOOLS",
+			s: "SUSE Linux Enterprise Server 11 SP1-CLIENT-TOOLS",
 			expected: expected{
 				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "client.tools"),
 				osVer: "11.sp1",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 12",
+			s: "SUSE Linux Enterprise Server for SAP Applications 12",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications"),
 				osVer: "12",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 12-LTSS",
+			s: "SUSE Linux Enterprise Server for SAP Applications 12-LTSS",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.ltss"),
 				osVer: "12",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 11-SECURITY",
+			s: "SUSE Linux Enterprise Server for SAP Applications 11-SECURITY",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.security"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.security"),
 				osVer: "11",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 11-CLIENT-TOOLS",
+			s: "SUSE Linux Enterprise Server for SAP Applications 11-CLIENT-TOOLS",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.client.tools"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.client.tools"),
 				osVer: "11",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 12 SP1",
+			s: "SUSE Linux Enterprise Server for SAP Applications 12 SP1",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications"),
 				osVer: "12.sp1",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 12 SP1-LTSS",
+			s: "SUSE Linux Enterprise Server for SAP Applications 12 SP1-LTSS",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.ltss"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.ltss"),
 				osVer: "12.sp1",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "SAP Applications 11 SP1-CLIENT-TOOLS",
+			s: "SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "sap.applications.client.tools"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.sap.applications.client.tools"),
 				osVer: "11.sp1",
 			},
 		},
 		{
-			os: config.SUSEEnterpriseServer,
-			s:  "Python 2 15 SP1",
+			s: "SUSE Linux Enterprise Server for Python 2 15 SP1",
 			expected: expected{
-				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "python.2"),
+				os:    fmt.Sprintf("%s.%s", config.SUSEEnterpriseServer, "for.python.2"),
 				osVer: "15.sp1",
 			},
 		},
 	}
 
 	for i, tt := range tests {
-		osName, osVer, err := getMoreAccurateOSNameVersion(tt.s, tt.os)
+		osName, osVer, err := getOSNameVersion(tt.s)
 		if err != nil {
-			t.Errorf("[%d] getMoreAccurateOSNameVersion err: %w", i, err)
+			t.Errorf("[%d] getAccurateOSNameVersion err: %w", i, err)
 		}
 
 		actual := expected{

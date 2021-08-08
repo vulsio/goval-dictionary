@@ -285,64 +285,17 @@ func walkSUSESecond(cri oval.Criteria, osVerPackages, acc []susePackage) []suseP
 			continue
 		}
 
-		switch {
-		case strings.HasPrefix(comment, "openSUSE"):
-			comment = strings.TrimPrefix(comment, "openSUSE ")
-			name := config.OpenSUSE
-			if strings.HasPrefix(comment, "Leap") {
-				name = config.OpenSUSELeap
-				comment = strings.TrimPrefix(comment, "Leap ")
+		if strings.HasPrefix(comment, "openSUSE") || strings.HasPrefix(comment, "SUSE Linux Enterprise") || strings.HasPrefix(comment, "SUSE OpenStack Cloud") {
+			name, version, err := getOSNameVersion(comment)
+			if err != nil {
+				log15.Warn(err.Error())
+				continue
 			}
 			osVerPackages = append(osVerPackages, susePackage{
 				os:    name,
-				osVer: strings.ToLower(strings.Replace(comment, " ", ".", -1)),
+				osVer: version,
 			})
-		case strings.HasPrefix(comment, "SUSE Linux Enterprise"):
-			comment = strings.TrimPrefix(comment, "SUSE Linux Enterprise ")
-			var family string
-			switch {
-			case strings.HasPrefix(comment, "Desktop"):
-				comment = strings.TrimPrefix(comment, "Desktop ")
-				family = config.SUSEEnterpriseDesktop
-			case strings.HasPrefix(comment, "Server"):
-				comment = strings.TrimPrefix(comment, "Server ")
-				if strings.HasPrefix(comment, "for") {
-					comment = strings.TrimPrefix(comment, "for ")
-				}
-				family = config.SUSEEnterpriseServer
-			case strings.HasPrefix(comment, "Workstation Extension"):
-				comment = strings.TrimPrefix(comment, "Workstation Extension ")
-				family = config.SUSEEnterpriseWorkstation
-			case strings.HasPrefix(comment, "Module for"):
-				comment = strings.TrimPrefix(comment, "Module for ")
-				family = config.SUSEEnterpriseModule
-			default:
-				log15.Warn("not support OS Name. currently, only SUSE Linux Enterprise (Desktop|Server|Workstation Extension|Module) is supported", "c.Comment", c.Comment)
-			}
-
-			osName, osVer, err := getMoreAccurateOSNameVersion(comment, family)
-			if err != nil {
-				log15.Warn(err.Error())
-				continue
-			}
-
-			osVerPackages = append(osVerPackages, susePackage{
-				os:    osName,
-				osVer: osVer,
-			})
-		case strings.HasPrefix(comment, "SUSE OpenStack Cloud"):
-			comment = strings.TrimPrefix(comment, "SUSE OpenStack Cloud ")
-			osName, osVer, err := getMoreAccurateOSNameVersion(comment, config.SUSEOpenstackCloud)
-			if err != nil {
-				log15.Warn(err.Error())
-				continue
-			}
-
-			osVerPackages = append(osVerPackages, susePackage{
-				os:    osName,
-				osVer: osVer,
-			})
-		default:
+		} else {
 			ss := strings.Split(comment, "-")
 			packName := strings.Join(ss[0:len(ss)-2], "-")
 			packVer := strings.Join(ss[len(ss)-2:], "-")
@@ -369,108 +322,69 @@ func walkSUSESecond(cri oval.Criteria, osVerPackages, acc []susePackage) []suseP
 	return acc
 }
 
-func getMoreAccurateOSNameVersion(s, osName string) (string, string, error) {
-	name := osName
-	version := ""
+func getOSNameVersion(s string) (string, string, error) {
+	nameSuffixStack := []string{}
+	versionStack := []string{}
 
-	// s:
-	// "12"
-	// "12-LTSS"
-	// "11-SECURITY"
-	// "11-CLIENT-TOOLS"
-	// "12 SP1"
-	// "12 SP1-LTSS"
-	// "11 SP1-CLIENT-TOOLS"
-	// "SAP Applications 12"
-	// "SAP Applications 12-LTSS"
-	// "SAP Applications 11-SECURITY"
-	// "SAP Applications 11-CLIENT-TOOLS"
-	// "SAP Applications 12 SP1"
-	// "SAP Applications 12 SP1-LTSS"
-	// "SAP Applications 11 SP1-CLIENT-TOOLS"
-	// "Python 2 15 SP1"
-	ss := strings.Split(s, " ")
+	ss := strings.Split(strings.ToLower(s), " ")
 	osVerIndex := 0
-	isPythonFlag := false
-	for i, sss := range ss {
-		_, err := strconv.Atoi(sss)
+	for i := len(ss) - 1; i >= 0; i = i - 1 {
+		_, err := strconv.ParseFloat(ss[i], 0)
 		if err != nil {
-			// sss:
-			// "SAP"
-			// "Applications"
-			// "Python"
-			// "12-LTSS"
-			// "11-SECURITY"
-			// "11-CLIENT-TOOLS"
-			if strings.Contains(sss, "-") {
-				ssss := strings.Split(sss, "-")
-				if len(ssss) < 2 {
-					return "", "", xerrors.Errorf("Failed to parse. err: (int)-(string) is expected. (actual: %s)", sss)
+			if strings.Contains(ss[i], "-") {
+				sss := strings.Split(ss[i], "-")
+				for j := len(sss) - 1; j >= 0; j = j - 1 {
+					_, err := strconv.ParseInt(sss[j], 10, 0)
+					if err != nil {
+						if strings.HasPrefix(sss[j], "sp") {
+							versionStack = append(versionStack, sss[j])
+						} else {
+							nameSuffixStack = append(nameSuffixStack, sss[j])
+						}
+					} else {
+						versionStack = append(versionStack, sss[j])
+						osVerIndex = i
+						break
+					}
 				}
 
-				_, err = strconv.Atoi(ssss[0])
-				if err != nil {
-					return "", "", xerrors.Errorf("Failed to parse. err: version is expected. (actual: %s)", ssss[0])
+				if osVerIndex != 0 {
+					break
 				}
-
-				name = fmt.Sprintf("%s.%s", name, strings.ToLower(strings.Join(ssss[1:], ".")))
-				version = ssss[0]
-				osVerIndex = i
-				break
 			} else {
-				if sss == "Python" {
-					isPythonFlag = true
+				if strings.HasPrefix(ss[i], "sp") {
+					versionStack = append(versionStack, ss[i])
+				} else {
+					nameSuffixStack = append(nameSuffixStack, ss[i])
 				}
-				name = fmt.Sprintf("%s.%s", name, strings.ToLower(sss))
 			}
-			continue
-		}
-
-		if !isPythonFlag {
-			version = sss
+		} else {
+			versionStack = append(versionStack, ss[i])
 			osVerIndex = i
 			break
-		} else {
-			name = fmt.Sprintf("%s.%s", name, sss)
-			isPythonFlag = false
 		}
 	}
 
-	if osVerIndex == len(ss)-1 {
-		return name, version, nil
+	if osVerIndex == 0 {
+		return "", "", xerrors.Errorf("Failed to parse OS Name. s: %s", s)
 	}
 
-	ss = ss[osVerIndex+1:]
-	if len(ss) != 1 {
-		return "", "", xerrors.Errorf("Failed to parse. err:  unexpected Slice length: %s", ss)
+	name := strings.Join(ss[:osVerIndex], ".")
+	if len(nameSuffixStack) > 0 {
+		for i := 0; i < len(nameSuffixStack)/2; i++ {
+			nameSuffixStack[i], nameSuffixStack[len(nameSuffixStack)-i-1] = nameSuffixStack[len(nameSuffixStack)-i-1], nameSuffixStack[i]
+		}
+		name = fmt.Sprintf("%s.%s", name, strings.Join(nameSuffixStack, "."))
 	}
 
-	// ss[0]:
-	// "SP1"
-	// "SP1-LTSS"
-	// "SP1-CLIENT-TOOLS"
-	if strings.Contains(ss[0], "-") {
-		sss := strings.Split(ss[0], "-")
-		if len(sss) < 2 {
-			return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
-		}
-
-		if sss[0] != "" {
-			if strings.HasPrefix(sss[0], "SP") {
-				version = fmt.Sprintf("%s.%s", version, strings.ToLower(sss[0]))
-			} else {
-				return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
-			}
-		}
-
-		name = fmt.Sprintf("%s.%s", name, strings.ToLower(strings.Join(sss[1:], ".")))
-	} else {
-		if strings.HasPrefix(ss[0], "SP") {
-			version = fmt.Sprintf("%s.%s", version, strings.ToLower(ss[0]))
-		} else {
-			return "", "", xerrors.Errorf("Failed to parse. err: unexpected string: %s", ss[0])
-		}
+	if len(versionStack) == 0 {
+		return "", "", xerrors.Errorf("Failed to parse OS Version. s: %s", s)
 	}
+
+	for i := 0; i < len(versionStack)/2; i++ {
+		versionStack[i], versionStack[len(versionStack)-i-1] = versionStack[len(versionStack)-i-1], versionStack[i]
+	}
+	version := strings.Join(versionStack, ".")
 
 	return name, version, nil
 }

@@ -65,7 +65,7 @@ const (
 	SUSEEnterpriseModule = "suse.linux.enterprise.module"
 
 	// SUSEEnterpriseWorkstation is SUSE Linux Enterprise Workstation Extension
-	SUSEEnterpriseWorkstation = "suse.linux.enterprise.workstation"
+	SUSEEnterpriseWorkstation = "suse.linux.enterprise.workstation.extension"
 
 	// SUSEEnterpriseDesktop is
 	SUSEEnterpriseDesktop = "suse.linux.enterprise.desktop"

@@ -99,6 +99,7 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
 		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
 		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseWorkstation) ||
 		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
 		osVer = major(osVer)
 	} else {
@@ -156,6 +157,7 @@ func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.D
 	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
 		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
 		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseWorkstation) ||
 		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
 		osVer = major(osVer)
 	} else {

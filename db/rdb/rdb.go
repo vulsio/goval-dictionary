@@ -95,9 +95,12 @@ func (d *Driver) NewOvalDB(family string) error {
 	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseWorkstation, c.SUSEOpenstackCloud:
 		ovalMap[family] = NewSUSE(family)
 	default:
-		if strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
+		if strings.HasPrefix(family, c.OpenSUSE) ||
+			strings.HasPrefix(family, c.OpenSUSELeap) ||
+			strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
 			strings.HasPrefix(family, c.SUSEEnterpriseDesktop) ||
 			strings.HasPrefix(family, c.SUSEEnterpriseModule) ||
+			strings.HasPrefix(family, c.SUSEEnterpriseWorkstation) ||
 			strings.HasPrefix(family, c.SUSEOpenstackCloud) {
 			ovalMap[family] = NewSUSE(family)
 			return nil

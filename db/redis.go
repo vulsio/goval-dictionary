@@ -195,7 +195,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		if err != nil {
 			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
 		}
-		if defstr != "" {
+		if defstr == "" {
 			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
 		}
 
@@ -293,7 +293,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		if err != nil {
 			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
 		}
-		if defstr != "" {
+		if defstr == "" {
 			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
 		}
 

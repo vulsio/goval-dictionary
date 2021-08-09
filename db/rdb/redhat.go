@@ -205,5 +205,10 @@ func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []mod
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+
+	for i := range defs {
+		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, osVer)
+	}
+
 	return defs, nil
 }

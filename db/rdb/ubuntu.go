@@ -128,11 +128,15 @@ func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 
 // GetByCveID select definition by CveID
 func (o *Ubuntu) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []models.Definition, err error) {
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
-		config.Ubuntu, major(osVer)).
-		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
-		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).
+	err = driver.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Ubuntu, major(osVer)).
+		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
+		Joins("JOIN cves ON cves.advisory_id = advisories.id").
+		Where("cves.cve_id = ?", cveID).
 		Preload("Advisory").
+		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

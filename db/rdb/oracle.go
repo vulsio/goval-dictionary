@@ -146,8 +146,10 @@ func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		adv.Cves = cves
 
+		adv.Cves = cves
+		adv.Bugzillas = []models.Bugzilla{}
+		adv.AffectedCPEList = []models.Cpe{}
 		defs[i].Advisory = adv
 
 		packs := []models.Package{}
@@ -178,6 +180,9 @@ func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID, arch string) ([]model
 		Where("cves.cve_id = ?", cveID).
 		Preload("Advisory").
 		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
+		Preload("AffectedPacks").
 		Preload("References")
 
 	if arch == "" {

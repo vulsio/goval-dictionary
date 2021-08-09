@@ -51,7 +51,7 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 
 	for cveID, packs := range cveIDPacks {
 		def := Definition{
-			DefinitionID: "def-" + cveID,
+			DefinitionID: fmt.Sprintf("def-%s-%s-%s", data.Reponame, data.Distroversion, cveID),
 			Title:        cveID,
 			Description:  "",
 			Advisory: Advisory{

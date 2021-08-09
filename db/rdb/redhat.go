@@ -102,77 +102,35 @@ func (o *RedHat) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
-	osVer = major(osVer)
-	packs := []models.Package{}
-	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs []models.Definition, err error) {
+	// Specify limit number to avoid `too many SQL variable`.
+	// https://github.com/future-architect/vuls/issues/886
+	limit, tmpDefs := 998, []models.Definition{}
+	for i := 0; true; i++ {
+		err = driver.
+			Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.RedHat, major(osVer)).
+			Joins("JOIN packages ON packages.definition_id = definitions.id").
+			Where("packages.name = ?", packName).
+			Limit(limit).Offset(i * limit).
+			Preload("Advisory").
+			Preload("Advisory.Cves").
+			Preload("Advisory.Bugzillas").
+			Preload("Advisory.AffectedCPEList").
+			Preload("AffectedPacks").
+			Preload("References").
+			Find(&tmpDefs).Error
+
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		if len(tmpDefs) == 0 {
+			break
+		}
+		defs = append(defs, tmpDefs...)
 	}
 
-	//TODO Preload
-	defs := []models.Definition{}
-	for _, p := range packs {
-		def := models.Definition{}
-		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-
-		root := models.Root{}
-		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-
-		if root.Family == config.RedHat && major(root.OSVersion) == osVer {
-			defs = append(defs, def)
-		}
-	}
-
-	for i, def := range defs {
-		adv := models.Advisory{}
-		err = driver.Model(&def).Association("Advisory").Find(&adv)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-
-		cves := []models.Cve{}
-		err = driver.Model(&adv).Association("Cves").Find(&cves)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		adv.Cves = cves
-
-		bugs := []models.Bugzilla{}
-		err = driver.Model(&adv).Association("Bugzillas").Find(&bugs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		adv.Bugzillas = bugs
-
-		cpes := []models.Cpe{}
-		err = driver.Model(&adv).Association("AffectedCPEList").Find(&cpes)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		adv.AffectedCPEList = cpes
-
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		defs[i].AffectedPacks = filterByMajor(packs, osVer)
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Association("References").Find(&refs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		defs[i].References = refs
+	for i := range defs {
+		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, osVer)
 	}
 
 	return defs, nil

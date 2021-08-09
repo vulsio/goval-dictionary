@@ -14,13 +14,17 @@ import math
 
 
 def diff_response(args: Tuple[str, str, str, str, str]):
+    # Endpoint
+    # /cves/:family/:release/:id
+    # /packs/:family/:release/:pack
+
     path = ''
     if args[0] == 'cveid':
         path = f'cves/{args[1]}/{args[3]}/{args[4]}'
     if args[0] == 'package':
         path = f'packs/{args[1]}/{args[3]}/{quote(args[4])}'
 
-    if args[3] != "":
+    if args[2] != "":
         path = f'{path}/{args[2]}'
 
     session = requests.Session()
@@ -29,14 +33,11 @@ def diff_response(args: Tuple[str, str, str, str, str]):
                     status_forcelist=[503, 504])
     session.mount("http://", HTTPAdapter(max_retries=retries))
 
-    # Endpoint
-    # /cves/:family/:release/:id
-    # /packs/:family/:release/:pack
     try:
         response_old = requests.get(
-            f'http://127.0.0.1:1325/{path}', timeout=(10.0, 10.0)).json()
+            f'http://127.0.0.1:1325/{path}', timeout=(3.0, 10.0)).json()
         response_new = requests.get(
-            f'http://127.0.0.1:1326/{path}', timeout=(10.0, 10.0)).json()
+            f'http://127.0.0.1:1326/{path}', timeout=(3.0, 10.0)).json()
     except requests.ConnectionError as e:
         logger.error(f'Failed to Connection..., err: {e}')
         exit(1)

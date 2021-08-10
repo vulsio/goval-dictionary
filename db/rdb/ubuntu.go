@@ -27,15 +27,15 @@ func (o *Ubuntu) Name() string {
 }
 
 // InsertOval inserts Ubuntu OVAL
-func (o *Ubuntu) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+func (o *Ubuntu) InsertOval(root *models.Root, meta models.FileMeta, driver *gorm.DB) error {
 	log15.Debug("in Ubuntu")
 	tx := driver.Begin()
 
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
+	oldmeta := models.FileMeta{}
+	r := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
 	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		tx.Rollback()
-		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+		return xerrors.Errorf("Failed to get filemeta: %w", r.Error)
 	}
 
 	if r.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {

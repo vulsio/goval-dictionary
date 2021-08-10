@@ -2,10 +2,27 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
-// FetchMeta has metadata
+// LatestSchemaVersion manages the Schema version used in the latest goval-dictionary.
+const LatestSchemaVersion = 2
+
+// FetchMeta has DB information
 type FetchMeta struct {
+	gorm.Model        `json:"-"`
+	GovalDictRevision string
+	SchemaVersion     uint
+}
+
+// OutDated checks whether last fetched feed is out dated
+func (f FetchMeta) OutDated() bool {
+	return f.SchemaVersion != LatestSchemaVersion
+}
+
+// FileMeta has metadata
+type FileMeta struct {
 	ID uint `gorm:"primary_key"`
 
 	FileName  string `gorm:"type:varchar(255)"`

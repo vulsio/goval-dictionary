@@ -15,10 +15,14 @@ type DB interface {
 	CloseDB() error
 	GetByPackName(family string, osVer string, packName string, arch string) ([]models.Definition, error)
 	GetByCveID(family string, osVer string, cveID string, arch string) ([]models.Definition, error)
-	InsertOval(string, *models.Root, models.FetchMeta) error
-	InsertFetchMeta(models.FetchMeta) error
+	InsertOval(string, *models.Root, models.FileMeta) error
+	InsertFileMeta(models.FileMeta) error
 	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) (time.Time, error)
+
+	IsGovalDictModelV1() (bool, error)
+	GetFetchMeta() (*models.FetchMeta, error)
+	UpsertFetchMeta(*models.FetchMeta) error
 }
 
 // NewDB return DB accessor.

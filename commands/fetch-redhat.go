@@ -48,6 +48,16 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+	}
+
 	// Distinct
 	vers := []string{}
 	v := map[string]bool{}
@@ -93,7 +103,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		ss := strings.Split(r.URL, "/")
-		fmeta := models.FetchMeta{
+		fmeta := models.FileMeta{
 			Timestamp: t,
 			FileName:  ss[len(ss)-1],
 		}
@@ -102,11 +112,16 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 			log15.Error("Failed to insert oval", "err", err)
 			return err
 		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
+		if err := driver.InsertFileMeta(fmeta); err != nil {
 			log15.Error("Failed to insert meta", "err", err)
 			return err
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
+	}
+
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
+		return err
 	}
 
 	return nil

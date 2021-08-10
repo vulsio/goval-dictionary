@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/inconshreveable/log15"
+	"github.com/kotakanbe/goval-dictionary/config"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"golang.org/x/xerrors"
@@ -312,7 +313,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 }
 
 // InsertOval inserts OVAL
-func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
+func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FileMeta) (err error) {
 	definitions := aggregateAffectedPackages(root.Definitions)
 	for chunked := range chunkSlice(definitions, 10) {
 		pipe := d.conn.Pipeline()
@@ -353,9 +354,9 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 	return nil
 }
 
-// InsertFetchMeta inserts FetchMeta
+// InsertFileMeta inserts FileMeta
 // Redis do not use this.
-func (d *RedisDriver) InsertFetchMeta(meta models.FetchMeta) error {
+func (d *RedisDriver) InsertFileMeta(meta models.FileMeta) error {
 	return nil
 }
 
@@ -452,4 +453,19 @@ func getAmazonLinux1or2(osVersion string) string {
 		return "2"
 	}
 	return "1"
+}
+
+// IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
+func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
+	return false, nil
+}
+
+// GetFetchMeta get FetchMeta from Database
+func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
+	return &models.FetchMeta{GovalDictRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+}
+
+// UpsertFetchMeta upsert FetchMeta to Database
+func (d *RedisDriver) UpsertFetchMeta(*models.FetchMeta) error {
+	return nil
 }

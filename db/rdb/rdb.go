@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kotakanbe/goval-dictionary/config"
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -59,6 +59,16 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locke
 
 	if locked, err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return nil, locked, err
+	}
+
+	isV1 := driver.IsGovalDictModelV1()
+	if err != nil {
+		log15.Error("Failed to IsGovalDictModelV1.", "err", err)
+		return nil, false, err
+	}
+	if isV1 {
+		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
+		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
 	}
 
 	if err = driver.MigrateDB(); err != nil {
@@ -345,28 +355,8 @@ func splitChunkIntoDefinitions(definitions []models.Definition, rootID uint, chu
 }
 
 // IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
-func (d *Driver) IsGovalDictModelV1() (bool, error) {
-	if d.conn.Migrator().HasTable(&models.FetchMeta{}) {
-		return false, nil
-	}
-
-	var (
-		count int64
-		err   error
-	)
-	switch d.name {
-	case DialectSqlite3:
-		err = d.conn.Table("sqlite_master").Where("type = ?", "table").Count(&count).Error
-	case DialectMysql:
-		err = d.conn.Table("information_schema.tables").Where("table_schema = ?", d.conn.Migrator().CurrentDatabase()).Count(&count).Error
-	case DialectPostgreSQL:
-		err = d.conn.Table("pg_tables").Where("schemaname = ?", "public").Count(&count).Error
-	}
-
-	if count > 0 {
-		return true, nil
-	}
-	return false, err
+func (d *Driver) IsGovalDictModelV1() bool {
+	return d.conn.Migrator().HasColumn(&models.FetchMeta{}, "file_name")
 }
 
 // GetFetchMeta get FetchMeta from Database
@@ -375,7 +365,7 @@ func (d *Driver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		return &models.FetchMeta{GovalDictRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+		return &models.FetchMeta{GovalDictRevision: c.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
 	}
 
 	return fetchMeta, nil
@@ -383,7 +373,7 @@ func (d *Driver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
 
 // UpsertFetchMeta upsert FetchMeta to Database
 func (d *Driver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
-	fetchMeta.GovalDictRevision = config.Revision
+	fetchMeta.GovalDictRevision = c.Revision
 	fetchMeta.SchemaVersion = models.LatestSchemaVersion
 	return d.conn.Save(fetchMeta).Error
 }

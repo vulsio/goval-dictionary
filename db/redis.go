@@ -456,8 +456,8 @@ func getAmazonLinux1or2(osVersion string) string {
 }
 
 // IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
-func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
-	return false, nil
+func (d *RedisDriver) IsGovalDictModelV1() bool {
+	return false
 }
 
 // GetFetchMeta get FetchMeta from Database

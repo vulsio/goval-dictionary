@@ -167,7 +167,7 @@ func (o *RedHat) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) ([]models.D
 	}
 
 	for i := range defs {
-		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, osVer)
+		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, major(osVer))
 	}
 
 	return defs, nil

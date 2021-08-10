@@ -358,7 +358,7 @@ func (d *Driver) IsGovalDictModelV1() (bool, error) {
 	case DialectSqlite3:
 		err = d.conn.Table("sqlite_master").Where("type = ?", "table").Count(&count).Error
 	case DialectMysql:
-		err = d.conn.Table("information_schema.tables").Where("table_schema = ?", r.conn.Migrator().CurrentDatabase()).Count(&count).Error
+		err = d.conn.Table("information_schema.tables").Where("table_schema = ?", d.conn.Migrator().CurrentDatabase()).Count(&count).Error
 	case DialectPostgreSQL:
 		err = d.conn.Table("pg_tables").Where("schemaname = ?", "public").Count(&count).Error
 	}

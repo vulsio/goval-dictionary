@@ -214,6 +214,53 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	return defs, nil
 }
 
+// GetByCveID select OVAL definition related to OS Family, osVer, cveID
+func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
+	switch family {
+	case c.CentOS:
+		family = c.RedHat
+	case c.Raspbian:
+		family = c.Debian
+	}
+
+	if family == c.Amazon {
+		osVer = getAmazonLinux1or2(osVer)
+	} else if family != c.Alpine {
+		// OVAL is provided for each major for all other OSes except alpine,
+		// But Alpine provides it for each major.minor
+		osVer = major(osVer)
+	}
+
+	key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, family, keySeparator, osVer, keySeparator, cveID)
+	defKeys, err := d.conn.SMembers(key).Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+	}
+
+	defs := []models.Definition{}
+	for _, defKey := range defKeys {
+		defstr, err := d.conn.Get(defKey).Result()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
+		}
+		if defstr == "" {
+			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
+		}
+
+		_, version, _, err := splitDefKey(defKey)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to splitDefKey. err: %s", err)
+		}
+		def, err := restoreDefinition(defstr, family, version, arch)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
+		}
+		defs = append(defs, def)
+	}
+
+	return defs, nil
+}
+
 func splitDefKey(defkey string) (string, string, string, error) {
 	ss := strings.Split(strings.TrimPrefix(defkey, keyPrefix), keySeparator)
 	if len(ss) != 3 {
@@ -263,53 +310,6 @@ func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []mo
 		}
 	}
 	return
-}
-
-// GetByCveID select OVAL definition related to OS Family, osVer, cveID
-func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
-	switch family {
-	case c.CentOS:
-		family = c.RedHat
-	case c.Raspbian:
-		family = c.Debian
-	}
-
-	if family == c.Amazon {
-		osVer = getAmazonLinux1or2(osVer)
-	} else if family != c.Alpine {
-		// OVAL is provided for each major for all other OSes except alpine,
-		// But Alpine provides it for each major.minor
-		osVer = major(osVer)
-	}
-
-	key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, family, keySeparator, osVer, keySeparator, cveID)
-	defKeys, err := d.conn.SMembers(key).Result()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
-	}
-
-	defs := []models.Definition{}
-	for _, defKey := range defKeys {
-		defstr, err := d.conn.Get(defKey).Result()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
-		}
-		if defstr == "" {
-			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
-		}
-
-		_, version, _, err := splitDefKey(defKey)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to splitDefKey. err: %s", err)
-		}
-		def, err := restoreDefinition(defstr, family, version, arch)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
-		}
-		defs = append(defs, def)
-	}
-
-	return defs, nil
 }
 
 // InsertOval inserts OVAL
@@ -378,42 +378,6 @@ func chunkSlice(l []models.Definition, n int) chan []models.Definition {
 		close(ch)
 	}()
 	return ch
-}
-
-func getByHashKey(hashKey string, driver *redis.Client) ([]models.Definition, error) {
-	result := driver.HGetAll(hashKey)
-	if result.Err() != nil {
-		log15.Error("Failed to get definition.", "err", result.Err())
-		return nil, result.Err()
-	}
-
-	defs := []models.Definition{}
-	for _, v := range result.Val() {
-		var def models.Definition
-		if err := json.Unmarshal([]byte(v), &def); err != nil {
-			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil, err
-		}
-		osFamily, osVer, _ := splitHashKey(hashKey)
-		if osFamily == c.RedHat {
-			def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, osVer)
-		}
-		defs = append(defs, def)
-	}
-	return defs, nil
-}
-
-func getHashKey(family, osVer, cveID string) string {
-	return keyPrefix + family + keySeparator + osVer + keySeparator + cveID
-}
-
-func splitHashKey(hashKey string) (osFamily, osVer, cveID string) {
-	keyWithoutPrefix := hashKey[len(keyPrefix):]
-	keys := strings.Split(keyWithoutPrefix, keySeparator)
-	if len(keys) != 3 {
-		return "", "", ""
-	}
-	return keys[0], keys[1], keys[2]
 }
 
 // CountDefs counts the number of definitions specified by args

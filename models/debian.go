@@ -52,7 +52,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 
 		description := ovaldef.Description
 		if ovaldef.Debian.MoreInfo != "" {
-			description = fmt.Sprintf("%s\n[MoreInfo]\n%s", description, ovaldef.Debian.MoreInfo)
+			description = fmt.Sprintf("%s\n\n[MoreInfo]\n%s", description, ovaldef.Debian.MoreInfo)
 		}
 
 		var t time.Time

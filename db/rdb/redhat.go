@@ -131,7 +131,7 @@ func (o *RedHat) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 	}
 
 	for i := range defs {
-		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, osVer)
+		defs[i].AffectedPacks = filterByMajor(defs[i].AffectedPacks, major(osVer))
 	}
 
 	return defs, nil

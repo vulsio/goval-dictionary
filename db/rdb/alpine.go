@@ -101,12 +101,13 @@ func (o *Alpine) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs []models.Definition, err error) {
+func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]models.Definition, error) {
 	// Specify limit number to avoid `too many SQL variable`.
 	// https://github.com/future-architect/vuls/issues/886
+	defs := []models.Definition{}
 	limit, tmpDefs := 998, []models.Definition{}
 	for i := 0; true; i++ {
-		err = driver.
+		err := driver.
 			Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Alpine, majorDotMinor(osVer)).
 			Joins("JOIN packages ON packages.definition_id = definitions.id").
 			Where("packages.name = ?", packName).
@@ -118,7 +119,6 @@ func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Preload("AffectedPacks").
 			Preload("References").
 			Find(&tmpDefs).Error
-
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -131,8 +131,9 @@ func (o *Alpine) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 }
 
 // GetByCveID select definition by CveID
-func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) (defs []models.Definition, err error) {
-	err = driver.
+func (o *Alpine) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) ([]models.Definition, error) {
+	defs := []models.Definition{}
+	err := driver.
 		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Alpine, majorDotMinor(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").

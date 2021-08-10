@@ -101,7 +101,7 @@ func (o *Amazon) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 }
 
 // GetByPackName select definitions by packName
-func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) (defs []models.Definition, err error) {
+func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([]models.Definition, error) {
 	q := driver.
 		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Amazon, getAmazonLinux1or2(osVer)).
 		Joins("JOIN packages ON packages.definition_id = definitions.id").
@@ -119,9 +119,10 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) (d
 
 	// Specify limit number to avoid `too many SQL variable`.
 	// https://github.com/future-architect/vuls/issues/886
+	defs := []models.Definition{}
 	limit, tmpDefs := 998, []models.Definition{}
 	for i := 0; true; i++ {
-		err = q.
+		err := q.
 			Limit(limit).Offset(i * limit).
 			Find(&tmpDefs).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -138,7 +139,6 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) (d
 
 // GetByCveID select definition by CveID
 func (o *Amazon) GetByCveID(driver *gorm.DB, osVer, cveID, arch string) ([]models.Definition, error) {
-	defs := []models.Definition{}
 	q := driver.
 		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Amazon, majorDotMinor(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
@@ -157,6 +157,7 @@ func (o *Amazon) GetByCveID(driver *gorm.DB, osVer, cveID, arch string) ([]model
 		q = q.Preload("AffectedPacks", "arch = ?", arch)
 	}
 
+	defs := []models.Definition{}
 	err := q.Find(&defs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err

@@ -264,7 +264,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 func splitDefKey(defkey string) (string, string, string, error) {
 	ss := strings.Split(strings.TrimPrefix(defkey, keyPrefix), keySeparator)
 	if len(ss) != 3 {
-		return "", "", "", fmt.Errorf("Failed to parse defkey(%s) correctly.", defkey)
+		return "", "", "", fmt.Errorf("Failed to parse defkey(%s) correctly", defkey)
 	}
 
 	return ss[0], ss[1], ss[2], nil

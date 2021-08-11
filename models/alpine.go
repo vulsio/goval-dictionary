@@ -62,6 +62,7 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
+			Debian:        nil,
 			AffectedPacks: packs,
 			References: []Reference{
 				{

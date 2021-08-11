@@ -95,6 +95,7 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				Issued:          issued,
 				Updated:         updated,
 			},
+			Debian:        nil,
 			AffectedPacks: collectRedHatPacks(d.Criteria),
 			References:    rs,
 		}

@@ -106,6 +106,7 @@ func (o *Debian) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mo
 			Preload("Advisory.Cves").
 			Preload("Advisory.Bugzillas").
 			Preload("Advisory.AffectedCPEList").
+			Preload("Debian").
 			Preload("AffectedPacks").
 			Preload("References").
 			Find(&tmpDefs).Error
@@ -133,6 +134,7 @@ func (o *Debian) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) ([]models.D
 		Preload("Advisory.Cves").
 		Preload("Advisory.Bugzillas").
 		Preload("Advisory.AffectedCPEList").
+		Preload("Debian").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

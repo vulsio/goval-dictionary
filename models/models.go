@@ -47,6 +47,7 @@ type Definition struct {
 	Title         string `gorm:"type:text"`
 	Description   string // If the type:text, varchar(255) is specified, MySQL overflows and gives an error. No problem in GORMv2. (https://github.com/go-gorm/mysql/tree/15e2cbc6fd072be99215a82292e025dab25e2e16#configuration)
 	Advisory      Advisory
+	Debian        *Debian
 	AffectedPacks []Package
 	References    []Reference
 }
@@ -118,4 +119,15 @@ type Cpe struct {
 	AdvisoryID uint `gorm:"index:idx_cpes_advisory_id" json:"-" xml:"-"`
 
 	Cpe string `gorm:"type:varchar(255)"`
+}
+
+// Debian : >definitions>definition>metadata>debian
+type Debian struct {
+	ID           uint `gorm:"primary_key" json:"-"`
+	DefinitionID uint `gorm:"index:idx_debian_definition_id" json:"-" xml:"-"`
+
+	CveID    string `gorm:"type:varchar(255);index:idx_debian_cve_id"`
+	MoreInfo string `gorm:"type:text"`
+
+	Date time.Time
 }

@@ -50,11 +50,6 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			cves = append(cves, cve)
 		}
 
-		description := ovaldef.Description
-		if ovaldef.Debian.MoreInfo != "" {
-			description = fmt.Sprintf("%s\n\n[MoreInfo]\n%s", description, ovaldef.Debian.MoreInfo)
-		}
-
 		var t time.Time
 		if ovaldef.Debian.Date == "" {
 			t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -71,14 +66,19 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 		def := Definition{
 			DefinitionID: ovaldef.ID,
 			Title:        ovaldef.Title,
-			Description:  description,
+			Description:  ovaldef.Description,
 			Advisory: Advisory{
 				Severity:        "",
 				Cves:            cves,
 				Bugzillas:       []Bugzilla{},
 				AffectedCPEList: []Cpe{},
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Updated:         t,
+				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			},
+			Debian: &Debian{
+				CveID:    ovaldef.Title,
+				MoreInfo: ovaldef.Debian.MoreInfo,
+				Date:     t,
 			},
 			AffectedPacks: packs,
 			References:    rs,
@@ -92,6 +92,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			def.Advisory.AffectedCPEList = []Cpe{}
 			def.Advisory.Issued = time.Time{}
 			def.Advisory.Updated = time.Time{}
+			def.Debian = nil
 			def.References = []Reference{}
 		}
 

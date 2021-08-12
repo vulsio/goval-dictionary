@@ -10,6 +10,7 @@ import (
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 )
 
@@ -183,11 +184,12 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID string) ([]models.Definiti
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FetchMeta) (err error) {
+	expire := viper.GetUint("expire")
+
 	definitions := aggregateAffectedPackages(root.Definitions)
 	total := map[string]struct{}{}
 	for chunked := range chunkSlice(definitions, 10) {
-		var pipe redis.Pipeliner
-		pipe = d.conn.Pipeline()
+		pipe := d.conn.Pipeline()
 		for _, def := range chunked {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
@@ -211,6 +213,16 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				if result := pipe.HSet(hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
+				if expire > 0 {
+					if err := pipe.Expire(hashKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(hashKey).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				}
+
 				for _, pack := range def.AffectedPacks {
 					zkey := hashKeyPrefix + pack.Name
 					switch family {
@@ -225,6 +237,15 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 							Member: hashKey,
 						}); result.Err() != nil {
 						return fmt.Errorf("Failed to ZAdd package. err: %s", result.Err())
+					}
+					if expire > 0 {
+						if err := pipe.Expire(zkey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+							return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+						}
+					} else {
+						if err := pipe.Persist(zkey).Err(); err != nil {
+							return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+						}
 					}
 				}
 				total[cveID] = struct{}{}

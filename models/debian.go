@@ -42,6 +42,9 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 				DefinitionID: ovaldef.ID,
 				Title:        ovaldef.Title,
 				Description:  ovaldef.Description,
+				Advisory: Advisory{
+					Cves: []Cve{{CveID: ovaldef.Title}},
+				},
 				Debian: Debian{
 					CveID:    ovaldef.Title,
 					MoreInfo: ovaldef.Debian.MoreInfo,

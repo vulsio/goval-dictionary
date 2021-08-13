@@ -4,13 +4,13 @@ import (
 	"fmt"
 )
 
-// http://ftp.suse.com/pub/projects/security/oval/opensuse.leap.42.2.xml
-// http://ftp.suse.com/pub/projects/security/oval/opensuse.13.2.xml
-// http://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.desktop.12.xml"
-// http://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.12.xml
-// http://ftp.suse.com/pub/projects/security/oval/suse.openstack.cloud.7.xml
+// https://ftp.suse.com/pub/projects/security/oval/opensuse.leap.42.2.xml
+// https://ftp.suse.com/pub/projects/security/oval/opensuse.13.2.xml
+// https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.desktop.12.xml"
+// https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.12.xml
+// https://ftp.suse.com/pub/projects/security/oval/suse.openstack.cloud.7.xml
 func newSUSEFetchRequests(suseType string, target []string) (reqs []fetchRequest) {
-	const t = "http://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
+	const t = "https://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target:       v,

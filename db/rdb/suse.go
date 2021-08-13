@@ -2,6 +2,7 @@ package rdb
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -80,22 +81,10 @@ func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm
 		return xerrors.Errorf("Failed to insert. err: %w", err)
 	}
 
-	switch tx.Dialector.Name() {
-	case DialectSqlite3:
-	case DialectMysql:
-		for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 50) {
-			if err := tx.Create(&chunk).Error; err != nil {
-				tx.Rollback()
-				return xerrors.Errorf("Failed to insert. err: %w", err)
-			}
-		}
-	case DialectPostgreSQL:
-		for _, def := range root.Definitions {
-			def.RootID = root.ID
-			if err := tx.Create(&def).Error; err != nil {
-				tx.Rollback()
-				return xerrors.Errorf("Failed to insert. err: %w", err)
-			}
+	for _, chunk := range splitChunkIntoDefinitions(root.Definitions, root.ID, 25) {
+		if err := tx.Create(&chunk).Error; err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
 	}
 
@@ -107,12 +96,16 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 	// SLES: OVAL provided in each major version.
 	// OpenSUSE : OVAL is separate for each minor version.
 	// http://ftp.suse.com/pub/projects/security/oval/
-	switch o.Family {
-	case c.SUSEEnterpriseServer,
-		c.SUSEEnterpriseDesktop,
-		c.SUSEOpenstackCloud:
+	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseWorkstation) ||
+		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
 		osVer = major(osVer)
+	} else {
+		osVer = majorDotMinor(osVer)
 	}
+
 	packs := []models.Package{}
 	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -161,10 +154,21 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
 func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
+	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Family, c.SUSEEnterpriseWorkstation) ||
+		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
+		osVer = major(osVer)
+	} else {
+		osVer = majorDotMinor(osVer)
+	}
+
 	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
 		o.Name(), osVer).
-		Joins(`JOIN 'references' ON 'references'.definition_id = definitions.id`).
-		Where(`'references'.source = 'CVE' AND 'references'.ref_id = ?`, cveID).
+		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
+		Joins("JOIN cves ON cves.advisory_id = advisories.id").
+		Where("cves.cve_id = ?", cveID).
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

@@ -114,8 +114,8 @@ elif args.ostype == 'alpine':
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
-elif args.ostype in ["suse"]:
-    raise NotImplementedError
+elif args.ostype in "suse":
+    pass
 else:
     logger.error(
         f'Failed to diff_response..., err: This OS type({args[1]}) does not support test mode(cveid)')
@@ -124,9 +124,15 @@ else:
 for relVer in args.release:
     list_path = None
     if args.mode == 'cveid':
-        list_path = f"integration/cveid/{args.ostype}/{args.ostype}_{relVer}.txt"
+        if args.ostype in "suse":
+            list_path = f"integration/cveid/suse/{args.ostype}_{relVer}.txt"
+        else:
+            list_path = f"integration/cveid/{args.ostype}/{args.ostype}_{relVer}.txt"
     if args.mode == 'package':
-        list_path = f"integration/package/{args.ostype}/{args.ostype}_{relVer}.txt"
+        if args.ostype in "suse":
+            list_path = f"integration/package/suse/{args.ostype}_{relVer}.txt"
+        else:
+            list_path = f"integration/package/{args.ostype}/{args.ostype}_{relVer}.txt"
 
     if not os.path.isfile(list_path):
         logger.error(f'Failed to find list path..., list_path: {list_path}')

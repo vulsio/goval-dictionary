@@ -11,6 +11,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/config"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 )
 
@@ -77,21 +78,21 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 func (d *RedisDriver) NewOvalDB(family string) error {
 	switch family {
 	case c.CentOS, c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
-		c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer,
-		c.SUSEEnterpriseDesktop, c.SUSEOpenstackCloud,
+		c.OpenSUSE, c.OpenSUSELeap, c.SUSEOpenstackCloud,
+		c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseWorkstation,
 		c.Alpine, c.Amazon:
 
 	default:
-		if strings.Contains(family, "suse") {
-			suses := []string{
-				c.OpenSUSE,
-				c.OpenSUSELeap,
-				c.SUSEEnterpriseServer,
-				c.SUSEEnterpriseDesktop,
-				c.SUSEOpenstackCloud,
-			}
-			return fmt.Errorf("Unknown SUSE. Specify from %s: %s", suses, family)
+		if strings.HasPrefix(family, c.OpenSUSE) ||
+			strings.HasPrefix(family, c.OpenSUSELeap) ||
+			strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
+			strings.HasPrefix(family, c.SUSEEnterpriseDesktop) ||
+			strings.HasPrefix(family, c.SUSEEnterpriseModule) ||
+			strings.HasPrefix(family, c.SUSEEnterpriseWorkstation) ||
+			strings.HasPrefix(family, c.SUSEOpenstackCloud) {
+			return nil
 		}
+
 		return fmt.Errorf("Unknown OS Type: %s", family)
 	}
 	return nil
@@ -314,6 +315,7 @@ func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []mo
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FileMeta) (err error) {
+	expire := viper.GetUint("expire")
 	for chunked := range chunkSlice(root.Definitions, 10) {
 		pipe := d.conn.Pipeline()
 		for _, def := range chunked {
@@ -323,7 +325,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			}
 
 			defKey := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, def.DefinitionID)
-			if err := pipe.Set(defKey, dj, time.Duration(0)).Err(); err != nil {
+			if err := pipe.Set(defKey, dj, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to SET definition id. err: %s", err)
 			}
 
@@ -331,6 +333,15 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, cve.CveID)
 				if err := pipe.SAdd(key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
+				}
+				if expire > 0 {
+					if err := pipe.Expire(key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(key).Err(); err != nil {
+						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
 				}
 			}
 
@@ -343,6 +354,15 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				}
 				if err := pipe.SAdd(key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
+				}
+				if expire > 0 {
+					if err := pipe.Expire(key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(key).Err(); err != nil {
+						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
 				}
 			}
 		}

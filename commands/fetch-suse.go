@@ -21,8 +21,15 @@ import (
 var fetchSUSECmd = &cobra.Command{
 	Use:   "suse",
 	Short: "Fetch Vulnerability dictionary from SUSE",
-	Long:  `Fetch Vulnerability dictionary from SUSE`,
-	RunE:  fetchSUSE,
+	Long: `Fetch Vulnerability dictionary from SUSE
+	
+$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+$ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
+$ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
+$ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
+$ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
+`,
+	RunE: fetchSUSE,
 }
 
 func init() {
@@ -114,10 +121,15 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 			FileName:  ss[len(ss)-1],
 		}
 
-		roots := models.ConvertSUSEToModel(&ovalroot, suseType)
+		roots := models.ConvertSUSEToModel(fmeta.FileName, &ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
-			if err := driver.InsertOval(suseType, &root, fmeta); err != nil {
+			if err := driver.NewOvalDB(root.Family); err != nil {
+				log15.Error("Failed to NewOvalDB for Family found in SUSE OVAL", "err", err)
+				return err
+			}
+
+			if err := driver.InsertOval(root.Family, &root, fmeta); err != nil {
 				log15.Error("Failed to insert oval", "err", err)
 				return err
 			}

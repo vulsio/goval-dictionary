@@ -140,7 +140,7 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 // GetByCveID select definition by CveID
 func (o *Amazon) GetByCveID(driver *gorm.DB, osVer, cveID, arch string) ([]models.Definition, error) {
 	q := driver.
-		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Amazon, majorDotMinor(osVer)).
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Amazon, getAmazonLinux1or2(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").
 		Where("cves.cve_id = ?", cveID).

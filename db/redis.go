@@ -19,33 +19,33 @@ import (
 # Redis Data Structure
 
 - Strings
-  ┌───┬─────────────────────────────────────────┬─────────────┬─────────────────┐
-  │NO │                  HASH                   │    VALUE    │     PURPOSE     │
-  └───┴─────────────────────────────────────────┴─────────────┴─────────────────┘
-  ┌───┬─────────────────────────────────────────┬─────────────┬─────────────────┐
-  │ 1 │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │  $OVALJSON  │ TO GET OVALJSON │
-  └───┴─────────────────────────────────────────┴─────────────┴─────────────────┘
+  ┌───┬───────────────────────────────────────────┬─────────────┬─────────────────┐
+  │NO │                   KEY                     │    VALUE    │     PURPOSE     │
+  └───┴───────────────────────────────────────────┴─────────────┴─────────────────┘
+  ┌───┬───────────────────────────────────────────┬─────────────┬─────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │  $OVALJSON  │ TO GET OVALJSON │
+  └───┴───────────────────────────────────────────┴─────────────┴─────────────────┘
 
 - Sets
-  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
-  │NO │ KEY                                           │ MEMBER                                  │ PURPOSE                                  │
-  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
-  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
-  │ 2 │ OVAL#$OSFAMILY::$VERSION::$PACKAGENAME        │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │ TO GET []$DEFINITIONID                   │
-  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
-  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
-  │ 3 │ OVAL#$OSFAMILY::$VERSION::$PACKAGENAME::$ARCH │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle │
-  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
-  ┌───┬───────────────────────────────────────────────┬─────────────────────────────────────────┬──────────────────────────────────────────┐
-  │ 4 │ OVAL#$OSFAMILY::$VERSION::$CVEID              │ OVAL#$OSFAMILY::$VERSION::$DEFINITIONID │ TO GET []$DEFINITIONID                   │
-  └───┴───────────────────────────────────────────────┴─────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
+  │NO │ KEY                                            │ MEMBER                                    │ PURPOSE                                  │
+  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
+  │ 2 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
+  │ 3 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME#$ARCH │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle │
+  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
+  │ 4 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
 **/
 
 // Supported DB dialects.
 const (
 	dialectRedis = "redis"
 	keyPrefix    = "OVAL#"
-	keySeparator = "::"
+	keySeparator = "#"
 )
 
 // RedisDriver is Driver for Redis
@@ -145,13 +145,13 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		osVer = major(osVer)
 	}
 
-	key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, family, keySeparator, osVer, keySeparator, packName)
+	key := fmt.Sprintf("%s%s#%s#PKG#%s", keyPrefix, family, osVer, packName)
 	defKeys := map[string]bool{}
 	switch family {
 	case c.Amazon, c.Oracle:
 		// affected packages for Amazon and Oracle OVAL needs to consider arch
 		if arch != "" {
-			key = fmt.Sprintf("%s%s%s", key, keySeparator, arch)
+			key = fmt.Sprintf("%s#%s", key, arch)
 			keys, err := d.conn.SMembers(key).Result()
 			if err != nil {
 				return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
@@ -161,7 +161,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 				defKeys[k] = true
 			}
 		} else {
-			key = fmt.Sprintf("%s%s%s", key, keySeparator, "*")
+			key = fmt.Sprintf("%s#%s", key, "*")
 			keys, err := d.conn.Keys(key).Result()
 			if err != nil {
 				return nil, fmt.Errorf("Failed to Keys(%s). err: %s", key, err)
@@ -232,7 +232,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		osVer = major(osVer)
 	}
 
-	key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, family, keySeparator, osVer, keySeparator, cveID)
+	key := fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID)
 	defKeys, err := d.conn.SMembers(key).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
@@ -264,11 +264,11 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 
 func splitDefKey(defkey string) (string, string, string, error) {
 	ss := strings.Split(strings.TrimPrefix(defkey, keyPrefix), keySeparator)
-	if len(ss) != 3 {
+	if len(ss) != 4 {
 		return "", "", "", fmt.Errorf("Failed to parse defkey(%s) correctly", defkey)
 	}
 
-	return ss[0], ss[1], ss[2], nil
+	return ss[0], ss[1], ss[3], nil
 }
 
 func restoreDefinition(defstr, family, version, arch string) (models.Definition, error) {
@@ -324,13 +324,13 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 
-			defKey := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, def.DefinitionID)
+			defKey := fmt.Sprintf("%s%s#%s#DEF#%s", keyPrefix, root.Family, root.OSVersion, def.DefinitionID)
 			if err := pipe.Set(defKey, dj, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to SET definition id. err: %s", err)
 			}
 
 			for _, cve := range def.Advisory.Cves {
-				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, cve.CveID)
+				key := fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, root.Family, root.OSVersion, cve.CveID)
 				if err := pipe.SAdd(key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
 				}
@@ -346,11 +346,11 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			}
 
 			for _, pack := range def.AffectedPacks {
-				key := fmt.Sprintf("%s%s%s%s%s%s", keyPrefix, root.Family, keySeparator, root.OSVersion, keySeparator, pack.Name)
+				key := fmt.Sprintf("%s%s#%s#PKG#%s", keyPrefix, root.Family, root.OSVersion, pack.Name)
 				switch family {
 				case c.Amazon, c.Oracle:
 					// affected packages for Amazon OVAL needs to consider arch
-					key = fmt.Sprintf("%s%s%s", key, keySeparator, pack.Arch)
+					key = fmt.Sprintf("%s#%s", key, pack.Arch)
 				}
 				if err := pipe.SAdd(key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)

@@ -458,7 +458,7 @@ func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
 	if exists == 0 {
 		key, err := d.conn.RandomKey(ctx).Result()
 		if err != nil {
-			if err.Error() == "redis: nil" {
+			if err == redis.Nil {
 				return false, nil
 			}
 			return false, fmt.Errorf("Failed to RandomKey. err: %s", err)

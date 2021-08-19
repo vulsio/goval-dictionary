@@ -1,14 +1,15 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/config"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/spf13/viper"
@@ -39,7 +40,18 @@ import (
   ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
   │ 4 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID                   │
   └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
-**/
+
+- Hash
+  ┌───┬────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
+  │NO │    KEY         │   FIELD       │  VALUE │                PURPOSE                  │
+  └───┴────────────────┴───────────────┴────────┴─────────────────────────────────────────┘
+  ┌────────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
+  │ 1 │ OVAL#FETCHMETA │   Revision    │ string │ GET Go-Oval-Disctionary Binary Revision │
+  ├───┼────────────────┼───────────────┼────────┼─────────────────────────────────────────┤
+  │ 2 │ OVAL#FETCHMETA │ SchemaVersion │  uint  │ GET Go-Oval-Disctionary Schema Version  │
+  └───┴────────────────┴───────────────┴────────┴─────────────────────────────────────────┘
+
+  **/
 
 // Supported DB dialects.
 const (
@@ -59,19 +71,28 @@ func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver
 	driver = &RedisDriver{
 		name: dbType,
 	}
-
 	// when using server command, family is empty.
 	if 0 < len(family) {
 		if err = driver.NewOvalDB(family); err != nil {
-			return
+			return nil, false, err
 		}
 	}
 
 	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
-		return
+		return nil, false, err
 	}
 
-	return
+	isV1, err := driver.IsGovalDictModelV1()
+	if err != nil {
+		log15.Error("Failed to IsGovalDictModelV1.", "err", err)
+		return nil, false, err
+	}
+	if isV1 {
+		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
+		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
+	}
+
+	return driver, false, nil
 }
 
 // NewOvalDB create a OvalDB client
@@ -110,8 +131,10 @@ func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 		log15.Error("Failed to parse url", "err", err)
 		return fmt.Errorf("Failed to Parse Redis URL. dbpath: %s, err: %s", dbPath, err)
 	}
+
 	d.conn = redis.NewClient(option)
-	if err = d.conn.Ping().Err(); err != nil {
+	ctx := context.Background()
+	if err = d.conn.Ping(ctx).Err(); err != nil {
 		return fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
 	return nil
@@ -145,6 +168,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		osVer = major(osVer)
 	}
 
+	ctx := context.Background()
 	key := fmt.Sprintf("%s%s#%s#PKG#%s", keyPrefix, family, osVer, packName)
 	defKeys := map[string]bool{}
 	switch family {
@@ -152,7 +176,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		// affected packages for Amazon and Oracle OVAL needs to consider arch
 		if arch != "" {
 			key = fmt.Sprintf("%s#%s", key, arch)
-			keys, err := d.conn.SMembers(key).Result()
+			keys, err := d.conn.SMembers(ctx, key).Result()
 			if err != nil {
 				return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
 			}
@@ -162,13 +186,13 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 			}
 		} else {
 			key = fmt.Sprintf("%s#%s", key, "*")
-			keys, err := d.conn.Keys(key).Result()
+			keys, err := d.conn.Keys(ctx, key).Result()
 			if err != nil {
 				return nil, fmt.Errorf("Failed to Keys(%s). err: %s", key, err)
 			}
 
 			for _, k := range keys {
-				dkeys, err := d.conn.SMembers(k).Result()
+				dkeys, err := d.conn.SMembers(ctx, k).Result()
 				if err != nil {
 					return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
 				}
@@ -181,7 +205,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 			}
 		}
 	default:
-		keys, err := d.conn.SMembers(key).Result()
+		keys, err := d.conn.SMembers(ctx, key).Result()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
 		}
@@ -193,7 +217,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 	defs := []models.Definition{}
 	for defKey := range defKeys {
-		defstr, err := d.conn.Get(defKey).Result()
+		defstr, err := d.conn.Get(ctx, defKey).Result()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
 		}
@@ -232,15 +256,16 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		osVer = major(osVer)
 	}
 
+	ctx := context.Background()
 	key := fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID)
-	defKeys, err := d.conn.SMembers(key).Result()
+	defKeys, err := d.conn.SMembers(ctx, key).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
 	}
 
 	defs := []models.Definition{}
 	for _, defKey := range defKeys {
-		defstr, err := d.conn.Get(defKey).Result()
+		defstr, err := d.conn.Get(ctx, defKey).Result()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
 		}
@@ -315,6 +340,7 @@ func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []mo
 
 // InsertOval inserts OVAL
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FileMeta) (err error) {
+	ctx := context.Background()
 	expire := viper.GetUint("expire")
 	for chunked := range chunkSlice(root.Definitions, 10) {
 		pipe := d.conn.Pipeline()
@@ -325,21 +351,21 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			}
 
 			defKey := fmt.Sprintf("%s%s#%s#DEF#%s", keyPrefix, root.Family, root.OSVersion, def.DefinitionID)
-			if err := pipe.Set(defKey, dj, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+			if err := pipe.Set(ctx, defKey, dj, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to SET definition id. err: %s", err)
 			}
 
 			for _, cve := range def.Advisory.Cves {
 				key := fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, root.Family, root.OSVersion, cve.CveID)
-				if err := pipe.SAdd(key, defKey).Err(); err != nil {
+				if err := pipe.SAdd(ctx, key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
 				}
 				if expire > 0 {
-					if err := pipe.Expire(key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 					}
 				} else {
-					if err := pipe.Persist(key).Err(); err != nil {
+					if err := pipe.Persist(ctx, key).Err(); err != nil {
 						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 					}
 				}
@@ -352,21 +378,21 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 					// affected packages for Amazon OVAL needs to consider arch
 					key = fmt.Sprintf("%s#%s", key, pack.Arch)
 				}
-				if err := pipe.SAdd(key, defKey).Err(); err != nil {
+				if err := pipe.SAdd(ctx, key, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
 				}
 				if expire > 0 {
-					if err := pipe.Expire(key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 					}
 				} else {
-					if err := pipe.Persist(key).Err(); err != nil {
+					if err := pipe.Persist(ctx, key).Err(); err != nil {
 						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 					}
 				}
 			}
 		}
-		if _, err = pipe.Exec(); err != nil {
+		if _, err = pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
 	}
@@ -422,16 +448,59 @@ func getAmazonLinux1or2(osVersion string) string {
 }
 
 // IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
-func (d *RedisDriver) IsGovalDictModelV1() bool {
-	return false
+func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
+	ctx := context.Background()
+
+	exists, err := d.conn.Exists(ctx, "OVAL#FETCHMETA").Result()
+	if err != nil {
+		return false, fmt.Errorf("Failed to Exists. err: %s", err)
+	}
+	if exists == 0 {
+		key, err := d.conn.RandomKey(ctx).Result()
+		if err != nil {
+			if err.Error() == "redis: nil" {
+				return false, nil
+			}
+			return false, fmt.Errorf("Failed to RandomKey. err: %s", err)
+		}
+		if key != "" {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // GetFetchMeta get FetchMeta from Database
 func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
-	return &models.FetchMeta{GovalDictRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+	ctx := context.Background()
+
+	exists, err := d.conn.Exists(ctx, "OVAL#FETCHMETA").Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to Exists Revision. err: %s", err)
+	}
+	if exists == 0 {
+		return &models.FetchMeta{GovalDictRevision: c.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+	}
+
+	revision, err := d.conn.HGet(ctx, "OVAL#FETCHMETA", "Revision").Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+	}
+
+	verstr, err := d.conn.HGet(ctx, "OVAL#FETCHMETA", "SchemaVersion").Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+	}
+	version, err := strconv.ParseUint(verstr, 10, 8)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to ParseUint. err: %s", err)
+	}
+
+	return &models.FetchMeta{GovalDictRevision: revision, SchemaVersion: uint(version)}, nil
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
-func (d *RedisDriver) UpsertFetchMeta(*models.FetchMeta) error {
-	return nil
+func (d *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	return d.conn.HSet(context.Background(), "OVAL#FETCHMETA", map[string]interface{}{"Revision": fetchMeta.GovalDictRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
 }

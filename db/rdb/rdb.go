@@ -61,7 +61,7 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locke
 		return nil, locked, err
 	}
 
-	isV1 := driver.IsGovalDictModelV1()
+	isV1, err := driver.IsGovalDictModelV1()
 	if err != nil {
 		log15.Error("Failed to IsGovalDictModelV1.", "err", err)
 		return nil, false, err
@@ -357,8 +357,8 @@ func splitChunkIntoDefinitions(definitions []models.Definition, rootID uint, chu
 }
 
 // IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
-func (d *Driver) IsGovalDictModelV1() bool {
-	return d.conn.Migrator().HasColumn(&models.FetchMeta{}, "file_name")
+func (d *Driver) IsGovalDictModelV1() (bool, error) {
+	return d.conn.Migrator().HasColumn(&models.FetchMeta{}, "file_name"), nil
 }
 
 // GetFetchMeta get FetchMeta from Database

@@ -20,7 +20,7 @@ type DB interface {
 	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) (time.Time, error)
 
-	IsGovalDictModelV1() bool
+	IsGovalDictModelV1() (bool, error)
 	GetFetchMeta() (*models.FetchMeta, error)
 	UpsertFetchMeta(*models.FetchMeta) error
 }

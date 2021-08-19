@@ -58,6 +58,7 @@ const (
 	dialectRedis = "redis"
 	keyPrefix    = "OVAL#"
 	keySeparator = "#"
+	fetchMetaKey = "OVAL#FETCHMETA"
 )
 
 // RedisDriver is Driver for Redis
@@ -451,7 +452,7 @@ func getAmazonLinux1or2(osVersion string) string {
 func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
 	ctx := context.Background()
 
-	exists, err := d.conn.Exists(ctx, "OVAL#FETCHMETA").Result()
+	exists, err := d.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
 		return false, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
@@ -475,22 +476,22 @@ func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
 func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 	ctx := context.Background()
 
-	exists, err := d.conn.Exists(ctx, "OVAL#FETCHMETA").Result()
+	exists, err := d.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to Exists Revision. err: %s", err)
+		return nil, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
 	if exists == 0 {
 		return &models.FetchMeta{GovalDictRevision: c.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
 	}
 
-	revision, err := d.conn.HGet(ctx, "OVAL#FETCHMETA", "Revision").Result()
+	revision, err := d.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
 	}
 
-	verstr, err := d.conn.HGet(ctx, "OVAL#FETCHMETA", "SchemaVersion").Result()
+	verstr, err := d.conn.HGet(ctx, fetchMetaKey, "SchemaVersion").Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+		return nil, fmt.Errorf("Failed to HGet SchemaVersion. err: %s", err)
 	}
 	version, err := strconv.ParseUint(verstr, 10, 8)
 	if err != nil {
@@ -502,5 +503,5 @@ func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 
 // UpsertFetchMeta upsert FetchMeta to Database
 func (d *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
-	return d.conn.HSet(context.Background(), "OVAL#FETCHMETA", map[string]interface{}{"Revision": fetchMeta.GovalDictRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
+	return d.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": fetchMeta.GovalDictRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
 }

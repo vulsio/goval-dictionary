@@ -40,7 +40,7 @@ jobs:
         with:
           push: true
           tags: |
-            vuls/vuls:latest
+            vuls/goval-dictionary:latest
             ${{ steps.meta.outputs.tags }}
           secrets: |
             "github_token=${{ secrets.GITHUB_TOKEN }}"

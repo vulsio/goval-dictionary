@@ -178,11 +178,16 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		if arch != "" {
 			pkgKeys = append(pkgKeys, fmt.Sprintf("%s#%s", key, arch))
 		} else {
+			dbsize, err := d.conn.DBSize(ctx).Result()
+			if err != nil {
+				return nil, fmt.Errorf("Failed to DBSize. err: %s", err)
+			}
+
 			var cursor uint64
 			for {
 				var keys []string
 				var err error
-				keys, cursor, err = d.conn.Scan(ctx, cursor, fmt.Sprintf("%s#%s", key, "*"), 10).Result()
+				keys, cursor, err = d.conn.Scan(ctx, cursor, fmt.Sprintf("%s#%s", key, "*"), dbsize/5).Result()
 				if err != nil {
 					return nil, fmt.Errorf("Failed to Scan. err: %s", err)
 				}

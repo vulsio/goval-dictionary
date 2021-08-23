@@ -39,10 +39,13 @@ def diff_response(args: Tuple[str, str, str, str, str]):
         response_new = requests.get(
             f'http://127.0.0.1:1326/{path}', timeout=(3.0, 10.0)).json()
     except requests.ConnectionError as e:
-        logger.error(f'Failed to Connection..., err: {e}')
+        logger.error(f'Failed to Connection..., err: {e}, args: {args}')
+        exit(1)
+    except requests.ReadTimeout as e:
+        logger.error(f'Failed to ReadTimeout..., err: {e}, args: {args}')
         exit(1)
     except Exception as e:
-        logger.error(f'Failed to GET request..., err: {e}')
+        logger.error(f'Failed to GET request..., err: {e}, args: {args}')
         exit(1)
 
     diff = DeepDiff(response_old, response_new, ignore_order=True)
@@ -83,8 +86,12 @@ formatter = logging.Formatter(
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
-logger.info(
-    f'start server mode test(mode: {args.mode}, os: {args.ostype}, arch: {args.arch}, release: {args.release})')
+if args.ostype == "suse":
+    logger.info(
+        f'start server mode test(mode: {args.mode}, os: {args.suse_type}, arch: {args.arch}, release: {args.release})')
+else:
+    logger.info(
+        f'start server mode test(mode: {args.mode}, os: {args.ostype}, arch: {args.arch}, release: {args.release})')
 
 if args.ostype == 'debian':
     if len(list(set(args.release) - set(['7', '8', '9', '10']))) > 0:
@@ -121,36 +128,40 @@ elif args.ostype == "suse":
         if len(list(set(args.release) - set(['10.2', '10.3', '11.0', '11.1', '11.2', '11.3', '11.4', '12.1', '12.2', '12.3', '13.1', '13.2']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-        raise NotImplementedError
+            raise NotImplementedError
     elif args.suse_type == 'opensuse.leap':
         if len(list(set(args.release) - set(['42.1', '42.2', '42.3', '15.0', '15.1', '15.2', '15.3']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-        raise NotImplementedError
+            raise NotImplementedError
     elif args.suse_type == 'suse.linux.enterprise.server':
         if len(list(set(args.release) - set(['9', '10', '11', '12']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-        raise NotImplementedError
+            raise NotImplementedError
     elif args.suse_type == 'suse.linux.enterprise.desktop':
         if len(list(set(args.release) - set(['10', '11', '12']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-        raise NotImplementedError
+            raise NotImplementedError
     elif args.suse_type == 'suse.linux.enterprise.module.basesystem':
         if len(list(set(args.release) - set(['15']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-        raise NotImplementedError
+            raise NotImplementedError
     elif args.suse_type == 'suse.openstack.cloud':
         if len(list(set(args.release) - set(['6', '7', '8', '9']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-        raise NotImplementedError
+            raise NotImplementedError
 else:
     logger.error(
         f'Failed to diff_response..., err: This OS type({args[1]}) does not support test mode(cveid)')
     raise NotImplementedError
+
+ostype = args.ostype
+if args.ostype == "suse":
+    ostype = args.suse_type
 
 for relVer in args.release:
     list_path = None
@@ -173,6 +184,6 @@ for relVer in args.release:
         list = [s.strip() for s in f.readlines()]
         list = random.sample(list, math.ceil(len(list) * args.sample_rate))
         with ThreadPoolExecutor() as executor:
-            ins = ((args.mode, args.ostype, args.arch, relVer, e)
+            ins = ((args.mode, ostype, args.arch, relVer, e)
                    for e in list)
             executor.map(diff_response, ins)

@@ -60,7 +60,9 @@ parser.add_argument('--arch', default="", choices=['x86_64', 'i386', 'ia64', 'i6
                     help='Specify the Architecture to be started in server mode when testing.')
 parser.add_argument('release', nargs='+',
                     help='Specify the Release Version to be started in server mode when testing.')
-parser.add_argument("--sample_rate", type=float, default=0.01,
+parser.add_argument('--suse-type', default="", choices=['opensuse', 'opensuse.leap', 'suse.linux.enterprise.server', 'suse.linux.enterprise.desktop', 'suse.linux.enterprise.module.basesystem', 'suse.openstack.cloud'],
+                    help='Specify the SUSE type to be started in server mode when testing.')
+parser.add_argument("--sample-rate", type=float, default=0.01,
                     help="Adjust the rate of data used for testing (len(test_data) * sample_rate)")
 parser.add_argument(
     '--debug', action=argparse.BooleanOptionalAction, help='print debug message')
@@ -114,8 +116,37 @@ elif args.ostype == 'alpine':
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
-elif args.ostype in "suse":
-    pass
+elif args.ostype == "suse":
+    if args.suse_type == 'opensuse':
+        if len(list(set(args.release) - set(['10.2', '10.3', '11.0', '11.1', '11.2', '11.3', '11.4', '12.1', '12.2', '12.3', '13.1', '13.2']))) > 0:
+            logger.error(
+                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+    elif args.suse_type == 'opensuse.leap':
+        if len(list(set(args.release) - set(['42.1', '42.2', '42.3', '15.0', '15.1', '15.2', '15.3']))) > 0:
+            logger.error(
+                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+    elif args.suse_type == 'suse.linux.enterprise.server':
+        if len(list(set(args.release) - set(['9', '10', '11', '12']))) > 0:
+            logger.error(
+                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+    elif args.suse_type == 'suse.linux.enterprise.desktop':
+        if len(list(set(args.release) - set(['10', '11', '12']))) > 0:
+            logger.error(
+                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+    elif args.suse_type == 'suse.linux.enterprise.module.basesystem':
+        if len(list(set(args.release) - set(['15']))) > 0:
+            logger.error(
+                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
+    elif args.suse_type == 'suse.openstack.cloud':
+        if len(list(set(args.release) - set(['6', '7', '8', '9']))) > 0:
+            logger.error(
+                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
 else:
     logger.error(
         f'Failed to diff_response..., err: This OS type({args[1]}) does not support test mode(cveid)')
@@ -124,13 +155,13 @@ else:
 for relVer in args.release:
     list_path = None
     if args.mode == 'cveid':
-        if args.ostype in "suse":
-            list_path = f"integration/cveid/suse/{args.ostype}_{relVer}.txt"
+        if args.ostype == "suse":
+            list_path = f"integration/cveid/suse/{args.suse_type}_{relVer}.txt"
         else:
             list_path = f"integration/cveid/{args.ostype}/{args.ostype}_{relVer}.txt"
     if args.mode == 'package':
-        if args.ostype in "suse":
-            list_path = f"integration/package/suse/{args.ostype}_{relVer}.txt"
+        if args.ostype == "suse":
+            list_path = f"integration/package/suse/{args.suse_type}_{relVer}.txt"
         else:
             list_path = f"integration/package/{args.ostype}/{args.ostype}_{relVer}.txt"
 

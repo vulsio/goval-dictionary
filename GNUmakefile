@@ -146,37 +146,37 @@ fetch-redis:
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type suse-openstack-cloud 6 7 8 9
 
 diff-cveid:
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid debian 7 8 9 10
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid ubuntu 14 16 18 19 20
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid redhat 5 6 7 8
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 cveid oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid amazon 1 2
-	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 cveid amazon 1 2
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid opensuse.leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid suse.linux.enterprise.server 9 10 11 12
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid suse.linux.enterprise.desktop 10 11 12
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid suse.linux.enterprise.module.basesystem 15
-	@ python integration/diff_server_mode.py --sample_rate 0.01 cveid suse.openstack.cloud 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid debian 7 8 9 10
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid ubuntu 14 16 18 19 20
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid redhat 5 6 7 8
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid amazon 1 2
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid amazon 1 2
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type opensuse.leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.linux.enterprise.server 9 10 11 12
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.linux.enterprise.desktop 10 11 12
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.linux.enterprise.module.basesystem 15
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.openstack.cloud 6 7 8 9
 
 
 diff-package:
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package debian 7 8 9 10
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package ubuntu 14 16 18 19 20
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package redhat 5 6 7 8
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 package oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package amazon 1 2
-	@ python integration/diff_server_mode.py --sample_rate 0.01 --arch x86_64 package amazon 1 2
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package opensuse.leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package suse.linux.enterprise.server 9 10 11 12
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package suse.linux.enterprise.desktop 10 11 12
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package suse.linux.enterprise.module.basesystem 15
-	@ python integration/diff_server_mode.py --sample_rate 0.01 package suse.openstack.cloud 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package debian 7 8 9 10
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package ubuntu 14 16 18 19 20
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package redhat 5 6 7 8
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package oracle 5 6 7 8
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package amazon 1 2
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package amazon 1 2
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type opensuse.leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.linux.enterprise.server 9 10 11 12
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.linux.enterprise.desktop 10 11 12
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.linux.enterprise.module.basesystem 15
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.openstack.cloud 6 7 8 9
 
 diff-server-rdb:
 	integration/goval-dict.old server --dbpath=$(PWD)/integration/oval.old.sqlite3 --port 1325 > /dev/null & 

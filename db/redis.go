@@ -266,7 +266,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	for {
 		var keys []string
 		var err error
-		keys, cursor, err = d.conn.Scan(ctx, cursor, fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID), 10).Result()
+		keys, cursor, err = d.conn.SScan(ctx, fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID), cursor, "", 10).Result()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to Scan. err: %s", err)
 		}

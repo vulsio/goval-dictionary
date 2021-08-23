@@ -7,6 +7,7 @@ import (
 	"github.com/k0kubun/pp"
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/db"
+	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -97,6 +98,16 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 		}
 		log15.Error("Failed to open DB", "err", err)
 		return err
+	}
+
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
 	if flagPkg {

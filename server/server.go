@@ -10,9 +10,11 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/kotakanbe/goval-dictionary/db"
+	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 )
 
 // Start starts CVE dictionary HTTP Server.
@@ -89,6 +91,16 @@ func getByPackName() echo.HandlerFunc {
 			_ = driver.CloseDB()
 		}()
 
+		fetchMeta, err := driver.GetFetchMeta()
+		if err != nil {
+			log15.Error("Failed to get FetchMeta from DB.", "err", err)
+			return err
+		}
+		if fetchMeta.OutDated() {
+			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		}
+
 		defs, err := driver.GetByPackName(family, release, decodePack, arch)
 		if err != nil {
 			log15.Error("Failed to get by Package Name.", "err", err)
@@ -117,6 +129,17 @@ func getByCveID() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
+
+		fetchMeta, err := driver.GetFetchMeta()
+		if err != nil {
+			log15.Error("Failed to get FetchMeta from DB.", "err", err)
+			return err
+		}
+		if fetchMeta.OutDated() {
+			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		}
+
 		defs, err := driver.GetByCveID(family, release, cveID, arch)
 		if err != nil {
 			log15.Error("Failed to get by CveID.", "err", err)
@@ -142,6 +165,17 @@ func countOvalDefs() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
+
+		fetchMeta, err := driver.GetFetchMeta()
+		if err != nil {
+			log15.Error("Failed to get FetchMeta from DB.", "err", err)
+			return err
+		}
+		if fetchMeta.OutDated() {
+			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		}
+
 		count, err := driver.CountDefs(family, release)
 		log15.Debug("Count", "Count", count)
 		if err != nil {
@@ -168,6 +202,17 @@ func getLastModified() echo.HandlerFunc {
 		defer func() {
 			_ = driver.CloseDB()
 		}()
+
+		fetchMeta, err := driver.GetFetchMeta()
+		if err != nil {
+			log15.Error("Failed to get FetchMeta from DB.", "err", err)
+			return err
+		}
+		if fetchMeta.OutDated() {
+			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		}
+
 		t, err := driver.GetLastModified(family, release)
 		if err != nil {
 			log15.Error(fmt.Sprintf("Failed to GetLastModified: %s", err))

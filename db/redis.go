@@ -260,7 +260,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	switch family {
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
-	case c.Alpine, c.OpenSUSE, c.OpenSUSELeap:
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 	default:
 		osVer = major(osVer)
 	}

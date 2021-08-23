@@ -161,11 +161,11 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		family = c.Debian
 	}
 
-	if family == c.Amazon {
+	switch family {
+	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
-	} else if family != c.Alpine {
-		// OVAL is provided for each major for all other OSes except alpine,
-		// But Alpine provides it for each major.minor
+	case c.Alpine, c.OpenSUSE, c.OpenSUSELeap:
+	default:
 		osVer = major(osVer)
 	}
 
@@ -257,11 +257,11 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		family = c.Debian
 	}
 
-	if family == c.Amazon {
+	switch family {
+	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
-	} else if family != c.Alpine {
-		// OVAL is provided for each major for all other OSes except alpine,
-		// But Alpine provides it for each major.minor
+	case c.Alpine, c.OpenSUSE, c.OpenSUSELeap:
+	default:
 		osVer = major(osVer)
 	}
 

@@ -171,46 +171,51 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 	ctx := context.Background()
 	key := fmt.Sprintf("%s%s#%s#PKG#%s", keyPrefix, family, osVer, packName)
-	defKeys := map[string]bool{}
+	pkgKeys := []string{}
 	switch family {
 	case c.Amazon, c.Oracle:
 		// affected packages for Amazon and Oracle OVAL needs to consider arch
 		if arch != "" {
-			key = fmt.Sprintf("%s#%s", key, arch)
-			keys, err := d.conn.SMembers(ctx, key).Result()
-			if err != nil {
-				return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
-			}
-
-			for _, k := range keys {
-				defKeys[k] = true
-			}
+			pkgKeys = append(pkgKeys, fmt.Sprintf("%s#%s", key, arch))
 		} else {
-			key = fmt.Sprintf("%s#%s", key, "*")
-			keys, err := d.conn.Keys(ctx, key).Result()
-			if err != nil {
-				return nil, fmt.Errorf("Failed to Keys(%s). err: %s", key, err)
-			}
-
-			for _, k := range keys {
-				dkeys, err := d.conn.SMembers(ctx, k).Result()
+			var cursor uint64
+			for {
+				var keys []string
+				var err error
+				keys, cursor, err = d.conn.Scan(ctx, cursor, fmt.Sprintf("%s#%s", key, "*"), 10).Result()
 				if err != nil {
-					return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+					return nil, fmt.Errorf("Failed to Scan. err: %s", err)
 				}
 
-				for _, dkey := range dkeys {
-					defKeys[dkey] = true
+				pkgKeys = append(pkgKeys, keys...)
+
+				if cursor == 0 {
+					break
 				}
 			}
 		}
 	default:
-		keys, err := d.conn.SMembers(ctx, key).Result()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
-		}
+		pkgKeys = append(pkgKeys, key)
+	}
 
-		for _, k := range keys {
-			defKeys[k] = true
+	defKeys := map[string]bool{}
+	for _, pkey := range pkgKeys {
+		var cursor uint64
+		for {
+			var dkeys []string
+			var err error
+			dkeys, cursor, err = d.conn.SScan(ctx, pkey, cursor, "", 10).Result()
+			if err != nil {
+				return nil, fmt.Errorf("Failed to Scan. err: %s", err)
+			}
+
+			for _, dkey := range dkeys {
+				defKeys[dkey] = true
+			}
+
+			if cursor == 0 {
+				break
+			}
 		}
 	}
 
@@ -256,10 +261,21 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	}
 
 	ctx := context.Background()
-	key := fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID)
-	defKeys, err := d.conn.SMembers(ctx, key).Result()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to SMembers(%s). err: %s", key, err)
+	defKeys := []string{}
+	var cursor uint64
+	for {
+		var keys []string
+		var err error
+		keys, cursor, err = d.conn.Scan(ctx, cursor, fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID), 10).Result()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to Scan. err: %s", err)
+		}
+
+		defKeys = append(defKeys, keys...)
+
+		if cursor == 0 {
+			break
+		}
 	}
 
 	defs := []models.Definition{}

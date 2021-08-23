@@ -206,7 +206,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 			var err error
 			dkeys, cursor, err = d.conn.SScan(ctx, pkey, cursor, "", 10).Result()
 			if err != nil {
-				return nil, fmt.Errorf("Failed to Scan. err: %s", err)
+				return nil, fmt.Errorf("Failed to SScan. err: %s", err)
 			}
 
 			for _, dkey := range dkeys {
@@ -268,7 +268,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		var err error
 		keys, cursor, err = d.conn.SScan(ctx, fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID), cursor, "", 10).Result()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to Scan. err: %s", err)
+			return nil, fmt.Errorf("Failed to SScan. err: %s", err)
 		}
 
 		defKeys = append(defKeys, keys...)

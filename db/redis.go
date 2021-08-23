@@ -199,9 +199,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 				}
 
 				for _, dkey := range dkeys {
-					if _, ok := defKeys[dkey]; !ok {
-						defKeys[dkey] = true
-					}
+					defKeys[dkey] = true
 				}
 			}
 		}

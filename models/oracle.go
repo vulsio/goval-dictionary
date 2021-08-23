@@ -59,9 +59,9 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
 					Severity:        ovaldef.Advisory.Severity,
+					Cves:            append([]Cve{}, cves...),
 					Bugzillas:       []Bugzilla{},
 					AffectedCPEList: []Cpe{},
-					Cves:            append([]Cve{}, cves...),
 					Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},

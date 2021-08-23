@@ -88,10 +88,10 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			Title:        d.Title,
 			Description:  d.Description,
 			Advisory: Advisory{
-				Cves:            cves,
 				Severity:        d.Advisory.Severity,
-				AffectedCPEList: cl,
+				Cves:            cves,
 				Bugzillas:       bs,
+				AffectedCPEList: cl,
 				Issued:          issued,
 				Updated:         updated,
 			},

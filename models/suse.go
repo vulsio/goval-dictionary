@@ -120,13 +120,14 @@ func ConvertSUSEToModel(xmlName string, root *oval.Root) (roots []Root) {
 					Title:        ovaldef.Title,
 					Description:  ovaldef.Description,
 					Advisory: Advisory{
-						Cves:            append([]Cve{}, cves...),
 						Severity:        ovaldef.Advisory.Severity,
-						AffectedCPEList: append([]Cpe{}, cpes...),
+						Cves:            append([]Cve{}, cves...),
 						Bugzillas:       append([]Bugzilla{}, bugzillas...),
+						AffectedCPEList: append([]Cpe{}, cpes...),
 						Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					},
+					Debian:        nil,
 					AffectedPacks: packs,
 					References:    append([]Reference{}, references...),
 				}

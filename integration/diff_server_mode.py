@@ -42,8 +42,7 @@ def diff_response(args: Tuple[str, str, str, str, str]):
         logger.error(f'Failed to Connection..., err: {e}, args: {args}')
         exit(1)
     except requests.ReadTimeout as e:
-        logger.error(f'Failed to ReadTimeout..., err: {e}, args: {args}')
-        exit(1)
+        logger.warning(f'Failed to ReadTimeout..., err: {e}, args: {args}')
     except Exception as e:
         logger.error(f'Failed to GET request..., err: {e}, args: {args}')
         exit(1)

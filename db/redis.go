@@ -45,7 +45,7 @@ import (
   ┌───┬────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
   │NO │    KEY         │   FIELD       │  VALUE │                PURPOSE                  │
   └───┴────────────────┴───────────────┴────────┴─────────────────────────────────────────┘
-  ┌────────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
+  ┌───┬────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
   │ 1 │ OVAL#FETCHMETA │   Revision    │ string │ GET Go-Oval-Disctionary Binary Revision │
   ├───┼────────────────┼───────────────┼────────┼─────────────────────────────────────────┤
   │ 2 │ OVAL#FETCHMETA │ SchemaVersion │  uint  │ GET Go-Oval-Disctionary Schema Version  │
@@ -476,16 +476,14 @@ func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
 		return false, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
 	if exists == 0 {
-		key, err := d.conn.RandomKey(ctx).Result()
+		keys, _, err := d.conn.Scan(ctx, 0, "OVAL#*", 1).Result()
 		if err != nil {
-			if err == redis.Nil {
-				return false, nil
-			}
-			return false, fmt.Errorf("Failed to RandomKey. err: %s", err)
+			return false, fmt.Errorf("Failed to Scan. err: %s", err)
 		}
-		if key != "" {
-			return true, nil
+		if len(keys) == 0 {
+			return false, nil
 		}
+		return true, nil
 	}
 
 	return false, nil

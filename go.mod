@@ -3,6 +3,7 @@ module github.com/kotakanbe/goval-dictionary
 go 1.15
 
 require (
+	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/htcat/htcat v1.0.2
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
@@ -11,7 +12,6 @@ require (
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/lib/pq v1.9.0 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.2.1

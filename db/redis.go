@@ -3,11 +3,13 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -20,44 +22,46 @@ import (
 # Redis Data Structure
 
 - Strings
-  ┌───┬───────────────────────────────────────────┬─────────────┬─────────────────┐
-  │NO │                   KEY                     │    VALUE    │     PURPOSE     │
-  └───┴───────────────────────────────────────────┴─────────────┴─────────────────┘
-  ┌───┬───────────────────────────────────────────┬─────────────┬─────────────────┐
-  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │  $OVALJSON  │ TO GET OVALJSON │
-  └───┴───────────────────────────────────────────┴─────────────┴─────────────────┘
+  ┌───┬─────────────────────────────┬───────┬──────────────────────────────────────────────────┐
+  │NO │                   KEY       │ VALUE │                   PURPOSE                        │
+  └───┴─────────────────────────────┴───────┴──────────────────────────────────────────────────┘
+  ┌───┬─────────────────────────────┬───────┬──────────────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEP │ JSON  │ TO DELETE OUTDATED AND UNNEEDED FIELD AND MEMBER │
+  └───┴─────────────────────────────┴───────┴──────────────────────────────────────────────────┘
 
 - Sets
-  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
-  │NO │ KEY                                            │ MEMBER                                    │ PURPOSE                                  │
-  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
-  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
-  │ 2 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID                   │
-  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
-  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
-  │ 3 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME#$ARCH │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle │
-  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
-  ┌───┬────────────────────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────┐
-  │ 4 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ OVAL#$OSFAMILY#$VERSION#DEF#$DEFINITIONID │ TO GET []$DEFINITIONID                   │
-  └───┴────────────────────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
+  │NO │ KEY                                            │     MEMBER    │ PURPOSE                                  │
+  └───┴────────────────────────────────────────────────┴───────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ $DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
+  │ 2 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME#$ARCH │ $DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle │
+  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
+  │ 3 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ $DEFINITIONID │ TO GET []$DEFINITIONID                   │
+  └───┴────────────────────────────────────────────────┴───────────────┴──────────────────────────────────────────┘
 
 - Hash
-  ┌───┬────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
-  │NO │    KEY         │   FIELD       │  VALUE │                PURPOSE                  │
-  └───┴────────────────┴───────────────┴────────┴─────────────────────────────────────────┘
-  ┌───┬────────────────┬───────────────┬────────┬─────────────────────────────────────────┐
-  │ 1 │ OVAL#FETCHMETA │   Revision    │ string │ GET Go-Oval-Disctionary Binary Revision │
-  ├───┼────────────────┼───────────────┼────────┼─────────────────────────────────────────┤
-  │ 2 │ OVAL#FETCHMETA │ SchemaVersion │  uint  │ GET Go-Oval-Disctionary Schema Version  │
-  └───┴────────────────┴───────────────┴────────┴─────────────────────────────────────────┘
+  ┌───┬─────────────────────────────┬───────────────┬───────────┬─────────────────────────────────────────┐
+  │NO │         KEY                 │     FIELD     │   VALUE   │                PURPOSE                  │
+  └───┴─────────────────────────────┴───────────────┴───────────┴─────────────────────────────────────────┘
+  ┌───┬─────────────────────────────┬───────────────┬───────────┬─────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF │ $DEFINITIONID │ $OVALJSON │ TO GET OVALJSON                         │
+  ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
+  │ 2 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
+  ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
+  │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
+  └───┴─────────────────────────────┴───────────────┴───────────┴─────────────────────────────────────────┘
 
   **/
 
 // Supported DB dialects.
 const (
 	dialectRedis = "redis"
-	keyPrefix    = "OVAL#"
-	keySeparator = "#"
+	defKeyFormat = "OVAL#%s#%s#DEF"
+	cveKeyFormat = "OVAL#%s#%s#CVE#%s"
+	pkgKeyFormat = "OVAL#%s#%s#PKG#%s"
+	depKeyFormat = "OVAL#%s#%s#DEP"
 	fetchMetaKey = "OVAL#FETCHMETA"
 )
 
@@ -362,60 +366,138 @@ func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []mo
 func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FileMeta) (err error) {
 	ctx := context.Background()
 	expire := viper.GetUint("expire")
+
+	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}}
+	newDeps := map[string]map[string]map[string]struct{}{}
+	depKey := fmt.Sprintf(depKeyFormat, root.Family, root.OSVersion)
+	oldDepsStr, err := d.conn.Get(ctx, depKey).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return fmt.Errorf("Failed to Get key: %s. err: %s", depKey, err)
+		}
+		oldDepsStr = "{}"
+	}
+	var oldDeps map[string]map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return fmt.Errorf("Failed to unmarshal JSON. err: %s", err)
+	}
+
+	bar := pb.StartNew(len(root.Definitions))
 	for chunked := range chunkSlice(root.Definitions, 10) {
 		pipe := d.conn.Pipeline()
+		defKey := fmt.Sprintf(defKeyFormat, root.Family, root.OSVersion)
 		for _, def := range chunked {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 
-			defKey := fmt.Sprintf("%s%s#%s#DEF#%s", keyPrefix, root.Family, root.OSVersion, def.DefinitionID)
-			if err := pipe.Set(ctx, defKey, dj, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to SET definition id. err: %s", err)
+			if err := pipe.HSet(ctx, defKey, def.DefinitionID, string(dj)).Err(); err != nil {
+				return fmt.Errorf("Failed to HSet. err: %s", err)
+			}
+			if _, ok := newDeps[def.DefinitionID]; !ok {
+				newDeps[def.DefinitionID] = map[string]map[string]struct{}{"cves": {}, "packages": {}}
 			}
 
 			for _, cve := range def.Advisory.Cves {
-				key := fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, root.Family, root.OSVersion, cve.CveID)
-				if err := pipe.SAdd(ctx, key, defKey).Err(); err != nil {
+				cveKey := fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, cve.CveID)
+				if err := pipe.SAdd(ctx, cveKey, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
 				}
 				if expire > 0 {
-					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					if err := pipe.Expire(ctx, cveKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 					}
 				} else {
-					if err := pipe.Persist(ctx, key).Err(); err != nil {
+					if err := pipe.Persist(ctx, cveKey).Err(); err != nil {
 						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
+				}
+
+				newDeps[def.DefinitionID]["cves"][cve.CveID] = struct{}{}
+				if _, ok := oldDeps[def.DefinitionID]["cves"]; ok {
+					delete(oldDeps[def.DefinitionID]["cves"], cve.CveID)
+					if len(oldDeps[def.DefinitionID]["cves"]) == 0 {
+						delete(oldDeps[def.DefinitionID], "cves")
 					}
 				}
 			}
 
 			for _, pack := range def.AffectedPacks {
-				key := fmt.Sprintf("%s%s#%s#PKG#%s", keyPrefix, root.Family, root.OSVersion, pack.Name)
+				pkgName := pack.Name
 				switch family {
 				case c.Amazon, c.Oracle:
 					// affected packages for Amazon OVAL needs to consider arch
-					key = fmt.Sprintf("%s#%s", key, pack.Arch)
+					pkgName = fmt.Sprintf("%s#%s", pkgName, pack.Arch)
 				}
-				if err := pipe.SAdd(ctx, key, defKey).Err(); err != nil {
+				pkgKey := fmt.Sprintf(pkgKeyFormat, root.Family, root.OSVersion, pkgName)
+
+				if err := pipe.SAdd(ctx, pkgKey, defKey).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
 				}
 				if expire > 0 {
-					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					if err := pipe.Expire(ctx, pkgKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 					}
 				} else {
-					if err := pipe.Persist(ctx, key).Err(); err != nil {
+					if err := pipe.Persist(ctx, pkgKey).Err(); err != nil {
 						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 					}
 				}
+
+				newDeps[def.DefinitionID]["packages"][pkgName] = struct{}{}
+				if _, ok := oldDeps[def.DefinitionID]["packages"]; ok {
+					delete(oldDeps[def.DefinitionID]["packages"], pkgName)
+					if len(oldDeps[def.DefinitionID]["packages"]) == 0 {
+						delete(oldDeps[def.DefinitionID], "packages")
+					}
+				}
+			}
+
+			if len(oldDeps[def.DefinitionID]) == 0 {
+				delete(oldDeps, def.DefinitionID)
+			}
+		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, defKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		} else {
+			if err := pipe.Persist(ctx, defKey).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 			}
 		}
 		if _, err = pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(10)
 	}
+	bar.Finish()
+
+	pipe := d.conn.Pipeline()
+	for defID, definitions := range oldDeps {
+		for cveID := range definitions["cves"] {
+			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, cveID), defID).Err(); err != nil {
+				return fmt.Errorf("Failed to SRem. err: %s", err)
+			}
+		}
+		for pack := range definitions["packages"] {
+			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, pack), defID).Err(); err != nil {
+				return fmt.Errorf("Failed to SRem. err: %s", err)
+			}
+		}
+		if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, root.Family, root.OSVersion), defID).Err(); err != nil {
+			return fmt.Errorf("Failed to HDel. err: %s", err)
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return fmt.Errorf("Failed to Marshal JSON. err: %s", err)
+	}
+	if err := pipe.Set(ctx, depKey, string(newDepsJSON), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+		return fmt.Errorf("Failed to Set depkey. err: %s", err)
+	}
+
 	return nil
 }
 

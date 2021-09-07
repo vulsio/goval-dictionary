@@ -496,8 +496,27 @@ func chunkSlice(l []models.Definition, n int) chan []models.Definition {
 
 // CountDefs counts the number of definitions specified by args
 func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
-	// TODO not implemented yet
-	return 1, nil
+	switch family {
+	case c.CentOS:
+		family = c.RedHat
+	case c.Raspbian:
+		family = c.Debian
+	case c.Amazon:
+		osVer = getAmazonLinux1or2(osVer)
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
+	default:
+		osVer = major(osVer)
+	}
+
+	count, err := d.conn.HLen(context.Background(), fmt.Sprintf(defKeyFormat, family, osVer)).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return 0, fmt.Errorf("Failed to HLen. err: %s", err)
+		}
+		return 0, nil
+	}
+
+	return int(count), nil
 }
 
 // GetLastModified get last modified time of OVAL in roots

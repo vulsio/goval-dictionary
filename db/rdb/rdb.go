@@ -277,7 +277,7 @@ func (d *Driver) InsertFileMeta(meta models.FileMeta) error {
 // CountDefs counts the number of definitions specified by args
 func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {
-	case c.Alpine:
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 		osVer = majorDotMinor(osVer)
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
@@ -286,8 +286,10 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	}
 
 	root := models.Root{}
-	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
-	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+	if err := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).Take(&root).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, err
+		}
 		return 0, nil
 	}
 

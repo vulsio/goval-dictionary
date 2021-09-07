@@ -109,8 +109,14 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 
+		timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
+		if err != nil {
+			log15.Error("Failed to parse timestamp", "url", t.url, "err", err)
+			return err
+		}
+
 		fmeta := models.FileMeta{
-			Timestamp: time.Now(),
+			Timestamp: timestamp,
 			FileName:  t.url,
 		}
 

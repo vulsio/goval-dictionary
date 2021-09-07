@@ -22,14 +22,14 @@ import (
 # Redis Data Structure
 
 - Strings
-  ┌───┬──────────────────────────────────────┬───────────┬──────────────────────────────────────────────────┐
-  │NO │                   KEY                │   VALUE   │                   PURPOSE                        │
-  └───┴──────────────────────────────────────┴───────────┴──────────────────────────────────────────────────┘
-  ┌───┬──────────────────────────────────────┬───────────┬──────────────────────────────────────────────────┐
-  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEP          │   JSON    │ TO DELETE OUTDATED AND UNNEEDED FIELD AND MEMBER │
-  ├───┼──────────────────────────────────────┼───────────┼──────────────────────────────────────────────────┤
-  │ 2 │ OVAL#$OSFAMILY#$VERSION#LASTMODIFIED │ time.TIME │ TO GET Last Modified                             │
-  └───┴──────────────────────────────────────┴───────────┴──────────────────────────────────────────────────┘
+  ┌───┬──────────────────────────────────────┬─────────┬──────────────────────────────────────────────────┐
+  │NO │                   KEY                │  VALUE  │                   PURPOSE                        │
+  └───┴──────────────────────────────────────┴─────────┴──────────────────────────────────────────────────┘
+  ┌───┬──────────────────────────────────────┬─────────┬──────────────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEP          │   JSON  │ TO DELETE OUTDATED AND UNNEEDED FIELD AND MEMBER │
+  ├───┼──────────────────────────────────────┼─────────┼──────────────────────────────────────────────────┤
+  │ 2 │ OVAL#$OSFAMILY#$VERSION#LASTMODIFIED │  string │ TO GET Last Modified                             │
+  └───┴──────────────────────────────────────┴─────────┴──────────────────────────────────────────────────┘
 
 - Sets
   ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
@@ -45,14 +45,16 @@ import (
 
 - Hash
   ┌───┬─────────────────────────────┬───────────────┬───────────┬─────────────────────────────────────────┐
-  │NO │         KEY                 │     FIELD     │   VALUE   │                PURPOSE                  │
+  │NO │               KEY           │     FIELD     │   VALUE   │                PURPOSE                  │
   └───┴─────────────────────────────┴───────────────┴───────────┴─────────────────────────────────────────┘
   ┌───┬─────────────────────────────┬───────────────┬───────────┬─────────────────────────────────────────┐
   │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF │ $DEFINITIONID │ $OVALJSON │ TO GET OVALJSON                         │
   ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 2 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
+  │ 3 │ OVAL#FILEMETA               │   $FILENAME   │   string  │ GET Fetched OVAL Update Time            │
   ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
+  │ 4 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
+  ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
+  │ 5 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
   └───┴─────────────────────────────┴───────────────┴───────────┴─────────────────────────────────────────┘
 
   **/
@@ -65,6 +67,7 @@ const (
 	pkgKeyFormat          = "OVAL#%s#%s#PKG#%s"
 	depKeyFormat          = "OVAL#%s#%s#DEP"
 	lastModifiedKeyFormat = "OVAL#%s#%s#LASTMODIFIED"
+	fileMetaKey           = "OVAL#FILEMETA"
 	fetchMetaKey          = "OVAL#FETCHMETA"
 )
 
@@ -327,6 +330,15 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 	ctx := context.Background()
 	expire := viper.GetUint("expire")
 
+	oldFileMeta, err := d.GetFileMeta(meta)
+	if err != nil {
+		return fmt.Errorf("Failed to GetFileMeta. err: %s", err)
+	}
+	if meta.Timestamp.Equal(oldFileMeta.Timestamp) {
+		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
+		return nil
+	}
+
 	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{}
 	depKey := fmt.Sprintf(depKeyFormat, root.Family, root.OSVersion)
@@ -457,7 +469,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 	if err := pipe.Set(ctx, depKey, string(newDepsJSON), time.Duration(expire*uint(time.Second))).Err(); err != nil {
 		return fmt.Errorf("Failed to Set depkey. err: %s", err)
 	}
-	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, root.Family, root.OSVersion), root.Timestamp, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, root.Family, root.OSVersion), root.Timestamp.Format("2006-01-02T15:04:05Z"), time.Duration(expire*uint(time.Second))).Err(); err != nil {
 		return fmt.Errorf("Failed to Set LastModifiedKey. err: %s", err)
 	}
 	if _, err = pipe.Exec(ctx); err != nil {
@@ -468,9 +480,29 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 }
 
 // InsertFileMeta inserts FileMeta
-// Redis do not use this.
 func (d *RedisDriver) InsertFileMeta(meta models.FileMeta) error {
+	if err := d.conn.HSet(context.Background(), fileMetaKey, meta.FileName, meta.Timestamp.Format("2006-01-02T15:04:05Z")).Err(); err != nil {
+		return fmt.Errorf("Failed to HSet. err: %s", err)
+	}
 	return nil
+}
+
+// GetFileMeta :
+func (d *RedisDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
+	timeStr, err := d.conn.HGet(context.Background(), fileMetaKey, meta.FileName).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return models.FileMeta{}, fmt.Errorf("Failed to HGet. err: %s", err)
+		}
+		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
+	}
+
+	fileTime, err := time.Parse("2006-01-02T15:04:05Z", timeStr)
+	if err != nil {
+		return models.FileMeta{}, fmt.Errorf("Failed to parse models.FileMeta.Timestamp. err: %s", err)
+	}
+
+	return models.FileMeta{FileName: meta.FileName, Timestamp: fileTime}, nil
 }
 
 func major(osVer string) (majorVersion string) {
@@ -541,7 +573,7 @@ func (d *RedisDriver) GetLastModified(osFamily, osVer string) (time.Time, error)
 		return time.Now().AddDate(-100, 0, 0), nil
 	}
 
-	lastModified, err := time.Parse("2006-01-02T15:04:05+09:00", lastModifiedStr)
+	lastModified, err := time.Parse("2006-01-02T15:04:05Z", lastModifiedStr)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("Failed to parse LastModified. err: %s", err)
 	}

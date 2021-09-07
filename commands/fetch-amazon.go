@@ -98,8 +98,13 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 }
 
 func execute(driver db.DB, root *models.Root) error {
+	timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
+	if err != nil {
+		return fmt.Errorf("Failed to parse timestamp. err: %w", err)
+	}
+
 	fmeta := models.FileMeta{
-		Timestamp: time.Now(),
+		Timestamp: timestamp,
 		FileName:  fmt.Sprintf("FetchUpdateInfoAmazonLinux%s", root.OSVersion),
 	}
 

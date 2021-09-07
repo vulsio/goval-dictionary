@@ -274,6 +274,18 @@ func (d *Driver) InsertFileMeta(meta models.FileMeta) error {
 	return nil
 }
 
+// GetFileMeta :
+func (d *Driver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
+	filemeta := models.FileMeta{}
+	if err := d.conn.Where(&models.FileMeta{FileName: meta.FileName}).Take(&filemeta).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.FileMeta{}, fmt.Errorf("Failed to get filemeta: %s", err)
+		}
+		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
+	}
+	return filemeta, nil
+}
+
 // CountDefs counts the number of definitions specified by args
 func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {

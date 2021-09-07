@@ -22,12 +22,14 @@ import (
 # Redis Data Structure
 
 - Strings
-  ┌───┬─────────────────────────────┬───────┬──────────────────────────────────────────────────┐
-  │NO │                   KEY       │ VALUE │                   PURPOSE                        │
-  └───┴─────────────────────────────┴───────┴──────────────────────────────────────────────────┘
-  ┌───┬─────────────────────────────┬───────┬──────────────────────────────────────────────────┐
-  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEP │ JSON  │ TO DELETE OUTDATED AND UNNEEDED FIELD AND MEMBER │
-  └───┴─────────────────────────────┴───────┴──────────────────────────────────────────────────┘
+  ┌───┬──────────────────────────────────────┬───────────┬──────────────────────────────────────────────────┐
+  │NO │                   KEY                │   VALUE   │                   PURPOSE                        │
+  └───┴──────────────────────────────────────┴───────────┴──────────────────────────────────────────────────┘
+  ┌───┬──────────────────────────────────────┬───────────┬──────────────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#DEP          │   JSON    │ TO DELETE OUTDATED AND UNNEEDED FIELD AND MEMBER │
+  ├───┼──────────────────────────────────────┼───────────┼──────────────────────────────────────────────────┤
+  │ 2 │ OVAL#$OSFAMILY#$VERSION#LASTMODIFIED │ time.TIME │ TO GET Last Modified                             │
+  └───┴──────────────────────────────────────┴───────────┴──────────────────────────────────────────────────┘
 
 - Sets
   ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
@@ -57,12 +59,13 @@ import (
 
 // Supported DB dialects.
 const (
-	dialectRedis = "redis"
-	defKeyFormat = "OVAL#%s#%s#DEF"
-	cveKeyFormat = "OVAL#%s#%s#CVE#%s"
-	pkgKeyFormat = "OVAL#%s#%s#PKG#%s"
-	depKeyFormat = "OVAL#%s#%s#DEP"
-	fetchMetaKey = "OVAL#FETCHMETA"
+	dialectRedis          = "redis"
+	defKeyFormat          = "OVAL#%s#%s#DEF"
+	cveKeyFormat          = "OVAL#%s#%s#CVE#%s"
+	pkgKeyFormat          = "OVAL#%s#%s#PKG#%s"
+	depKeyFormat          = "OVAL#%s#%s#DEP"
+	lastModifiedKeyFormat = "OVAL#%s#%s#LASTMODIFIED"
+	fetchMetaKey          = "OVAL#FETCHMETA"
 )
 
 // RedisDriver is Driver for Redis
@@ -454,6 +457,12 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 	if err := pipe.Set(ctx, depKey, string(newDepsJSON), time.Duration(expire*uint(time.Second))).Err(); err != nil {
 		return fmt.Errorf("Failed to Set depkey. err: %s", err)
 	}
+	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, root.Family, root.OSVersion), root.Timestamp, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+		return fmt.Errorf("Failed to Set LastModifiedKey. err: %s", err)
+	}
+	if _, err = pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+	}
 
 	return nil
 }
@@ -493,8 +502,31 @@ func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
 
 // GetLastModified get last modified time of OVAL in roots
 func (d *RedisDriver) GetLastModified(osFamily, osVer string) (time.Time, error) {
-	// TODO not implemented yet
-	return time.Now(), nil
+	switch osFamily {
+	case c.CentOS:
+		osFamily = c.RedHat
+	case c.Raspbian:
+		osFamily = c.Debian
+	case c.Amazon:
+		osVer = getAmazonLinux1or2(osVer)
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
+	default:
+		osVer = major(osVer)
+	}
+
+	lastModifiedStr, err := d.conn.Get(context.Background(), fmt.Sprintf(lastModifiedKeyFormat, osFamily, osVer)).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return time.Time{}, fmt.Errorf("Failed to Get. err: %s", err)
+		}
+		return time.Now().AddDate(-100, 0, 0), nil
+	}
+
+	lastModified, err := time.Parse("2006-01-02T15:04:05+09:00", lastModifiedStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("Failed to parse LastModified. err: %s", err)
+	}
+	return lastModified, nil
 }
 
 // getAmazonLinux2 returns AmazonLinux1 or 2

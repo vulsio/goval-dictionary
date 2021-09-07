@@ -302,7 +302,7 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 // GetLastModified get last modified time of OVAL in roots
 func (d *Driver) GetLastModified(osFamily, osVer string) (time.Time, error) {
 	switch osFamily {
-	case c.Alpine:
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 		osVer = majorDotMinor(osVer)
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)

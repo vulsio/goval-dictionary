@@ -163,18 +163,15 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		family = c.RedHat
 	case c.Raspbian:
 		family = c.Debian
-	}
-
-	switch family {
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
-	case c.Alpine, c.OpenSUSE, c.OpenSUSELeap:
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 	default:
 		osVer = major(osVer)
 	}
 
 	ctx := context.Background()
-	key := fmt.Sprintf("%s%s#%s#PKG#%s", keyPrefix, family, osVer, packName)
+	key := fmt.Sprintf(pkgKeyFormat, family, osVer, packName)
 	pkgKeys := []string{}
 	switch family {
 	case c.Amazon, c.Oracle:
@@ -207,42 +204,33 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		pkgKeys = append(pkgKeys, key)
 	}
 
-	defKeys := map[string]bool{}
+	pipe := d.conn.Pipeline()
 	for _, pkey := range pkgKeys {
-		var cursor uint64
-		for {
-			var dkeys []string
-			var err error
-			dkeys, cursor, err = d.conn.SScan(ctx, pkey, cursor, "", 10).Result()
-			if err != nil {
-				return nil, fmt.Errorf("Failed to SScan. err: %s", err)
-			}
+		_ = pipe.SMembers(ctx, pkey)
+	}
+	cmders, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to exec pipeline. err: %s", err)
+	}
 
-			for _, dkey := range dkeys {
-				defKeys[dkey] = true
-			}
-
-			if cursor == 0 {
-				break
-			}
+	defIDs := []string{}
+	for _, cmder := range cmders {
+		result, err := cmder.(*redis.StringSliceCmd).Result()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to SMembers. err: %s", err)
 		}
+
+		defIDs = append(defIDs, result...)
+	}
+
+	defStrs, err := d.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to HMGet. err: %s", err)
 	}
 
 	defs := []models.Definition{}
-	for defKey := range defKeys {
-		defstr, err := d.conn.Get(ctx, defKey).Result()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
-		}
-		if defstr == "" {
-			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
-		}
-
-		_, version, _, err := splitDefKey(defKey)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to splitDefKey. err: %s", err)
-		}
-		def, err := restoreDefinition(defstr, family, version, arch)
+	for _, defstr := range defStrs {
+		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
 		}
@@ -259,9 +247,6 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		family = c.RedHat
 	case c.Raspbian:
 		family = c.Debian
-	}
-
-	switch family {
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
 	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
@@ -270,38 +255,19 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	}
 
 	ctx := context.Background()
-	defKeys := []string{}
-	var cursor uint64
-	for {
-		var keys []string
-		var err error
-		keys, cursor, err = d.conn.SScan(ctx, fmt.Sprintf("%s%s#%s#CVE#%s", keyPrefix, family, osVer, cveID), cursor, "", 10).Result()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to SScan. err: %s", err)
-		}
+	defIDs, err := d.conn.SMembers(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID)).Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to SMembers. err: %s", err)
+	}
 
-		defKeys = append(defKeys, keys...)
-
-		if cursor == 0 {
-			break
-		}
+	defStrs, err := d.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to HMGet. err: %s", err)
 	}
 
 	defs := []models.Definition{}
-	for _, defKey := range defKeys {
-		defstr, err := d.conn.Get(ctx, defKey).Result()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to GET(%s). err: %s", defKey, err)
-		}
-		if defstr == "" {
-			return nil, fmt.Errorf("Failed to Get Definition ID. err: key(%s) does not exists", defKey)
-		}
-
-		_, version, _, err := splitDefKey(defKey)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to splitDefKey. err: %s", err)
-		}
-		def, err := restoreDefinition(defstr, family, version, arch)
+	for _, defstr := range defStrs {
+		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
 		}
@@ -309,15 +275,6 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	}
 
 	return defs, nil
-}
-
-func splitDefKey(defkey string) (string, string, string, error) {
-	ss := strings.Split(strings.TrimPrefix(defkey, keyPrefix), keySeparator)
-	if len(ss) != 4 {
-		return "", "", "", fmt.Errorf("Failed to parse defkey(%s) correctly", defkey)
-	}
-
-	return ss[0], ss[1], ss[3], nil
 }
 
 func restoreDefinition(defstr, family, version, arch string) (models.Definition, error) {

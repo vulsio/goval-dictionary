@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -9,34 +8,6 @@ import (
 	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
-
-func Test_splitDefKey(t *testing.T) {
-	type expected struct {
-		family  string
-		version string
-		defID   string
-	}
-	tests := []struct {
-		defkey   string
-		expected expected
-	}{
-		{
-			defkey: fmt.Sprintf("%s%s#7#DEF#oval:com.redhat.rhba:def:20150364", keyPrefix, config.RedHat),
-			expected: expected{
-				family:  config.RedHat,
-				version: "7",
-				defID:   "oval:com.redhat.rhba:def:20150364",
-			},
-		},
-	}
-
-	for i, tt := range tests {
-		family, version, defID, _ := splitDefKey(tt.defkey)
-		if family != tt.expected.family || version != tt.expected.version || defID != tt.expected.defID {
-			t.Errorf("[%d] splitDefKey expected: %#v\n  actual: %#v\n", i, tt.expected, expected{family: family, version: version, defID: defID})
-		}
-	}
-}
 
 func Test_fileterPacksByArch(t *testing.T) {
 	type args struct {

@@ -361,7 +361,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 
 			for _, cve := range def.Advisory.Cves {
 				cveKey := fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, cve.CveID)
-				if err := pipe.SAdd(ctx, cveKey, defKey).Err(); err != nil {
+				if err := pipe.SAdd(ctx, cveKey, def.DefinitionID).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
 				}
 				if expire > 0 {
@@ -392,7 +392,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				}
 				pkgKey := fmt.Sprintf(pkgKeyFormat, root.Family, root.OSVersion, pkgName)
 
-				if err := pipe.SAdd(ctx, pkgKey, defKey).Err(); err != nil {
+				if err := pipe.SAdd(ctx, pkgKey, def.DefinitionID).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
 				}
 				if expire > 0 {

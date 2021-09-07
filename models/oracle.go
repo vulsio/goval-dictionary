@@ -6,18 +6,25 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
-
-	c "github.com/kotakanbe/goval-dictionary/config"
 )
 
 // ConvertOracleToModel Convert OVAL to models
-func ConvertOracleToModel(root *oval.Root) (roots []Root) {
-	m := map[string]Root{}
+func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
+	osVerDefs := map[string][]Definition{}
 
 	for _, ovaldef := range root.Definitions.Definitions {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
 			continue
 		}
+
+		cveMap := map[string]Cve{}
+		for _, c := range ovaldef.Advisory.Cves {
+			cveMap[c.CveID] = Cve{
+				CveID: c.CveID,
+				Href:  c.Href,
+			}
+		}
+
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
 			rs = append(rs, Reference{
@@ -25,62 +32,61 @@ func ConvertOracleToModel(root *oval.Root) (roots []Root) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
+
+			if r.Source == "CVE" {
+				if _, ok := cveMap[r.RefID]; !ok {
+					cveMap[r.RefID] = Cve{
+						CveID: r.RefID,
+						Href:  r.RefURL,
+					}
+				}
+			}
 		}
 
 		cves := []Cve{}
-		for _, c := range ovaldef.Advisory.Cves {
-			cves = append(cves, Cve{
-				CveID: c.CveID,
-				Href:  c.Href,
-			})
+		for _, cve := range cveMap {
+			cves = append(cves, cve)
 		}
 
+		osVerPacks := map[string][]Package{}
 		for _, distPack := range collectOraclePacks(ovaldef.Criteria) {
-			// If the same slice is used, it will only be stored once in the DB
-			copyRs := make([]Reference, len(rs))
-			copy(copyRs, rs)
+			osVerPacks[distPack.osVer] = append(osVerPacks[distPack.osVer], distPack.pack)
+		}
 
-			copyCves := make([]Cve, len(cves))
-			copy(copyCves, cves)
-
+		for osVer, packs := range osVerPacks {
 			def := Definition{
 				DefinitionID: ovaldef.ID,
 				Title:        strings.TrimSpace(ovaldef.Title),
 				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
-					Cves:     copyCves,
-					Severity: ovaldef.Advisory.Severity,
-					Issued:   time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-					Updated:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Severity:        ovaldef.Advisory.Severity,
+					Cves:            append([]Cve{}, cves...),
+					Bugzillas:       []Bugzilla{},
+					AffectedCPEList: []Cpe{},
+					Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
-				AffectedPacks: []Package{distPack.pack},
-				References:    copyRs,
+				Debian:        Debian{},
+				AffectedPacks: append([]Package{}, packs...),
+				References:    append([]Reference{}, rs...),
 			}
 
 			if viper.GetBool("no-details") {
 				def.Title = ""
 				def.Description = ""
+				def.Advisory.Severity = ""
+				def.Advisory.Bugzillas = []Bugzilla{}
+				def.Advisory.AffectedCPEList = []Cpe{}
+				def.Advisory.Issued = time.Time{}
+				def.Advisory.Updated = time.Time{}
 				def.References = []Reference{}
 			}
 
-			root, ok := m[distPack.osVer]
-			if ok {
-				root.Definitions = append(root.Definitions, def)
-				m[distPack.osVer] = root
-			} else {
-				m[distPack.osVer] = Root{
-					Family:      c.Oracle,
-					OSVersion:   distPack.osVer,
-					Definitions: []Definition{def},
-				}
-			}
+			osVerDefs[osVer] = append(osVerDefs[osVer], def)
 		}
 	}
 
-	for _, v := range m {
-		roots = append(roots, v)
-	}
-	return
+	return osVerDefs
 }
 
 func collectOraclePacks(cri oval.Criteria) []distroPackage {

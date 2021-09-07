@@ -15,7 +15,8 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 		if strings.Contains(d.Description, "** REJECT **") {
 			continue
 		}
-		cveID := ""
+
+		var cve Cve
 		rs := []Reference{}
 		for _, r := range d.References {
 			rs = append(rs, Reference{
@@ -24,11 +25,14 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 				RefURL: r.RefURL,
 			})
 			if r.Source == "CVE" {
-				cveID = r.RefID
+				cve = Cve{
+					CveID: r.RefID,
+					Href:  r.RefURL,
+				}
 			}
 		}
 
-		if cveID == "" {
+		if cve.CveID == "" {
 			continue
 		}
 
@@ -51,15 +55,14 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			Title:        d.Title,
 			Description:  d.Description,
 			Advisory: Advisory{
-				Severity: d.Advisory.Severity,
-				Cves:     []Cve{{CveID: cveID}},
-				Issued:   time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Updated:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Severity:        d.Advisory.Severity,
+				Cves:            []Cve{cve},
+				Bugzillas:       []Bugzilla{},
+				AffectedCPEList: []Cpe{},
+				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
-			Debian: Debian{
-				CveID: cveID,
-				Date:  time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			},
+			Debian:        Debian{},
 			AffectedPacks: collectUbuntuPacks(d.Criteria),
 			References:    rs,
 		}
@@ -67,19 +70,12 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 		if viper.GetBool("no-details") {
 			def.Title = ""
 			def.Description = ""
-			def.Advisory = Advisory{}
-
-			var references []Reference
-			for _, ref := range def.References {
-				if ref.Source != "CVE" {
-					continue
-				}
-				references = append(references, Reference{
-					Source: ref.Source,
-					RefID:  ref.RefID,
-				})
-			}
-			def.References = references
+			def.Advisory.Severity = ""
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Bugzillas = []Bugzilla{}
+			def.Advisory.Issued = time.Time{}
+			def.Advisory.Updated = time.Time{}
+			def.References = []Reference{}
 		}
 
 		defs = append(defs, def)

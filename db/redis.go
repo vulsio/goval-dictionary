@@ -387,10 +387,9 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				}
 
 				newDeps[def.DefinitionID]["cves"][cve.CveID] = struct{}{}
-				if _, ok := oldDeps[def.DefinitionID]["cves"]; ok {
-					delete(oldDeps[def.DefinitionID]["cves"], cve.CveID)
-					if len(oldDeps[def.DefinitionID]["cves"]) == 0 {
-						delete(oldDeps[def.DefinitionID], "cves")
+				if _, ok := oldDeps[def.DefinitionID]; ok {
+					if _, ok := oldDeps[def.DefinitionID]["cves"]; ok {
+						delete(oldDeps[def.DefinitionID]["cves"], cve.CveID)
 					}
 				}
 			}
@@ -418,16 +417,29 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 				}
 
 				newDeps[def.DefinitionID]["packages"][pkgName] = struct{}{}
-				if _, ok := oldDeps[def.DefinitionID]["packages"]; ok {
-					delete(oldDeps[def.DefinitionID]["packages"], pkgName)
-					if len(oldDeps[def.DefinitionID]["packages"]) == 0 {
-						delete(oldDeps[def.DefinitionID], "packages")
+				if _, ok := oldDeps[def.DefinitionID]; ok {
+					if _, ok := oldDeps[def.DefinitionID]["packages"]; ok {
+						delete(oldDeps[def.DefinitionID]["packages"], pkgName)
 					}
 				}
 			}
 
-			if len(oldDeps[def.DefinitionID]) == 0 {
-				delete(oldDeps, def.DefinitionID)
+			if _, ok := oldDeps[def.DefinitionID]; ok {
+				if _, ok := oldDeps[def.DefinitionID]["cves"]; ok {
+					if len(oldDeps[def.DefinitionID]["cves"]) == 0 {
+						delete(oldDeps[def.DefinitionID], "cves")
+					}
+				}
+
+				if _, ok := oldDeps[def.DefinitionID]["packages"]; ok {
+					if len(oldDeps[def.DefinitionID]["packages"]) == 0 {
+						delete(oldDeps[def.DefinitionID], "packages")
+					}
+				}
+
+				if len(oldDeps[def.DefinitionID]) == 0 {
+					delete(oldDeps, def.DefinitionID)
+				}
 			}
 		}
 		if expire > 0 {

@@ -95,7 +95,7 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				Issued:          issued,
 				Updated:         updated,
 			},
-			Debian:        Debian{},
+			Debian:        nil,
 			AffectedPacks: collectRedHatPacks(d.Criteria),
 			References:    rs,
 		}
@@ -108,7 +108,6 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			def.Advisory.Bugzillas = []Bugzilla{}
 			def.Advisory.Issued = time.Time{}
 			def.Advisory.Updated = time.Time{}
-			def.Debian = Debian{}
 			def.References = []Reference{}
 		}
 

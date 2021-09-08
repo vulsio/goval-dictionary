@@ -127,7 +127,7 @@ func ConvertSUSEToModel(xmlName string, root *oval.Root) (roots []Root) {
 						Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					},
-					Debian:        Debian{},
+					Debian:        nil,
 					AffectedPacks: packs,
 					References:    append([]Reference{}, references...),
 				}
@@ -140,7 +140,6 @@ func ConvertSUSEToModel(xmlName string, root *oval.Root) (roots []Root) {
 					def.Advisory.Bugzillas = []Bugzilla{}
 					def.Advisory.Issued = time.Time{}
 					def.Advisory.Updated = time.Time{}
-					def.Debian = Debian{}
 					def.References = []Reference{}
 				}
 

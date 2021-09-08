@@ -69,7 +69,7 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Updated:         updatedAt,
 			},
-			Debian:        Debian{},
+			Debian:        nil,
 			AffectedPacks: packs,
 			References:    refs,
 		}

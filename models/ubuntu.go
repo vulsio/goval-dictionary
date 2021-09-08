@@ -62,7 +62,7 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
-			Debian:        Debian{},
+			Debian:        nil,
 			AffectedPacks: collectUbuntuPacks(d.Criteria),
 			References:    rs,
 		}

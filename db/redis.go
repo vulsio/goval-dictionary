@@ -195,21 +195,8 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			if dj, err = json.Marshal(def); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
-			cveIDs := map[string]struct{}{}
-			for _, ref := range def.References {
-				if ref.Source != "CVE" || ref.RefID == "" {
-					continue
-				}
-				cveIDs[ref.RefID] = struct{}{}
-			}
 			for _, cve := range def.Advisory.Cves {
-				cveIDs[cve.CveID] = struct{}{}
-			}
-			if def.Debian.CveID != "" {
-				cveIDs[def.Debian.CveID] = struct{}{}
-			}
-			for cveID := range cveIDs {
-				hashKey := getHashKey(root.Family, root.OSVersion, cveID)
+				hashKey := getHashKey(root.Family, root.OSVersion, cve.CveID)
 				if result := pipe.HSet(hashKey, def.DefinitionID, string(dj)); result.Err() != nil {
 					return fmt.Errorf("Failed to HSet Definition. err: %s", result.Err())
 				}
@@ -248,7 +235,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 						}
 					}
 				}
-				total[cveID] = struct{}{}
+				total[cve.CveID] = struct{}{}
 			}
 		}
 		if _, err = pipe.Exec(); err != nil {

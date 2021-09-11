@@ -68,6 +68,7 @@ func ConvertAlpineToModel(data *AlpineSecDB) (defs []Definition) {
 				{
 					Source: "CVE",
 					RefID:  cveID,
+					RefURL: fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", cveID),
 				},
 			},
 		}

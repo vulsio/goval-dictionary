@@ -21,10 +21,12 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			continue
 		}
 
-		cveMap := map[string]Cve{}
-		cveMap[ovaldef.Title] = Cve{
-			CveID: ovaldef.Title,
-			Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", ovaldef.Title),
+		cve := Cve{}
+		if strings.HasPrefix(ovaldef.Title, "CVE-") {
+			cve = Cve{
+				CveID: ovaldef.Title,
+				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", ovaldef.Title),
+			}
 		}
 
 		rs := []Reference{}
@@ -34,20 +36,6 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
-
-			if r.Source == "CVE" {
-				if _, ok := cveMap[r.RefID]; !ok {
-					cveMap[r.RefID] = Cve{
-						CveID: r.RefID,
-						Href:  r.RefURL,
-					}
-				}
-			}
-		}
-
-		cves := []Cve{}
-		for _, cve := range cveMap {
-			cves = append(cves, cve)
 		}
 
 		var t time.Time
@@ -69,14 +57,13 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			Description:  ovaldef.Description,
 			Advisory: Advisory{
 				Severity:        "",
-				Cves:            cves,
+				Cves:            []Cve{cve},
 				Bugzillas:       []Bugzilla{},
 				AffectedCPEList: []Cpe{},
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
 			Debian: &Debian{
-				CveID:    ovaldef.Title,
 				MoreInfo: ovaldef.Debian.MoreInfo,
 				Date:     t,
 			},

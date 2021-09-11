@@ -18,9 +18,9 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			continue
 		}
 
-		cveMap := map[string]Cve{}
+		cves := []Cve{}
 		for _, c := range d.Advisory.Cves {
-			cveMap[c.CveID] = Cve{
+			cves = append(cves, Cve{
 				CveID:  c.CveID,
 				Cvss2:  c.Cvss2,
 				Cvss3:  c.Cvss3,
@@ -28,7 +28,7 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				Impact: c.Impact,
 				Href:   c.Href,
 				Public: c.Public,
-			}
+			})
 		}
 
 		rs := []Reference{}
@@ -38,15 +38,6 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
-
-			if r.Source == "CVE" {
-				if _, ok := cveMap[r.RefID]; !ok {
-					cveMap[r.RefID] = Cve{
-						CveID: r.RefID,
-						Href:  r.RefURL,
-					}
-				}
-			}
 		}
 
 		cl := []Cpe{}
@@ -56,11 +47,6 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			})
 		}
 
-		cves := []Cve{}
-		for _, cve := range cveMap {
-			cves = append(cves, cve)
-		}
-
 		bs := []Bugzilla{}
 		for _, b := range d.Advisory.Bugzillas {
 			bs = append(bs, Bugzilla{
@@ -68,15 +54,6 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				URL:        b.URL,
 				Title:      b.Title,
 			})
-		}
-
-		if len(cves) == 0 {
-			for _, b := range d.Advisory.Bugzillas {
-				fields := strings.Fields(b.Title)
-				if len(fields) > 0 && cveIDPattern.MatchString(fields[0]) {
-					cves = append(cves, Cve{CveID: fields[0]})
-				}
-			}
 		}
 
 		const timeformat = "2006-01-02"

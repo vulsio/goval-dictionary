@@ -17,12 +17,12 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 			continue
 		}
 
-		cveMap := map[string]Cve{}
+		cves := []Cve{}
 		for _, c := range ovaldef.Advisory.Cves {
-			cveMap[c.CveID] = Cve{
+			cves = append(cves, Cve{
 				CveID: c.CveID,
 				Href:  c.Href,
-			}
+			})
 		}
 
 		rs := []Reference{}
@@ -32,20 +32,6 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
-
-			if r.Source == "CVE" {
-				if _, ok := cveMap[r.RefID]; !ok {
-					cveMap[r.RefID] = Cve{
-						CveID: r.RefID,
-						Href:  r.RefURL,
-					}
-				}
-			}
-		}
-
-		cves := []Cve{}
-		for _, cve := range cveMap {
-			cves = append(cves, cve)
 		}
 
 		osVerPacks := map[string][]Package{}

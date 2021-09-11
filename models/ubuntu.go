@@ -19,7 +19,7 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 
 		cve := Cve{}
 		cveID := strings.Split(d.Title, " ")[0]
-		if !strings.HasPrefix(cveID, "CVE-") {
+		if strings.HasPrefix(cveID, "CVE-") {
 			cve = Cve{
 				CveID: cveID,
 				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", cveID),

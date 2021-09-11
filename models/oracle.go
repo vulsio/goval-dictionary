@@ -46,15 +46,15 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
 					Severity:        ovaldef.Advisory.Severity,
-					Cves:            append([]Cve{}, cves...),
+					Cves:            append([]Cve{}, cves...), // If the same slice is used, it will only be stored once in the DB
 					Bugzillas:       []Bugzilla{},
 					AffectedCPEList: []Cpe{},
 					Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				Debian:        nil,
-				AffectedPacks: append([]Package{}, packs...),
-				References:    append([]Reference{}, rs...),
+				AffectedPacks: append([]Package{}, packs...), // If the same slice is used, it will only be stored once in the DB
+				References:    append([]Reference{}, rs...),  // If the same slice is used, it will only be stored once in the DB
 			}
 
 			if viper.GetBool("no-details") {

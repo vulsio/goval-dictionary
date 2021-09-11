@@ -94,15 +94,15 @@ func ConvertSUSEToModel(xmlName string, root *oval.Root) (roots []Root) {
 					Description:  ovaldef.Description,
 					Advisory: Advisory{
 						Severity:        ovaldef.Advisory.Severity,
-						Cves:            append([]Cve{}, cves...),
-						Bugzillas:       append([]Bugzilla{}, bugzillas...),
-						AffectedCPEList: append([]Cpe{}, cpes...),
+						Cves:            append([]Cve{}, cves...),           // If the same slice is used, it will only be stored once in the DB
+						Bugzillas:       append([]Bugzilla{}, bugzillas...), // If the same slice is used, it will only be stored once in the DB
+						AffectedCPEList: append([]Cpe{}, cpes...),           // If the same slice is used, it will only be stored once in the DB
 						Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					},
 					Debian:        nil,
 					AffectedPacks: packs,
-					References:    append([]Reference{}, references...),
+					References:    append([]Reference{}, references...), // If the same slice is used, it will only be stored once in the DB
 				}
 
 				if viper.GetBool("no-details") {

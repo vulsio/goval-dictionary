@@ -93,7 +93,7 @@ else:
         f'start server mode test(mode: {args.mode}, os: {args.ostype}, arch: {args.arch}, release: {args.release})')
 
 if args.ostype == 'debian':
-    if len(list(set(args.release) - set(['7', '8', '9', '10']))) > 0:
+    if len(list(set(args.release) - set(['7', '8', '9', '10', '11']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError

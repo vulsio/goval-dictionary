@@ -52,6 +52,9 @@ const (
 	// Debian10 is buster
 	Debian10 = "buster"
 
+	// Debian11 is bullseye
+	Debian11 = "bullseye"
+
 	// OpenSUSE is
 	OpenSUSE = "opensuse"
 

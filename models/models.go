@@ -91,7 +91,7 @@ type Advisory struct {
 // RedHat OVAL
 type Cve struct {
 	ID         uint `gorm:"primary_key" json:"-"`
-	AdvisoryID uint `gorm:"idx_cves_advisory_id" json:"-" xml:"-"`
+	AdvisoryID uint `gorm:"index:idx_cves_advisory_id" json:"-" xml:"-"`
 
 	CveID  string `gorm:"type:varchar(255)"`
 	Cvss2  string `gorm:"type:varchar(255)"`
@@ -126,7 +126,6 @@ type Debian struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_debian_definition_id" json:"-" xml:"-"`
 
-	CveID    string `gorm:"type:varchar(255);index:idx_debian_cve_id"`
 	MoreInfo string `gorm:"type:text"`
 
 	Date time.Time

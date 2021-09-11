@@ -104,7 +104,7 @@ $ goval-dictionary fetch redhat 5 6 7 8
 - [Debian OVAL](https://www.debian.org/security/oval/)
 
 ```bash
-$ goval-dictionary fetch debian 7 8 9 10
+$ goval-dictionary fetch debian 7 8 9 10 11
 ```
 
 #### Usage: Fetch OVAL data from Ubuntu

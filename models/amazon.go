@@ -16,12 +16,12 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 			continue
 		}
 
-		cveMap := map[string]Cve{}
+		cves := []Cve{}
 		for _, cveID := range alas.CVEIDs {
-			cveMap[cveID] = Cve{
+			cves = append(cves, Cve{
 				CveID: cveID,
 				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", cveID),
-			}
+			})
 		}
 
 		packs := []Package{}
@@ -41,20 +41,6 @@ func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
 				RefID:  ref.ID,
 				RefURL: ref.Href,
 			})
-
-			if ref.Type == "cve" {
-				if _, ok := cveMap[ref.ID]; !ok {
-					cveMap[ref.ID] = Cve{
-						CveID: ref.ID,
-						Href:  ref.Href,
-					}
-				}
-			}
-		}
-
-		cves := []Cve{}
-		for _, cve := range cveMap {
-			cves = append(cves, cve)
 		}
 
 		def := Definition{

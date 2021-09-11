@@ -16,12 +16,12 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 			continue
 		}
 
-		cveMap := map[string]Cve{}
+		cves := []Cve{}
 		for _, c := range ovaldef.Advisory.Cves {
-			cveMap[c.CveID] = Cve{
+			cves = append(cves, Cve{
 				CveID: c.CveID,
 				Href:  c.Href,
-			}
+			})
 		}
 
 		rs := []Reference{}
@@ -31,20 +31,6 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				RefID:  r.RefID,
 				RefURL: r.RefURL,
 			})
-
-			if r.Source == "CVE" {
-				if _, ok := cveMap[r.RefID]; !ok {
-					cveMap[r.RefID] = Cve{
-						CveID: r.RefID,
-						Href:  r.RefURL,
-					}
-				}
-			}
-		}
-
-		cves := []Cve{}
-		for _, cve := range cveMap {
-			cves = append(cves, cve)
 		}
 
 		osVerPacks := map[string][]Package{}
@@ -59,15 +45,15 @@ func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 				Description:  strings.TrimSpace(ovaldef.Description),
 				Advisory: Advisory{
 					Severity:        ovaldef.Advisory.Severity,
-					Cves:            append([]Cve{}, cves...),
+					Cves:            append([]Cve{}, cves...), // If the same slice is used, it will only be stored once in the DB
 					Bugzillas:       []Bugzilla{},
 					AffectedCPEList: []Cpe{},
 					Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				Debian:        nil,
-				AffectedPacks: append([]Package{}, packs...),
-				References:    append([]Reference{}, rs...),
+				AffectedPacks: append([]Package{}, packs...), // If the same slice is used, it will only be stored once in the DB
+				References:    append([]Reference{}, rs...),  // If the same slice is used, it will only be stored once in the DB
 			}
 
 			if viper.GetBool("no-details") {

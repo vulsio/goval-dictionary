@@ -17,6 +17,20 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 		if strings.Contains(d.Description, "** REJECT **") {
 			continue
 		}
+
+		cves := []Cve{}
+		for _, c := range d.Advisory.Cves {
+			cves = append(cves, Cve{
+				CveID:  c.CveID,
+				Cvss2:  c.Cvss2,
+				Cvss3:  c.Cvss3,
+				Cwe:    c.Cwe,
+				Impact: c.Impact,
+				Href:   c.Href,
+				Public: c.Public,
+			})
+		}
+
 		rs := []Reference{}
 		for _, r := range d.References {
 			rs = append(rs, Reference{
@@ -33,19 +47,6 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			})
 		}
 
-		cves := []Cve{}
-		for _, c := range d.Advisory.Cves {
-			cves = append(cves, Cve{
-				CveID:  c.CveID,
-				Cvss2:  c.Cvss2,
-				Cvss3:  c.Cvss3,
-				Cwe:    c.Cwe,
-				Impact: c.Impact,
-				Href:   c.Href,
-				Public: c.Public,
-			})
-		}
-
 		bs := []Bugzilla{}
 		for _, b := range d.Advisory.Bugzillas {
 			bs = append(bs, Bugzilla{
@@ -53,15 +54,6 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 				URL:        b.URL,
 				Title:      b.Title,
 			})
-		}
-
-		if len(cves) == 0 {
-			for _, b := range d.Advisory.Bugzillas {
-				fields := strings.Fields(b.Title)
-				if len(fields) > 0 && cveIDPattern.MatchString(fields[0]) {
-					cves = append(cves, Cve{CveID: fields[0]})
-				}
-			}
 		}
 
 		const timeformat = "2006-01-02"
@@ -73,13 +65,14 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			Title:        d.Title,
 			Description:  d.Description,
 			Advisory: Advisory{
-				Cves:            cves,
 				Severity:        d.Advisory.Severity,
-				AffectedCPEList: cl,
+				Cves:            cves,
 				Bugzillas:       bs,
+				AffectedCPEList: cl,
 				Issued:          issued,
 				Updated:         updated,
 			},
+			Debian:        nil,
 			AffectedPacks: collectRedHatPacks(d.Criteria),
 			References:    rs,
 		}
@@ -88,8 +81,8 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 			def.Title = ""
 			def.Description = ""
 			def.Advisory.Severity = ""
-			def.Advisory.AffectedCPEList = nil
-			def.Advisory.Bugzillas = nil
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Bugzillas = []Bugzilla{}
 			def.Advisory.Issued = time.Time{}
 			def.Advisory.Updated = time.Time{}
 			def.References = []Reference{}

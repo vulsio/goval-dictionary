@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -19,6 +20,15 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
 			continue
 		}
+
+		cve := Cve{}
+		if strings.HasPrefix(ovaldef.Title, "CVE-") {
+			cve = Cve{
+				CveID: ovaldef.Title,
+				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", ovaldef.Title),
+			}
+		}
+
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
 			rs = append(rs, Reference{
@@ -28,53 +38,52 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			})
 		}
 
-		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
+		var t time.Time
+		if ovaldef.Debian.Date == "" {
+			t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		} else {
 			const timeformat = "2006-01-02"
-
-			var t time.Time
-			if ovaldef.Debian.Date == "" {
-				t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-			} else {
-				t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
-			}
-
-			def := Definition{
-				DefinitionID: ovaldef.ID,
-				Title:        ovaldef.Title,
-				Description:  ovaldef.Description,
-				Advisory: Advisory{
-					Cves: []Cve{{CveID: ovaldef.Title}},
-				},
-				Debian: Debian{
-					CveID:    ovaldef.Title,
-					MoreInfo: ovaldef.Debian.MoreInfo,
-					Date:     t,
-				},
-				AffectedPacks: []Package{distPack.pack},
-				References:    rs,
-			}
-
-			if viper.GetBool("no-details") {
-				def.Title = ""
-				def.Description = ""
-				def.Advisory = Advisory{}
-
-				var references []Reference
-				for _, ref := range def.References {
-					if ref.Source != "CVE" {
-						continue
-					}
-					references = append(references, Reference{
-						Source: ref.Source,
-						RefID:  ref.RefID,
-					})
-				}
-				def.Debian.MoreInfo = ""
-				def.References = references
-			}
-
-			defs = append(defs, def)
+			t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
 		}
+
+		packs := []Package{}
+		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
+			packs = append(packs, distPack.pack)
+		}
+
+		def := Definition{
+			DefinitionID: ovaldef.ID,
+			Title:        ovaldef.Title,
+			Description:  ovaldef.Description,
+			Advisory: Advisory{
+				Severity:        "",
+				Cves:            []Cve{cve},
+				Bugzillas:       []Bugzilla{},
+				AffectedCPEList: []Cpe{},
+				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			},
+			Debian: &Debian{
+				MoreInfo: ovaldef.Debian.MoreInfo,
+				Date:     t,
+			},
+			AffectedPacks: packs,
+			References:    rs,
+		}
+
+		if viper.GetBool("no-details") {
+			def.Title = ""
+			def.Description = ""
+			def.Advisory.Severity = ""
+			def.Advisory.Bugzillas = []Bugzilla{}
+			def.Advisory.AffectedCPEList = []Cpe{}
+			def.Advisory.Issued = time.Time{}
+			def.Advisory.Updated = time.Time{}
+			def.Debian = nil
+			def.References = []Reference{}
+		}
+
+		defs = append(defs, def)
 	}
 	return
 }

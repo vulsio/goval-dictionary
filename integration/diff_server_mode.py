@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import random
 import math
-
+import json
 
 def diff_response(args: Tuple[str, str, str, str, str]):
     # Endpoint
@@ -51,7 +51,11 @@ def diff_response(args: Tuple[str, str, str, str, str]):
     if diff != {}:
         logger.warning(
             f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": args[0], "args": args, "diff": diff}, indent=2)}')
-
+        filename = path.rsplit('/',1)[1]
+        with open(f'./integration/diff/{filename}.old', 'w') as w:
+            w.write(json.dumps(response_old, indent=4))
+        with open(f'./integration/diff/{filename}.new', 'w') as w:
+            w.write(json.dumps(response_new, indent=4))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', choices=['cveid', 'package'],

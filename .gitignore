@@ -32,3 +32,4 @@ goval-dictionary
 *.sqlite3-wal
 tags
 /dist/
+integration/diff

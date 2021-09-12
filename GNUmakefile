@@ -89,6 +89,7 @@ clean-integration:
 	-pkill goval-dict.old
 	-pkill goval-dict.new
 	-rm integration/goval-dict.old integration/goval-dict.new integration/oval.old.sqlite3 integration/oval.new.sqlite3
+	-rm integration/diff/*
 	-docker kill redis-old redis-new
 	-docker rm redis-old redis-new
 

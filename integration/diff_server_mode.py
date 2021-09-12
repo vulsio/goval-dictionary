@@ -59,9 +59,9 @@ def diff_response(args: Tuple[str, str, str, str, str]):
             diff_path = f'integration/diff/{args[1]}/{args[3]}({args[2]})/{args[0]}/{args[4]}'
 
         with open(f'{diff_path}.old', 'w') as w:
-            w.write(json.dumps(response_old, indent=4))
+            w.write(json.dumps(sorted(response_old, key=lambda x:x['DefinitionID']), indent=4))
         with open(f'{diff_path}.new', 'w') as w:
-            w.write(json.dumps(response_new, indent=4))
+            w.write(json.dumps(sorted(response_new, key=lambda x:x['DefinitionID']), indent=4))
 
 
 parser = argparse.ArgumentParser()

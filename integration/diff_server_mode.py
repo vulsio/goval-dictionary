@@ -12,6 +12,8 @@ import os
 import random
 import math
 import json
+import shutil
+
 
 def diff_response(args: Tuple[str, str, str, str, str]):
     # Endpoint
@@ -22,7 +24,7 @@ def diff_response(args: Tuple[str, str, str, str, str]):
     if args[0] == 'cveid':
         path = f'cves/{args[1]}/{args[3]}/{args[4]}'
     if args[0] == 'package':
-        path = f'packs/{args[1]}/{args[3]}/{quote(args[4])}'
+        path = f'packs/{args[1]}/{args[3]}/{args[4]}'
 
     if args[2] != "":
         path = f'{path}/{args[2]}'
@@ -39,23 +41,28 @@ def diff_response(args: Tuple[str, str, str, str, str]):
         response_new = requests.get(
             f'http://127.0.0.1:1326/{path}', timeout=(3.0, 10.0)).json()
     except requests.ConnectionError as e:
-        logger.error(f'Failed to Connection..., err: {e}, args: {args}')
+        logger.error(f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         exit(1)
     except requests.ReadTimeout as e:
-        logger.warning(f'Failed to ReadTimeout..., err: {e}, args: {args}')
+        logger.warning(f'Failed to ReadTimeout..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
     except Exception as e:
-        logger.error(f'Failed to GET request..., err: {e}, args: {args}')
+        logger.error(f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         exit(1)
 
     diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logger.warning(
-            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": args[0], "args": args, "diff": diff}, indent=2)}')
-        filename = path.rsplit('/',1)[1]
-        with open(f'./integration/diff/{filename}.old', 'w') as w:
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        
+        diff_path = f'integration/diff/{args[1]}/{args[3]}/{args[0]}/{args[4]}'
+        if args[2] != "":
+            diff_path = f'integration/diff/{args[1]}/{args[3]}({args[2]})/{args[0]}/{args[4]}'
+
+        with open(f'{diff_path}.old', 'w') as w:
             w.write(json.dumps(response_old, indent=4))
-        with open(f'./integration/diff/{filename}.new', 'w') as w:
+        with open(f'{diff_path}.new', 'w') as w:
             w.write(json.dumps(response_new, indent=4))
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', choices=['cveid', 'package'],
@@ -170,12 +177,12 @@ for relVer in args.release:
     list_path = None
     if args.mode == 'cveid':
         if args.ostype == "suse":
-            list_path = f"integration/cveid/suse/{args.suse_type}_{relVer}.txt"
+            list_path = f"integration/cveid/{args.ostype}/{args.suse_type}_{relVer}.txt"
         else:
             list_path = f"integration/cveid/{args.ostype}/{args.ostype}_{relVer}.txt"
     if args.mode == 'package':
         if args.ostype == "suse":
-            list_path = f"integration/package/suse/{args.suse_type}_{relVer}.txt"
+            list_path = f"integration/package/{args.ostype}/{args.suse_type}_{relVer}.txt"
         else:
             list_path = f"integration/package/{args.ostype}/{args.ostype}_{relVer}.txt"
 
@@ -183,10 +190,17 @@ for relVer in args.release:
         logger.error(f'Failed to find list path..., list_path: {list_path}')
         exit(1)
 
+    diff_path = f'integration/diff/{ostype}/{relVer}/{args.mode}'
+    if args.arch != "":
+        diff_path = f'integration/diff/{ostype}/{relVer}({args.arch})/{args.mode}'
+    if os.path.exists(diff_path):
+        shutil.rmtree(diff_path)
+    os.makedirs(diff_path, exist_ok=True)
+
     with open(list_path) as f:
         list = [s.strip() for s in f.readlines()]
         list = random.sample(list, math.ceil(len(list) * args.sample_rate))
         with ThreadPoolExecutor() as executor:
-            ins = ((args.mode, ostype, args.arch, relVer, e)
+            ins = ((args.mode, ostype, args.arch, relVer, quote(e))
                    for e in list)
             executor.map(diff_response, ins)

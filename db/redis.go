@@ -228,6 +228,9 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 		defIDs = append(defIDs, result...)
 	}
+	if len(defIDs) == 0 {
+		return []models.Definition{}, nil
+	}
 
 	defStrs, err := d.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
 	if err != nil {
@@ -264,6 +267,9 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	defIDs, err := d.conn.SMembers(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID)).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to SMembers. err: %s", err)
+	}
+	if len(defIDs) == 0 {
+		return []models.Definition{}, nil
 	}
 
 	defStrs, err := d.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()

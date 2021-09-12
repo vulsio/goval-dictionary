@@ -113,6 +113,7 @@ func (o *Ubuntu) GetByPackName(driver *gorm.DB, osVer, packName, _ string) (defs
 			Limit(limit).Offset(i * limit).
 			Preload("Debian").
 			Preload("Advisory").
+			Preload("Advisory.Cves").
 			Preload("AffectedPacks").
 			Preload("References").
 			Find(&tmpDefs).Error
@@ -137,6 +138,7 @@ func (o *Ubuntu) GetByCveID(driver *gorm.DB, osVer, cveID string) ([]models.Defi
 		Where("cves.cve_id = ?", cveID).
 		Preload("Debian").
 		Preload("Advisory").
+		Preload("Advisory.Cves").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

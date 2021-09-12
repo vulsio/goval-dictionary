@@ -238,6 +238,10 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 	defs := []models.Definition{}
 	for _, defstr := range defStrs {
+		if defstr == nil {
+			return nil, fmt.Errorf("Failed to HMGet. err: Some fields do not exist. defIDs: %q", defIDs)
+		}
+
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
@@ -278,6 +282,10 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 
 	defs := []models.Definition{}
 	for _, defstr := range defStrs {
+		if defstr == nil {
+			return nil, fmt.Errorf("Failed to HMGet. err: Some fields do not exist. defIDs: %q", defIDs)
+		}
+
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)

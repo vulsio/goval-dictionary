@@ -258,6 +258,10 @@ func restoreDefinition(defstr, family, version, arch string) (models.Definition,
 func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err error) {
 	ctx := context.Background()
 	expire := viper.GetUint("expire")
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
 
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
@@ -288,7 +292,7 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 		return fmt.Errorf("Failed to unmarshal JSON. err: %s", err)
 	}
 
-	for idx := range chunkSlice(len(root.Definitions), 10) {
+	for idx := range chunkSlice(len(root.Definitions), batchSize) {
 		pipe := r.conn.Pipeline()
 		defKey := fmt.Sprintf(defKeyFormat, family, osVer)
 		for _, def := range root.Definitions[idx.From:idx.To] {

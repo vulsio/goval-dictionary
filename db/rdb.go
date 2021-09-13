@@ -12,6 +12,7 @@ import (
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/mattn/go-sqlite3"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -228,6 +229,11 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
 	log15.Debug(fmt.Sprintf("in %s", family))
 	tx := r.conn.Begin()
 
@@ -294,7 +300,7 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 		root.Definitions[i].RootID = root.ID
 	}
 
-	for idx := range chunkSlice(len(root.Definitions), 50) {
+	for idx := range chunkSlice(len(root.Definitions), batchSize) {
 		if err := tx.Create(root.Definitions[idx.From:idx.To]).Error; err != nil {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to insert. err: %w", err)

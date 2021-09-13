@@ -35,12 +35,14 @@ $ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 func init() {
 	fetchCmd.AddCommand(fetchSUSECmd)
 
-	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type")
+	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type(choices: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud)")
 	_ = viper.BindPFlag("suse-type", fetchSUSECmd.PersistentFlags().Lookup("suse-type"))
 }
 
 func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	if len(args) == 0 {
 		log15.Error("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")

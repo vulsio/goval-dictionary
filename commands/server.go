@@ -5,6 +5,7 @@ import (
 	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/kotakanbe/goval-dictionary/models"
 	server "github.com/kotakanbe/goval-dictionary/server"
+	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -29,7 +30,9 @@ func init() {
 }
 
 func executeServer(cmd *cobra.Command, args []string) (err error) {
-	logDir := viper.GetString("log-dir")
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
@@ -50,7 +53,7 @@ func executeServer(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	log15.Info("Starting HTTP Server...")
-	if err = server.Start(logDir, driver); err != nil {
+	if err = server.Start(viper.GetBool("log-to-file"), viper.GetString("log-dir"), driver); err != nil {
 		log15.Error("Failed to start server.", "err", err)
 		return err
 	}

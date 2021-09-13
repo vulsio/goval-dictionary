@@ -33,7 +33,9 @@ func init() {
 }
 
 func executeSelect(cmd *cobra.Command, args []string) error {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	flagPkg := viper.GetBool("by-package")
 	flagCveID := viper.GetBool("by-cveid")

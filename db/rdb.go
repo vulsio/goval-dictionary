@@ -269,25 +269,24 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 			return xerrors.Errorf("Failed to select old defs: %w", err)
 		}
 
-		for _, def := range defs {
-			adv := models.Advisory{}
-			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
-				tx.Rollback()
-				return xerrors.Errorf("Failed to delete: %w", err)
-			}
-			if err := tx.Select(clause.Associations).Unscoped().Where("id = ?", adv.ID).Delete(&adv).Error; err != nil {
+		for idx := range chunkSlice(len(defs), 998) {
+			var advs []models.Advisory
+			if err := tx.Model(defs[idx.From:idx.To]).Association("Advisory").Find(&advs); err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
 
-			if err := tx.Select(clause.Associations).Unscoped().Where("definition_id = ?", def.ID).Delete(&def).Error; err != nil {
+			for idx2 := range chunkSlice(len(advs), 998) {
+				if err := tx.Select(clause.Associations).Unscoped().Delete(advs[idx2.From:idx2.To]).Error; err != nil {
+					tx.Rollback()
+					return xerrors.Errorf("Failed to delete: %w", err)
+				}
+			}
+
+			if err := tx.Select(clause.Associations).Unscoped().Delete(defs[idx.From:idx.To]).Error; err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-		}
-		if err := tx.Unscoped().Where("root_id = ?", old.ID).Delete(&models.Definition{}).Error; err != nil {
-			tx.Rollback()
-			return xerrors.Errorf("Failed to delete: %w", err)
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()

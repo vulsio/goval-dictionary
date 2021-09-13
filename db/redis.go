@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
@@ -292,6 +293,7 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 		return fmt.Errorf("Failed to unmarshal JSON. err: %s", err)
 	}
 
+	bar := pb.StartNew(len(root.Definitions))
 	for idx := range chunkSlice(len(root.Definitions), batchSize) {
 		pipe := r.conn.Pipeline()
 		defKey := fmt.Sprintf(defKeyFormat, family, osVer)
@@ -391,7 +393,9 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 		if _, err = pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
+	bar.Finish()
 
 	pipe := r.conn.Pipeline()
 	for defID, definitions := range oldDeps {

@@ -3,6 +3,7 @@ module github.com/kotakanbe/goval-dictionary
 go 1.15
 
 require (
+	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/htcat/htcat v1.0.2
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac

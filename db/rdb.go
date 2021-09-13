@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
@@ -224,6 +225,8 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 
 // InsertOval inserts OVAL
 func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
+	bar := pb.StartNew(len(root.Definitions))
+
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
 		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
@@ -265,6 +268,7 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to select old defs: %w", err)
 		}
+
 		for _, def := range defs {
 			adv := models.Advisory{}
 			if err := tx.Model(&def).Association("Advisory").Find(&adv); err != nil {
@@ -305,7 +309,9 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
+	bar.Finish()
 
 	return tx.Commit().Error
 }

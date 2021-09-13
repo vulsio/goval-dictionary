@@ -90,7 +90,7 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	driver, locked, err := db.NewDB(args[0], viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before select", "err", err)

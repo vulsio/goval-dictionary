@@ -2,9 +2,12 @@ package commands
 
 import (
 	"github.com/inconshreveable/log15"
+	"github.com/kotakanbe/goval-dictionary/db"
+	"github.com/kotakanbe/goval-dictionary/models"
 	server "github.com/kotakanbe/goval-dictionary/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 )
 
 // ServerCmd is Subcommand for OVAL dictionary HTTP Server
@@ -27,8 +30,27 @@ func init() {
 
 func executeServer(cmd *cobra.Command, args []string) (err error) {
 	logDir := viper.GetString("log-dir")
+
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	if err != nil {
+		if locked {
+			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+		}
+		return err
+	}
+
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to start server. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to start server. SchemaVersion is old")
+	}
+
 	log15.Info("Starting HTTP Server...")
-	if err = server.Start(logDir); err != nil {
+	if err = server.Start(logDir, driver); err != nil {
 		log15.Error("Failed to start server.", "err", err)
 		return err
 	}

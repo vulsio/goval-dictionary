@@ -10,15 +10,13 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
-	"golang.org/x/xerrors"
 )
 
 // Start starts CVE dictionary HTTP Server.
-func Start(logDir string) error {
+func Start(logDir string, driver db.DB) error {
 	e := echo.New()
 	e.Debug = viper.GetBool("debug")
 
@@ -44,13 +42,13 @@ func Start(logDir string) error {
 
 	// Routes
 	e.GET("/health", health())
-	e.GET("/packs/:family/:release/:pack/:arch", getByPackName())
-	e.GET("/packs/:family/:release/:pack", getByPackName())
-	e.GET("/cves/:family/:release/:id/:arch", getByCveID())
-	e.GET("/cves/:family/:release/:id", getByCveID())
-	e.GET("/count/:family/:release", countOvalDefs())
-	e.GET("/lastmodified/:family/:release", getLastModified())
-	//  e.Post("/cpes", getByPackName())
+	e.GET("/packs/:family/:release/:pack/:arch", getByPackName(driver))
+	e.GET("/packs/:family/:release/:pack", getByPackName(driver))
+	e.GET("/cves/:family/:release/:id/:arch", getByCveID(driver))
+	e.GET("/cves/:family/:release/:id", getByCveID(driver))
+	e.GET("/count/:family/:release", countOvalDefs(driver))
+	e.GET("/lastmodified/:family/:release", getLastModified(driver))
+	//  e.Post("/cpes", getByPackName(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening...", "URL", bindURL)
@@ -64,7 +62,7 @@ func health() echo.HandlerFunc {
 	}
 }
 
-func getByPackName() echo.HandlerFunc {
+func getByPackName(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
@@ -78,29 +76,6 @@ func getByPackName() echo.HandlerFunc {
 
 		log15.Debug("Params", "Family", family, "Release", release, "Pack", pack, "DecodePack", decodePack, "arch", arch)
 
-		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
-		if err != nil {
-			msg := fmt.Sprintf("Failed to Open DB: %s", err)
-			if locked {
-				msg += " Close DB connection"
-			}
-			log15.Error(msg)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
-		defer func() {
-			_ = driver.CloseDB()
-		}()
-
-		fetchMeta, err := driver.GetFetchMeta()
-		if err != nil {
-			log15.Error("Failed to get FetchMeta from DB.", "err", err)
-			return err
-		}
-		if fetchMeta.OutDated() {
-			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
-		}
-
 		defs, err := driver.GetByPackName(family, release, decodePack, arch)
 		if err != nil {
 			log15.Error("Failed to get by Package Name.", "err", err)
@@ -109,36 +84,13 @@ func getByPackName() echo.HandlerFunc {
 	}
 }
 
-func getByCveID() echo.HandlerFunc {
+func getByCveID(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		cveID := c.Param("id")
 		arch := c.Param("arch")
 		log15.Debug("Params", "Family", family, "Release", release, "CveID", cveID, "arch", arch)
-
-		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
-		if err != nil {
-			msg := fmt.Sprintf("Failed to Open DB: %s", err)
-			if locked {
-				msg += " Close DB connection"
-			}
-			log15.Error(msg)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
-		defer func() {
-			_ = driver.CloseDB()
-		}()
-
-		fetchMeta, err := driver.GetFetchMeta()
-		if err != nil {
-			log15.Error("Failed to get FetchMeta from DB.", "err", err)
-			return err
-		}
-		if fetchMeta.OutDated() {
-			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
-		}
 
 		defs, err := driver.GetByCveID(family, release, cveID, arch)
 		if err != nil {
@@ -148,36 +100,13 @@ func getByCveID() echo.HandlerFunc {
 	}
 }
 
-func countOvalDefs() echo.HandlerFunc {
+func countOvalDefs(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
 		log15.Debug("Params", "Family", family, "Release", release)
-		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
-		if err != nil {
-			msg := fmt.Sprintf("Failed to Open DB: %s", err)
-			if locked {
-				msg += " Close DB connection"
-			}
-			log15.Error(msg)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
-		defer func() {
-			_ = driver.CloseDB()
-		}()
-
-		fetchMeta, err := driver.GetFetchMeta()
-		if err != nil {
-			log15.Error("Failed to get FetchMeta from DB.", "err", err)
-			return err
-		}
-		if fetchMeta.OutDated() {
-			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
-		}
 
 		count, err := driver.CountDefs(family, release)
-		log15.Debug("Count", "Count", count)
 		if err != nil {
 			log15.Error("Failed to count OVAL defs.", "err", err)
 		}
@@ -185,33 +114,11 @@ func countOvalDefs() echo.HandlerFunc {
 	}
 }
 
-func getLastModified() echo.HandlerFunc {
+func getLastModified(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		family := strings.ToLower(c.Param("family"))
 		release := c.Param("release")
-		log15.Debug("getLastModified", "Family", family, "Release", release)
-		driver, locked, err := db.NewDB(family, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
-		if err != nil {
-			msg := fmt.Sprintf("Failed to Open DB: %s", err)
-			if locked {
-				msg += " Close DB connection"
-			}
-			log15.Error(msg)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
-		defer func() {
-			_ = driver.CloseDB()
-		}()
-
-		fetchMeta, err := driver.GetFetchMeta()
-		if err != nil {
-			log15.Error("Failed to get FetchMeta from DB.", "err", err)
-			return err
-		}
-		if fetchMeta.OutDated() {
-			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
-		}
+		log15.Debug("Params", "Family", family, "Release", release)
 
 		t, err := driver.GetLastModified(family, release)
 		if err != nil {

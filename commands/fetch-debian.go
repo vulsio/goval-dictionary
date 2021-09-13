@@ -37,7 +37,7 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to fetch debian command. err: specify versions to fetch")
 	}
 
-	driver, locked, err := db.NewDB(c.Debian, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
@@ -107,7 +107,7 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 			FileName:  ss[len(ss)-1],
 		}
 
-		if err := driver.InsertOval(c.Debian, &root, fmeta); err != nil {
+		if err := driver.InsertOval(&root, fmeta); err != nil {
 			log15.Error("Failed to insert oval", "err", err)
 			return err
 		}

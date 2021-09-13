@@ -32,7 +32,7 @@ func init() {
 func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
 
-	driver, locked, err := db.NewDB(c.Oracle, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
@@ -95,7 +95,7 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 
-		if err := driver.InsertOval(c.Oracle, &root, fmeta); err != nil {
+		if err := driver.InsertOval(&root, fmeta); err != nil {
 			log15.Error("Failed to insert oval", "err", err)
 			return err
 		}

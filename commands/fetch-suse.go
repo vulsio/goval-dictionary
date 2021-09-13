@@ -74,7 +74,7 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to fetch suse command. err: specify SUSE type to fetch")
 	}
 
-	driver, locked, err := db.NewDB(suseType, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
@@ -124,12 +124,7 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		roots := models.ConvertSUSEToModel(fmeta.FileName, &ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
-			if err := driver.NewOvalDB(root.Family); err != nil {
-				log15.Error("Failed to NewOvalDB for Family found in SUSE OVAL", "err", err)
-				return err
-			}
-
-			if err := driver.InsertOval(root.Family, &root, fmeta); err != nil {
+			if err := driver.InsertOval(&root, fmeta); err != nil {
 				log15.Error("Failed to insert oval", "err", err)
 				return err
 			}

@@ -13,6 +13,7 @@ import random
 import math
 import json
 import shutil
+import time
 
 
 def diff_response(args: Tuple[str, str, str, str, str]):
@@ -41,27 +42,32 @@ def diff_response(args: Tuple[str, str, str, str, str]):
         response_new = requests.get(
             f'http://127.0.0.1:1326/{path}', timeout=(3.0, 10.0)).json()
     except requests.ConnectionError as e:
-        logger.error(f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        logger.error(
+            f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         exit(1)
     except requests.ReadTimeout as e:
-        logger.warning(f'Failed to ReadTimeout..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        logger.warning(
+            f'Failed to ReadTimeout..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
     except Exception as e:
-        logger.error(f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        logger.error(
+            f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         exit(1)
 
     diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logger.warning(
             f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"args": args, "path": path}, indent=2)}')
-        
+
         diff_path = f'integration/diff/{args[1]}/{args[3]}/{args[0]}/{args[4]}'
         if args[2] != "":
             diff_path = f'integration/diff/{args[1]}/{args[3]}({args[2]})/{args[0]}/{args[4]}'
 
         with open(f'{diff_path}.old', 'w') as w:
-            w.write(json.dumps(sorted(response_old, key=lambda x:x['DefinitionID']), indent=4))
+            w.write(json.dumps(
+                sorted(response_old, key=lambda x: x['DefinitionID']), indent=4))
         with open(f'{diff_path}.new', 'w') as w:
-            w.write(json.dumps(sorted(response_new, key=lambda x:x['DefinitionID']), indent=4))
+            w.write(json.dumps(
+                sorted(response_new, key=lambda x: x['DefinitionID']), indent=4))
 
 
 parser = argparse.ArgumentParser()
@@ -102,6 +108,19 @@ if args.ostype == "suse":
 else:
     logger.info(
         f'start server mode test(mode: {args.mode}, os: {args.ostype}, arch: {args.arch}, release: {args.release})')
+
+logger.info('check the communication with the server')
+for i in range(5):
+    try:
+        if requests.get('http://127.0.0.1:1325/health').status_code == requests.codes.ok and requests.get('http://127.0.0.1:1326/health').status_code == requests.codes.ok:
+            logger.info('communication with the server has been confirmed')
+            break
+    except Exception:
+        pass
+    time.sleep(1)
+else:
+    logger.error('Failed to communicate with server')
+    exit(1)
 
 if args.ostype == 'debian':
     if len(list(set(args.release) - set(['7', '8', '9', '10', '11']))) > 0:

@@ -29,7 +29,7 @@ $ make install
 ## Usage
 
 ```bash
-$ goval-dictionary help
+$ goval-dictionary --help
 OVAL(Open Vulnerability and Assessment Language) dictionary
 
 Usage:
@@ -41,10 +41,11 @@ Available Commands:
   help        Help about any command
   select      Select from DB
   server      Start OVAL dictionary HTTP server
+  version     Show version
 
 Flags:
       --config string       config file (default is $HOME/.oval.yaml)
-      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
       --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
@@ -80,7 +81,7 @@ Flags:
 
 Global Flags:
       --config string       config file (default is $HOME/.oval.yaml)
-      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
       --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode

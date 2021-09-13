@@ -134,22 +134,32 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
+	q := r.conn.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", family, osVer).
+		Joins("JOIN packages ON packages.definition_id = definitions.id").
+		Preload("Advisory").
+		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
+		Preload("References")
+
+	if family == c.Debian {
+		q = q.Preload("Debian")
+	}
+
+	if arch == "" {
+		q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+	} else {
+		q = q.Where("`packages`.`name` = ? AND `packages`.`arch` = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
+	}
+
 	// Specify limit number to avoid `too many SQL variable`.
 	// https://github.com/future-architect/vuls/issues/886
 	defs := []models.Definition{}
 	limit, tmpDefs := 998, []models.Definition{}
 	for i := 0; true; i++ {
-		err := r.conn.
-			Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", family, osVer).
-			Joins("JOIN packages ON packages.definition_id = definitions.id").
-			Where("packages.name = ?", packName).
+		err := q.
 			Limit(limit).Offset(i * limit).
-			Preload("Advisory").
-			Preload("Advisory.Cves").
-			Preload("Advisory.Bugzillas").
-			Preload("Advisory.AffectedCPEList").
-			Preload("AffectedPacks").
-			Preload("References").
 			Find(&tmpDefs).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
@@ -159,6 +169,13 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		}
 		defs = append(defs, tmpDefs...)
 	}
+
+	if family == c.RedHat {
+		for i := range defs {
+			defs[i].AffectedPacks = filterByRedHatMajor(defs[i].AffectedPacks, major(osVer))
+		}
+	}
+
 	return defs, nil
 }
 
@@ -169,8 +186,7 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
-	defs := []models.Definition{}
-	err = r.conn.
+	q := r.conn.
 		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", family, osVer).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").
@@ -179,12 +195,29 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		Preload("Advisory.Cves").
 		Preload("Advisory.Bugzillas").
 		Preload("Advisory.AffectedCPEList").
-		Preload("AffectedPacks").
-		Preload("References").
-		Find(&defs).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		Preload("References")
+
+	if family == c.Debian {
+		q = q.Preload("Debian")
+	}
+
+	if arch == "" {
+		q = q.Preload("AffectedPacks")
+	} else {
+		q = q.Preload("AffectedPacks", "arch = ?", arch)
+	}
+
+	defs := []models.Definition{}
+	if err := q.Find(&defs).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+
+	if family == c.RedHat {
+		for i := range defs {
+			defs[i].AffectedPacks = filterByRedHatMajor(defs[i].AffectedPacks, major(osVer))
+		}
+	}
+
 	return defs, nil
 }
 

@@ -32,7 +32,7 @@ type DB interface {
 
 // NewDB return DB accessor.
 func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err error) {
-	if driver, err := newDB(dbType); err != nil {
+	if driver, err = newDB(dbType); err != nil {
 		log15.Error("Failed to new db.", "err", err)
 		return driver, false, err
 	}

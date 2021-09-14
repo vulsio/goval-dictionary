@@ -96,14 +96,14 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 	case c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 		osVer = majorDotMinor(osVer)
 	default:
-		if !(strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
+		if strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
 			strings.HasPrefix(family, c.SUSEEnterpriseDesktop) ||
 			strings.HasPrefix(family, c.SUSEEnterpriseModule) ||
 			strings.HasPrefix(family, c.SUSEEnterpriseWorkstation) ||
-			strings.HasPrefix(family, c.SUSEOpenstackCloud)) {
-			return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)
+			strings.HasPrefix(family, c.SUSEOpenstackCloud) {
+			return family, osVer, nil
 		}
-		osVer = major(osVer)
+		return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 	}
 
 	return family, osVer, nil

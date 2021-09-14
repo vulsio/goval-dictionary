@@ -27,15 +27,15 @@ func (o *Oracle) Name() string {
 }
 
 // InsertOval inserts Oracle OVAL
-func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+func (o *Oracle) InsertOval(root *models.Root, meta models.FileMeta, driver *gorm.DB) error {
 	log15.Debug("in Oracle")
 	tx := driver.Begin()
 
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
+	oldmeta := models.FileMeta{}
+	r := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
 	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		tx.Rollback()
-		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+		return xerrors.Errorf("Failed to get filemeta: %w", r.Error)
 	}
 
 	if r.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
@@ -102,83 +102,66 @@ func (o *Oracle) InsertOval(root *models.Root, meta models.FetchMeta, driver *go
 
 // GetByPackName select definitions by packName
 func (o *Oracle) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([]models.Definition, error) {
-	osVer = major(osVer)
-	packs := []models.Package{}
-	err := driver.Where(&models.Package{
-		Name: packName,
-		Arch: arch,
-	}).Find(&packs).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+	q := driver.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Oracle, major(osVer)).
+		Joins("JOIN packages ON packages.definition_id = definitions.id").
+		Preload("Advisory").
+		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
+		Preload("References")
+
+	if arch == "" {
+		q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+	} else {
+		q = q.Where("`packages`.`name` = ? AND `packages`.`arch` = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
 	}
 
+	// Specify limit number to avoid `too many SQL variable`.
+	// https://github.com/future-architect/vuls/issues/886
 	defs := []models.Definition{}
-	for _, p := range packs {
-		def := models.Definition{}
-		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
+	limit, tmpDefs := 998, []models.Definition{}
+	for i := 0; true; i++ {
+		err := q.
+			Limit(limit).Offset(i * limit).
+			Find(&tmpDefs).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-
-		root := models.Root{}
-		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
+		if len(tmpDefs) == 0 {
+			break
 		}
-
-		if root.Family == config.Oracle && major(root.OSVersion) == osVer {
-			defs = append(defs, def)
-		}
-	}
-
-	for i, def := range defs {
-		adv := models.Advisory{}
-		err = driver.Model(&def).Association("Advisory").Find(&adv)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-
-		cves := []models.Cve{}
-		err = driver.Model(&adv).Association("Cves").Find(&cves)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		adv.Cves = cves
-
-		defs[i].Advisory = adv
-
-		packs := []models.Package{}
-		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Association("References").Find(&refs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		defs[i].References = refs
+		defs = append(defs, tmpDefs...)
 	}
 
 	return defs, nil
 }
 
 // GetByCveID select definition by CveID
-func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
-		config.Oracle, major(osVer)).
+func (o *Oracle) GetByCveID(driver *gorm.DB, osVer, cveID, arch string) ([]models.Definition, error) {
+	q := driver.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", config.Oracle, major(osVer)).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").
 		Where("cves.cve_id = ?", cveID).
 		Preload("Advisory").
 		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
 		Preload("AffectedPacks").
-		Preload("References").
-		Find(&defs).Error
+		Preload("References")
+
+	if arch == "" {
+		q = q.Preload("AffectedPacks")
+	} else {
+		q = q.Preload("AffectedPacks", "arch = ?", arch)
+	}
+
+	defs := []models.Definition{}
+	err := q.Find(&defs).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+
 	return defs, nil
 }

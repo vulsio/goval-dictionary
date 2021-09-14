@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	c "github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -38,8 +39,8 @@ type Driver struct {
 type OvalDB interface {
 	Name() string
 	GetByPackName(*gorm.DB, string, string, string) ([]models.Definition, error)
-	GetByCveID(*gorm.DB, string, string) ([]models.Definition, error)
-	InsertOval(*models.Root, models.FetchMeta, *gorm.DB) error
+	GetByCveID(*gorm.DB, string, string, string) ([]models.Definition, error)
+	InsertOval(*models.Root, models.FileMeta, *gorm.DB) error
 }
 
 var ovalMap = map[string]OvalDB{}
@@ -58,6 +59,16 @@ func NewRDB(family, dbType, dbpath string, debugSQL bool) (driver *Driver, locke
 
 	if locked, err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
 		return nil, locked, err
+	}
+
+	isV1, err := driver.IsGovalDictModelV1()
+	if err != nil {
+		log15.Error("Failed to IsGovalDictModelV1.", "err", err)
+		return nil, false, err
+	}
+	if isV1 {
+		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
+		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
 	}
 
 	if err = driver.MigrateDB(); err != nil {
@@ -162,6 +173,7 @@ func (d *Driver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err 
 func (d *Driver) MigrateDB() error {
 	if err := d.conn.AutoMigrate(
 		&models.FetchMeta{},
+		&models.FileMeta{},
 		&models.Root{},
 		&models.Definition{},
 		&models.Package{},
@@ -211,16 +223,16 @@ func (d *Driver) GetByPackName(family, osVer, packName, arch string) ([]models.D
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
-func (d *Driver) GetByCveID(family, osVer, cveID string) ([]models.Definition, error) {
+func (d *Driver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
 	if _, ok := ovalMap[family]; !ok {
 		return nil, fmt.Errorf("Unsupported family: %s", family)
 	}
 
-	return ovalMap[family].GetByCveID(d.conn, osVer, cveID)
+	return ovalMap[family].GetByCveID(d.conn, osVer, cveID, arch)
 }
 
 // InsertOval inserts OVAL
-func (d *Driver) InsertOval(family string, root *models.Root, meta models.FetchMeta) error {
+func (d *Driver) InsertOval(family string, root *models.Root, meta models.FileMeta) error {
 	if _, ok := ovalMap[family]; !ok {
 		return fmt.Errorf("Unsupported family: %s", family)
 	}
@@ -228,15 +240,15 @@ func (d *Driver) InsertOval(family string, root *models.Root, meta models.FetchM
 	return ovalMap[family].InsertOval(root, meta, d.conn)
 }
 
-// InsertFetchMeta inserts FetchMeta
-func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
+// InsertFileMeta inserts FileMeta
+func (d *Driver) InsertFileMeta(meta models.FileMeta) error {
 	tx := d.conn.Begin()
 
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
+	oldmeta := models.FileMeta{}
+	r := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
 	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		tx.Rollback()
-		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+		return xerrors.Errorf("Failed to get filemeta: %w", r.Error)
 	}
 
 	if oldmeta.Timestamp.Equal(meta.Timestamp) {
@@ -246,15 +258,15 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 	if r.RowsAffected == 0 {
 		if err := tx.Create(&meta).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to insert FetchMeta: %s", err)
+			return fmt.Errorf("Failed to insert FileMeta: %s", err)
 		}
 	} else {
-		// Update FetchMeta
+		// Update FileMeta
 		oldmeta.Timestamp = meta.Timestamp
 		oldmeta.FileName = meta.FileName
 		if err := tx.Save(&oldmeta).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("Failed to update FetchMeta: %s", err)
+			return fmt.Errorf("Failed to update FileMeta: %s", err)
 		}
 	}
 
@@ -262,10 +274,22 @@ func (d *Driver) InsertFetchMeta(meta models.FetchMeta) error {
 	return nil
 }
 
+// GetFileMeta :
+func (d *Driver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
+	filemeta := models.FileMeta{}
+	if err := d.conn.Where(&models.FileMeta{FileName: meta.FileName}).Take(&filemeta).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.FileMeta{}, fmt.Errorf("Failed to get filemeta: %s", err)
+		}
+		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
+	}
+	return filemeta, nil
+}
+
 // CountDefs counts the number of definitions specified by args
 func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	switch osFamily {
-	case c.Alpine:
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 		osVer = majorDotMinor(osVer)
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
@@ -274,8 +298,10 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 	}
 
 	root := models.Root{}
-	r := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).First(&root)
-	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
+	if err := d.conn.Where(&models.Root{Family: osFamily, OSVersion: osVer}).Take(&root).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, err
+		}
 		return 0, nil
 	}
 
@@ -290,7 +316,7 @@ func (d *Driver) CountDefs(osFamily, osVer string) (int, error) {
 // GetLastModified get last modified time of OVAL in roots
 func (d *Driver) GetLastModified(osFamily, osVer string) (time.Time, error) {
 	switch osFamily {
-	case c.Alpine:
+	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
 		osVer = majorDotMinor(osVer)
 	case c.Amazon:
 		osVer = getAmazonLinux1or2(osVer)
@@ -342,4 +368,28 @@ func splitChunkIntoDefinitions(definitions []models.Definition, rootID uint, chu
 	}
 
 	return append(chunks, definitions)
+}
+
+// IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
+func (d *Driver) IsGovalDictModelV1() (bool, error) {
+	return d.conn.Migrator().HasColumn(&models.FetchMeta{}, "file_name"), nil
+}
+
+// GetFetchMeta get FetchMeta from Database
+func (d *Driver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
+	if err = d.conn.Take(&fetchMeta).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		return &models.FetchMeta{GovalDictRevision: c.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+	}
+
+	return fetchMeta, nil
+}
+
+// UpsertFetchMeta upsert FetchMeta to Database
+func (d *Driver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	fetchMeta.GovalDictRevision = c.Revision
+	fetchMeta.SchemaVersion = models.LatestSchemaVersion
+	return d.conn.Save(fetchMeta).Error
 }

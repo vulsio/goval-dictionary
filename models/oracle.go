@@ -11,7 +11,6 @@ import (
 // ConvertOracleToModel Convert OVAL to models
 func ConvertOracleToModel(root *oval.Root) (defs map[string][]Definition) {
 	osVerDefs := map[string][]Definition{}
-
 	for _, ovaldef := range root.Definitions.Definitions {
 		if strings.Contains(ovaldef.Description, "** REJECT **") {
 			continue

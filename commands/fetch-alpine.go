@@ -59,6 +59,16 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+	}
+
 	results, err := fetcher.FetchAlpineFiles(vers)
 	if err != nil {
 		log15.Error("Failed to fetch files", "err", err)
@@ -91,8 +101,6 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	// pp.Println(m)
-
 	for target, t := range m {
 		root := models.Root{
 			Family:      c.Alpine,
@@ -101,8 +109,14 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 
-		fmeta := models.FetchMeta{
-			Timestamp: time.Now(),
+		timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
+		if err != nil {
+			log15.Error("Failed to parse timestamp", "url", t.url, "err", err)
+			return err
+		}
+
+		fmeta := models.FileMeta{
+			Timestamp: timestamp,
 			FileName:  t.url,
 		}
 
@@ -111,11 +125,16 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 			log15.Error("Failed to insert meta.", "err", err)
 			return err
 		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
+		if err := driver.InsertFileMeta(fmeta); err != nil {
 			log15.Error("Failed to insert meta", "err", err)
 			return err
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
+	}
+
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
+		return err
 	}
 
 	return nil

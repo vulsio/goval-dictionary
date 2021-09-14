@@ -28,15 +28,15 @@ func (o *SUSE) Name() string {
 }
 
 // InsertOval inserts SUSE OVAL
-func (o *SUSE) InsertOval(root *models.Root, meta models.FetchMeta, driver *gorm.DB) error {
+func (o *SUSE) InsertOval(root *models.Root, meta models.FileMeta, driver *gorm.DB) error {
 	log15.Debug("in suse")
 	tx := driver.Begin()
 
-	oldmeta := models.FetchMeta{}
-	r := tx.Where(&models.FetchMeta{FileName: meta.FileName}).First(&oldmeta)
+	oldmeta := models.FileMeta{}
+	r := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
 	if r.Error != nil && !errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		tx.Rollback()
-		return xerrors.Errorf("Failed to get fetchmeta: %w", r.Error)
+		return xerrors.Errorf("Failed to get filemeta: %w", r.Error)
 	}
 
 	if r.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
@@ -96,79 +96,69 @@ func (o *SUSE) GetByPackName(driver *gorm.DB, osVer, packName, _ string) ([]mode
 	// SLES: OVAL provided in each major version.
 	// OpenSUSE : OVAL is separate for each minor version.
 	// http://ftp.suse.com/pub/projects/security/oval/
-	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
-		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
-		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
-		strings.HasPrefix(o.Family, c.SUSEEnterpriseWorkstation) ||
-		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
+	if strings.HasPrefix(o.Name(), c.SUSEEnterpriseServer) ||
+		strings.HasPrefix(o.Name(), c.SUSEEnterpriseDesktop) ||
+		strings.HasPrefix(o.Name(), c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Name(), c.SUSEEnterpriseWorkstation) ||
+		strings.HasPrefix(o.Name(), c.SUSEOpenstackCloud) {
 		osVer = major(osVer)
 	} else {
 		osVer = majorDotMinor(osVer)
 	}
 
-	packs := []models.Package{}
-	err := driver.Where(&models.Package{Name: packName}).Find(&packs).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-
+	// Specify limit number to avoid `too many SQL variable`.
+	// https://github.com/future-architect/vuls/issues/886
 	defs := []models.Definition{}
-	for _, p := range packs {
-		def := models.Definition{}
-		err = driver.Where("id = ?", p.DefinitionID).Find(&def).Error
+	limit, tmpDefs := 998, []models.Definition{}
+	for i := 0; true; i++ {
+		err := driver.
+			Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", o.Name(), osVer).
+			Joins("JOIN packages ON packages.definition_id = definitions.id").
+			Where("packages.name = ?", packName).
+			Limit(limit).Offset(i * limit).
+			Preload("Advisory").
+			Preload("Advisory.Cves").
+			Preload("Advisory.Bugzillas").
+			Preload("Advisory.AffectedCPEList").
+			Preload("AffectedPacks").
+			Preload("References").
+			Find(&tmpDefs).Error
+
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-
-		root := models.Root{}
-		err = driver.Where("id = ?", def.RootID).Find(&root).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
+		if len(tmpDefs) == 0 {
+			break
 		}
-
-		if root.Family == o.Family && root.OSVersion == osVer {
-			defs = append(defs, def)
-		}
+		defs = append(defs, tmpDefs...)
 	}
-
-	for i, def := range defs {
-		packs := []models.Package{}
-		err = driver.Model(&def).Association("AffectedPacks").Find(&packs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		defs[i].AffectedPacks = packs
-
-		refs := []models.Reference{}
-		err = driver.Model(&def).Association("References").Find(&refs)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		defs[i].References = refs
-	}
-
 	return defs, nil
 }
 
 // GetByCveID select definitions by CveID
 // SUSE : OVAL is separate for each minor version. So select OVAL by major.minimor version.
 // http: //ftp.suse.com/pub/projects/security/oval/
-func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID string) (defs []models.Definition, err error) {
-	if strings.HasPrefix(o.Family, c.SUSEEnterpriseServer) ||
-		strings.HasPrefix(o.Family, c.SUSEEnterpriseDesktop) ||
-		strings.HasPrefix(o.Family, c.SUSEEnterpriseModule) ||
-		strings.HasPrefix(o.Family, c.SUSEEnterpriseWorkstation) ||
-		strings.HasPrefix(o.Family, c.SUSEOpenstackCloud) {
+func (o *SUSE) GetByCveID(driver *gorm.DB, osVer, cveID, _ string) ([]models.Definition, error) {
+	if strings.HasPrefix(o.Name(), c.SUSEEnterpriseServer) ||
+		strings.HasPrefix(o.Name(), c.SUSEEnterpriseDesktop) ||
+		strings.HasPrefix(o.Name(), c.SUSEEnterpriseModule) ||
+		strings.HasPrefix(o.Name(), c.SUSEEnterpriseWorkstation) ||
+		strings.HasPrefix(o.Name(), c.SUSEOpenstackCloud) {
 		osVer = major(osVer)
 	} else {
 		osVer = majorDotMinor(osVer)
 	}
 
-	err = driver.Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?",
-		o.Name(), osVer).
+	defs := []models.Definition{}
+	err := driver.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", o.Name(), osVer).
 		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
 		Joins("JOIN cves ON cves.advisory_id = advisories.id").
 		Where("cves.cve_id = ?", cveID).
+		Preload("Advisory").
+		Preload("Advisory.Cves").
+		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedCPEList").
 		Preload("AffectedPacks").
 		Preload("References").
 		Find(&defs).Error

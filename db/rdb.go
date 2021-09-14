@@ -225,8 +225,6 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 
 // InsertOval inserts OVAL
 func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
-	bar := pb.StartNew(len(root.Definitions))
-
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
 		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
@@ -262,6 +260,7 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	}
 
 	if result.RowsAffected > 0 {
+		log15.Info("Deleting old Definitions...")
 		// Delete data related to root passed in arg
 		defs := []models.Definition{}
 		if err := tx.Model(&old).Association("Definitions").Find(&defs); err != nil {
@@ -269,6 +268,7 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 			return xerrors.Errorf("Failed to select old defs: %w", err)
 		}
 
+		bar := pb.StartNew(len(defs))
 		for idx := range chunkSlice(len(defs), 998) {
 			var advs []models.Advisory
 			if err := tx.Model(defs[idx.From:idx.To]).Association("Advisory").Find(&advs); err != nil {
@@ -287,13 +287,17 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
+			bar.Add(idx.To - idx.From)
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to delete: %w", err)
 		}
+		bar.Finish()
 	}
 
+	log15.Info("Inserting new Definitions...")
+	bar := pb.StartNew(len(root.Definitions))
 	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
 		return xerrors.Errorf("Failed to insert. err: %w", err)

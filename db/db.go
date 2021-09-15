@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kotakanbe/goval-dictionary/db/rdb"
-	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/db/rdb"
+	"github.com/vulsio/goval-dictionary/models"
 )
 
 // DB is interface for a database driver

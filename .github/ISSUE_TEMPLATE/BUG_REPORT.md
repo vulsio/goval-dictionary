@@ -34,7 +34,7 @@ $ goval-dictionary -v
 
 or
 
-$ cd $GOPATH/src/github.com/kotakanbe/goval-dictionary 
+$ cd $GOPATH/src/github.com/vulsio/goval-dictionary 
 $ git rev-parse --short HEAD 
 
 * command:

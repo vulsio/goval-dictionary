@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models"
 )
 
 func Test_majorMinor(t *testing.T) {

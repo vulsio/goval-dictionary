@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kotakanbe/goval-dictionary/fetcher"
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/fetcher"
 )
 
 // ConvertAmazonToModel Convert OVAL to models

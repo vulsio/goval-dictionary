@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/models"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

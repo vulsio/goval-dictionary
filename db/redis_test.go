@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/models"
 )
 
 func Test_fileterPacksByArch(t *testing.T) {

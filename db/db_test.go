@@ -4,8 +4,251 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/kotakanbe/goval-dictionary/models"
 )
+
+func Test_formatFamilyAndOSVer(t *testing.T) {
+	type args struct {
+		family string
+		osVer  string
+	}
+	tests := []struct {
+		in       args
+		expected args
+		wantErr  string
+	}{
+		{
+			in: args{
+				family: config.Debian,
+				osVer:  "11",
+			},
+			expected: args{
+				family: config.Debian,
+				osVer:  "11",
+			},
+		},
+		{
+			in: args{
+				family: config.Debian,
+				osVer:  "11.1",
+			},
+			expected: args{
+				family: config.Debian,
+				osVer:  "11",
+			},
+		},
+		{
+			in: args{
+				family: config.Ubuntu,
+				osVer:  "20",
+			},
+			expected: args{
+				family: config.Ubuntu,
+				osVer:  "20",
+			},
+		},
+		{
+			in: args{
+				family: config.Ubuntu,
+				osVer:  "20.04",
+			},
+			expected: args{
+				family: config.Ubuntu,
+				osVer:  "20",
+			},
+		},
+		{
+			in: args{
+				family: config.Raspbian,
+				osVer:  "10",
+			},
+			expected: args{
+				family: config.Debian,
+				osVer:  "10",
+			},
+		},
+		{
+			in: args{
+				family: config.Raspbian,
+				osVer:  "10.1",
+			},
+			expected: args{
+				family: config.Debian,
+				osVer:  "10",
+			},
+		},
+		{
+			in: args{
+				family: config.RedHat,
+				osVer:  "8",
+			},
+			expected: args{
+				family: config.RedHat,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
+				family: config.RedHat,
+				osVer:  "8.4",
+			},
+			expected: args{
+				family: config.RedHat,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
+				family: config.CentOS,
+				osVer:  "8",
+			},
+			expected: args{
+				family: config.RedHat,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
+				family: config.CentOS,
+				osVer:  "8.4",
+			},
+			expected: args{
+				family: config.RedHat,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
+				family: config.Oracle,
+				osVer:  "8",
+			},
+			expected: args{
+				family: config.Oracle,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
+				family: config.Oracle,
+				osVer:  "8.4",
+			},
+			expected: args{
+				family: config.Oracle,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
+				family: config.Amazon,
+				osVer:  "1",
+			},
+			expected: args{
+				family: config.Amazon,
+				osVer:  "1",
+			},
+		},
+		{
+			in: args{
+				family: config.Amazon,
+				osVer:  "2",
+			},
+			expected: args{
+				family: config.Amazon,
+				osVer:  "2",
+			},
+		},
+		{
+			in: args{
+				family: config.Alpine,
+				osVer:  "3.14",
+			},
+			expected: args{
+				family: config.Alpine,
+				osVer:  "3.14",
+			},
+		},
+		{
+			in: args{
+				family: config.Alpine,
+				osVer:  "3.14.1",
+			},
+			expected: args{
+				family: config.Alpine,
+				osVer:  "3.14",
+			},
+		},
+		{
+			in: args{
+				family: config.OpenSUSE,
+				osVer:  "10.2",
+			},
+			expected: args{
+				family: config.OpenSUSE,
+				osVer:  "10.2",
+			},
+		},
+		{
+			in: args{
+				family: config.OpenSUSELeap,
+				osVer:  "15.3",
+			},
+			expected: args{
+				family: config.OpenSUSELeap,
+				osVer:  "15.3",
+			},
+		},
+		{
+			in: args{
+				family: config.SUSEEnterpriseServer,
+				osVer:  "15",
+			},
+			expected: args{
+				family: config.SUSEEnterpriseServer,
+				osVer:  "15",
+			},
+		},
+		{
+			in: args{
+				family: config.SUSEEnterpriseDesktop,
+				osVer:  "15",
+			},
+			expected: args{
+				family: config.SUSEEnterpriseDesktop,
+				osVer:  "15",
+			},
+		},
+		{
+			in: args{
+				family: config.SUSEOpenstackCloud,
+				osVer:  "9",
+			},
+			expected: args{
+				family: config.SUSEOpenstackCloud,
+				osVer:  "9",
+			},
+		},
+		{
+			in: args{
+				family: "unknown",
+				osVer:  "unknown",
+			},
+			wantErr: "Failed to detect family. err: unknown os family(unknown)",
+		},
+	}
+	for i, tt := range tests {
+		family, osVer, err := formatFamilyAndOSVer(tt.in.family, tt.in.osVer)
+		if tt.wantErr != "" {
+			if err.Error() != tt.wantErr {
+				t.Errorf("[%d] formatFamilyAndOSVer expected: %#v\n  actual: %#v\n", i, tt.wantErr, err)
+			}
+		}
+
+		if family != tt.expected.family || osVer != tt.expected.osVer {
+			t.Errorf("[%d] formatFamilyAndOSVer expected: %#v\n  actual: %#v\n", i, tt.expected, args{family: family, osVer: osVer})
+		}
+	}
+}
 
 func Test_filterByRedHatMajor(t *testing.T) {
 	type args struct {

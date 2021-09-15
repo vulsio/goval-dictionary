@@ -91,17 +91,9 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 		osVer = getAmazonLinux1or2(osVer)
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
-	case c.OpenSUSE, c.OpenSUSE + ".nonfree":
-		osVer = majorDotMinor(osVer)
-	case c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
-		osVer = majorDotMinor(osVer)
 	default:
-		if strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseDesktop) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseModule) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseWorkstation) ||
-			strings.HasPrefix(family, c.SUSEOpenstackCloud) {
-			return family, osVer, nil
+		if strings.Contains(family, "suse") {
+			return family, majorDotMinor(osVer), nil
 		}
 		return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 	}

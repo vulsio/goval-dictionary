@@ -249,7 +249,7 @@ func restoreDefinition(defstr, family, version, arch string) (models.Definition,
 	case c.Amazon, c.Oracle:
 		def.AffectedPacks = fileterPacksByArch(def.AffectedPacks, arch)
 	case c.RedHat:
-		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, version)
+		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, major(version))
 	}
 
 	return def, nil

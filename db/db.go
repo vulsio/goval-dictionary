@@ -92,10 +92,9 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
 	default:
-		if strings.Contains(family, "suse") {
-			return family, majorDotMinor(osVer), nil
+		if !strings.Contains(family, "suse") {
+			return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 		}
-		return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 	}
 
 	return family, osVer, nil

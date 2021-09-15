@@ -255,6 +255,21 @@ func restoreDefinition(defstr, family, version, arch string) (models.Definition,
 	return def, nil
 }
 
+func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
+	if arch == "" {
+		return packs
+	}
+
+	filtered := []models.Package{}
+	for _, pack := range packs {
+		if pack.Arch == arch {
+			filtered = append(filtered, pack)
+		}
+	}
+
+	return filtered
+}
+
 // InsertOval inserts OVAL
 func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err error) {
 	ctx := context.Background()

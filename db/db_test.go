@@ -7,68 +7,6 @@ import (
 	"github.com/kotakanbe/goval-dictionary/models"
 )
 
-func Test_fileterPacksByArch(t *testing.T) {
-	type args struct {
-		packs []models.Package
-		arch  string
-	}
-	tests := []struct {
-		in       args
-		expected []models.Package
-	}{
-		{
-			in: args{
-				packs: []models.Package{
-					{
-						Name: "name-x86_64",
-						Arch: "x86_64",
-					},
-					{
-						Name: "name-i386",
-						Arch: "i386",
-					},
-				},
-				arch: "x86_64",
-			},
-			expected: []models.Package{{
-				Name: "name-x86_64",
-				Arch: "x86_64",
-			}},
-		},
-		{
-			in: args{
-				packs: []models.Package{
-					{
-						Name: "name-x86_64",
-						Arch: "x86_64",
-					},
-					{
-						Name: "name-i386",
-						Arch: "i386",
-					},
-				},
-				arch: "",
-			},
-			expected: []models.Package{
-				{
-					Name: "name-x86_64",
-					Arch: "x86_64",
-				},
-				{
-					Name: "name-i386",
-					Arch: "i386",
-				},
-			},
-		},
-	}
-
-	for i, tt := range tests {
-		if aout := fileterPacksByArch(tt.in.packs, tt.in.arch); !reflect.DeepEqual(aout, tt.expected) {
-			t.Errorf("[%d] fileterPacksByArch expected: %#v\n  actual: %#v\n", i, tt.expected, aout)
-		}
-	}
-}
-
 func Test_filterByRedHatMajor(t *testing.T) {
 	type args struct {
 		packs    []models.Package

@@ -153,21 +153,6 @@ func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
 	return ch
 }
 
-func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
-	if arch == "" {
-		return packs
-	}
-
-	filtered := []models.Package{}
-	for _, pack := range packs {
-		if pack.Arch == arch {
-			filtered = append(filtered, pack)
-		}
-	}
-
-	return filtered
-}
-
 func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
 	for _, p := range packs {
 		if strings.Contains(p.Version, ".el"+majorVer) ||

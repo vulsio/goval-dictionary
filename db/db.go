@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/models"
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/models"
 	"golang.org/x/xerrors"
 )
 

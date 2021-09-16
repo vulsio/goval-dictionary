@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/db"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/db"
 	"golang.org/x/xerrors"
 )
 

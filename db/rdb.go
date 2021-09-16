@@ -10,10 +10,10 @@ import (
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/models"
 	"github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/models"
 	"golang.org/x/xerrors"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"

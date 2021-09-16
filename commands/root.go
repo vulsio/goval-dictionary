@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/util"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 var cfgFile string

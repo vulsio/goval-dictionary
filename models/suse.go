@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 	"golang.org/x/xerrors"
 )

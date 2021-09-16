@@ -2,12 +2,12 @@ package commands
 
 import (
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/models"
-	server "github.com/kotakanbe/goval-dictionary/server"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/db"
+	"github.com/vulsio/goval-dictionary/models"
+	server "github.com/vulsio/goval-dictionary/server"
+	"github.com/vulsio/goval-dictionary/util"
 	"golang.org/x/xerrors"
 )
 

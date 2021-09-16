@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/k0kubun/pp"
-	"github.com/kotakanbe/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/config"
 	"github.com/ymomoi/goval-parser/oval"
 )
 

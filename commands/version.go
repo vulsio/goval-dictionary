@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/kotakanbe/goval-dictionary/config"
 	"github.com/spf13/cobra"
+	"github.com/vulsio/goval-dictionary/config"
 )
 
 func init() {

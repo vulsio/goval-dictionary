@@ -12,8 +12,8 @@ import (
 
 	"github.com/htcat/htcat"
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 type fetchRequest struct {

@@ -25,8 +25,8 @@ SRCS = $(shell git ls-files '*.go')
 PKGS =  ./commands ./config ./db ./fetcher ./models ./util
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
-LDFLAGS := -X 'github.com/kotakanbe/goval-dictionary/config.Version=$(VERSION)' \
-	-X 'github.com/kotakanbe/goval-dictionary/config.Revision=$(REVISION)'
+LDFLAGS := -X 'github.com/vulsio/goval-dictionary/config.Version=$(VERSION)' \
+	-X 'github.com/vulsio/goval-dictionary/config.Revision=$(REVISION)'
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 

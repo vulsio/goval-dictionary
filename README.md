@@ -17,9 +17,9 @@ goval-dictionary requires the following packages.
 ### Install
 
 ```bash
-$ mkdir -p $GOPATH/src/github.com/kotakanbe
-$ cd $GOPATH/src/github.com/kotakanbe
-$ git clone https://github.com/kotakanbe/goval-dictionary.git
+$ mkdir -p $GOPATH/src/github.com/vulsio
+$ cd $GOPATH/src/github.com/vulsio
+$ git clone https://github.com/vulsio/goval-dictionary.git
 $ cd goval-dictionary
 $ make install
 ```
@@ -708,14 +708,14 @@ $ curl http://127.0.0.1:1324/cves/ubuntu/16/CVE-2017-15400 | jq
 ]
 ```
 
-For details, see https://github.com/kotakanbe/goval-dictionary/blob/master/server/server.go#L44
+For details, see https://github.com/vulsio/goval-dictionary/blob/master/server/server.go#L44
 
 ----
 
 ## Tips
 
 - How to use Redis as DB backend
-see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
+see [#7](https://github.com/vulsio/goval-dictionary/pull/7)
 
 ----
 
@@ -733,16 +733,16 @@ see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
 
 ## Authors
 
-kotakanbe ([@kotakanbe](https://twitter.com/kotakanbe)) created goval-dictionary and [these fine people](https://github.com/kotakanbe/goval-dictionary/graphs/contributors) have contributed.
+kotakanbe ([@kotakanbe](https://twitter.com/kotakanbe)) created goval-dictionary and [these fine people](https://github.com/vulsio/goval-dictionary/graphs/contributors) have contributed.
 
 ----
 
 ## Change Log
 
-Please see [CHANGELOG](https://github.com/kotakanbe/goval-dictionary/blob/master/CHANGELOG.md).
+Please see [CHANGELOG](https://github.com/vulsio/goval-dictionary/blob/master/CHANGELOG.md).
 
 ----
 
 ## License
 
-Please see [LICENSE](https://github.com/kotakanbe/goval-dictionary/blob/master/LICENSE).
+Please see [LICENSE](https://github.com/vulsio/goval-dictionary/blob/master/LICENSE).

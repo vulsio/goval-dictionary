@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kotakanbe/goval-dictionary/commands"
-	"github.com/kotakanbe/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/commands"
+	"github.com/vulsio/goval-dictionary/config"
 )
 
 // Name ... Name

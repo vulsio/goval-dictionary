@@ -2,9 +2,9 @@ package commands
 
 import (
 	"github.com/inconshreveable/log15"
-	server "github.com/kotakanbe/goval-dictionary/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	server "github.com/vulsio/goval-dictionary/server"
 )
 
 // ServerCmd is Subcommand for OVAL dictionary HTTP Server

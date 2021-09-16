@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/inconshreveable/log15"
-	"github.com/kotakanbe/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/config"
 )
 
 // https://www.debian.org/security/oval/

@@ -156,7 +156,7 @@ func parseNotDecided(comment string) (*Package, bool) {
 var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '([^\s]+).*'\).$`)
 
 func parseFixed(comment string) (*Package, bool) {
-	// https://github.com/kotakanbe/goval-dictionary/issues/120
+	// https://github.com/vulsio/goval-dictionary/issues/120
 	if strings.HasSuffix(comment, " only').") {
 		return nil, false
 	}

@@ -32,7 +32,9 @@ func init() {
 }
 
 func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	if len(args) == 0 {
 		log15.Error("Specify versions to fetch")
@@ -49,7 +51,7 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	driver, locked, err := db.NewDB(c.Alpine, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
@@ -121,7 +123,7 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
-		if err := driver.InsertOval(c.Alpine, &root, fmeta); err != nil {
+		if err := driver.InsertOval(&root, fmeta); err != nil {
 			log15.Error("Failed to insert meta.", "err", err)
 			return err
 		}

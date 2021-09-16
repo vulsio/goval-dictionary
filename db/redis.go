@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
@@ -76,103 +76,52 @@ type RedisDriver struct {
 	conn *redis.Client
 }
 
-// NewRedis return Redis driver
-func NewRedis(family, dbType, dbpath string, debugSQL bool) (driver *RedisDriver, locked bool, err error) {
-	driver = &RedisDriver{
-		name: dbType,
-	}
-	// when using server command, family is empty.
-	if 0 < len(family) {
-		if err = driver.NewOvalDB(family); err != nil {
-			return nil, false, err
-		}
-	}
-
-	if err = driver.OpenDB(dbType, dbpath, debugSQL); err != nil {
-		return nil, false, err
-	}
-
-	isV1, err := driver.IsGovalDictModelV1()
-	if err != nil {
-		log15.Error("Failed to IsGovalDictModelV1.", "err", err)
-		return nil, false, err
-	}
-	if isV1 {
-		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
-		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
-	}
-
-	return driver, false, nil
-}
-
-// NewOvalDB create a OvalDB client
-func (d *RedisDriver) NewOvalDB(family string) error {
-	switch family {
-	case c.CentOS, c.Debian, c.Ubuntu, c.RedHat, c.Oracle,
-		c.OpenSUSE, c.OpenSUSELeap, c.SUSEOpenstackCloud,
-		c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseWorkstation,
-		c.Alpine, c.Amazon:
-
-	default:
-		if strings.HasPrefix(family, c.OpenSUSE) ||
-			strings.HasPrefix(family, c.OpenSUSELeap) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseServer) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseDesktop) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseModule) ||
-			strings.HasPrefix(family, c.SUSEEnterpriseWorkstation) ||
-			strings.HasPrefix(family, c.SUSEOpenstackCloud) {
-			return nil
-		}
-
-		return fmt.Errorf("Unknown OS Type: %s", family)
-	}
-	return nil
-}
-
 // Name is driver name
-func (d *RedisDriver) Name() string {
-	return d.name
+func (r *RedisDriver) Name() string {
+	return r.name
 }
 
 // OpenDB opens Database
-func (d *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
-	var option *redis.Options
-	if option, err = redis.ParseURL(dbPath); err != nil {
-		log15.Error("Failed to parse url", "err", err)
-		return fmt.Errorf("Failed to Parse Redis URL. dbpath: %s, err: %s", dbPath, err)
-	}
-
-	d.conn = redis.NewClient(option)
-	ctx := context.Background()
-	if err = d.conn.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
-	}
-	return nil
-}
-
-// CloseDB close Database
-func (d *RedisDriver) CloseDB() (err error) {
-	if d.conn == nil {
-		return
-	}
-	if err = d.conn.Close(); err != nil {
-		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", d.name, err)
+func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
+	if err = r.connectRedis(dbPath); err != nil {
+		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
 	return
 }
 
+func (r *RedisDriver) connectRedis(dbPath string) error {
+	var err error
+	var option *redis.Options
+	if option, err = redis.ParseURL(dbPath); err != nil {
+		log15.Error("Failed to parse url.", "err", err)
+		return err
+	}
+	r.conn = redis.NewClient(option)
+	err = r.conn.Ping(context.Background()).Err()
+	return err
+}
+
+// CloseDB close Database
+func (r *RedisDriver) CloseDB() (err error) {
+	if r.conn == nil {
+		return
+	}
+	if err = r.conn.Close(); err != nil {
+		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
+	}
+	return
+}
+
+// MigrateDB migrates Database
+func (r *RedisDriver) MigrateDB() error {
+	return nil
+}
+
 // GetByPackName select OVAL definition related to OS Family, osVer, packName, arch
-func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
-	switch family {
-	case c.CentOS:
-		family = c.RedHat
-	case c.Raspbian:
-		family = c.Debian
-	case c.Amazon:
-		osVer = getAmazonLinux1or2(osVer)
-	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
-	default:
-		osVer = major(osVer)
+func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
+	family, osVer, err := formatFamilyAndOSVer(family, osVer)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
 	ctx := context.Background()
@@ -184,7 +133,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		if arch != "" {
 			pkgKeys = append(pkgKeys, fmt.Sprintf("%s#%s", key, arch))
 		} else {
-			dbsize, err := d.conn.DBSize(ctx).Result()
+			dbsize, err := r.conn.DBSize(ctx).Result()
 			if err != nil {
 				return nil, fmt.Errorf("Failed to DBSize. err: %s", err)
 			}
@@ -193,7 +142,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 			for {
 				var keys []string
 				var err error
-				keys, cursor, err = d.conn.Scan(ctx, cursor, fmt.Sprintf("%s#%s", key, "*"), dbsize/5).Result()
+				keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf("%s#%s", key, "*"), dbsize/5).Result()
 				if err != nil {
 					return nil, fmt.Errorf("Failed to Scan. err: %s", err)
 				}
@@ -209,7 +158,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		pkgKeys = append(pkgKeys, key)
 	}
 
-	pipe := d.conn.Pipeline()
+	pipe := r.conn.Pipeline()
 	for _, pkey := range pkgKeys {
 		_ = pipe.SMembers(ctx, pkey)
 	}
@@ -231,7 +180,7 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		return []models.Definition{}, nil
 	}
 
-	defStrs, err := d.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
+	defStrs, err := r.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to HMGet. err: %s", err)
 	}
@@ -253,21 +202,14 @@ func (d *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
-func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
-	switch family {
-	case c.CentOS:
-		family = c.RedHat
-	case c.Raspbian:
-		family = c.Debian
-	case c.Amazon:
-		osVer = getAmazonLinux1or2(osVer)
-	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
-	default:
-		osVer = major(osVer)
+func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
+	family, osVer, err := formatFamilyAndOSVer(family, osVer)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
 	ctx := context.Background()
-	defIDs, err := d.conn.SMembers(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID)).Result()
+	defIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID)).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to SMembers. err: %s", err)
 	}
@@ -275,7 +217,7 @@ func (d *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		return []models.Definition{}, nil
 	}
 
-	defStrs, err := d.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
+	defStrs, err := r.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to HMGet. err: %s", err)
 	}
@@ -307,7 +249,7 @@ func restoreDefinition(defstr, family, version, arch string) (models.Definition,
 	case c.Amazon, c.Oracle:
 		def.AffectedPacks = fileterPacksByArch(def.AffectedPacks, arch)
 	case c.RedHat:
-		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, version)
+		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, major(version))
 	}
 
 	return def, nil
@@ -328,34 +270,33 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 	return filtered
 }
 
-func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
-	for _, p := range packs {
-		if strings.Contains(p.Version, ".el"+majorVer) ||
-			strings.Contains(p.Version, ".module+el"+majorVer) {
-			filtered = append(filtered, p)
-		}
-	}
-	return
-}
-
 // InsertOval inserts OVAL
-func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.FileMeta) (err error) {
+func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err error) {
 	ctx := context.Background()
 	expire := viper.GetUint("expire")
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
 
-	oldFileMeta, err := d.GetFileMeta(meta)
+	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
+	if err != nil {
+		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+	}
+
+	oldFileMeta, err := r.GetFileMeta(meta)
 	if err != nil {
 		return fmt.Errorf("Failed to GetFileMeta. err: %s", err)
 	}
 	if meta.Timestamp.Equal(oldFileMeta.Timestamp) {
-		log15.Info("Skip (Same Timestamp)", "Family", root.Family, "Version", root.OSVersion)
+		log15.Info("Skip (Same Timestamp)", "Family", family, "Version", osVer)
 		return nil
 	}
 
 	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{}
-	depKey := fmt.Sprintf(depKeyFormat, root.Family, root.OSVersion)
-	oldDepsStr, err := d.conn.Get(ctx, depKey).Result()
+	depKey := fmt.Sprintf(depKeyFormat, family, osVer)
+	oldDepsStr, err := r.conn.Get(ctx, depKey).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			return fmt.Errorf("Failed to Get key: %s. err: %s", depKey, err)
@@ -367,10 +308,11 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 		return fmt.Errorf("Failed to unmarshal JSON. err: %s", err)
 	}
 
-	for chunked := range chunkSlice(root.Definitions, 10) {
-		pipe := d.conn.Pipeline()
-		defKey := fmt.Sprintf(defKeyFormat, root.Family, root.OSVersion)
-		for _, def := range chunked {
+	bar := pb.StartNew(len(root.Definitions))
+	for idx := range chunkSlice(len(root.Definitions), batchSize) {
+		pipe := r.conn.Pipeline()
+		defKey := fmt.Sprintf(defKeyFormat, family, osVer)
+		for _, def := range root.Definitions[idx.From:idx.To] {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
@@ -384,9 +326,9 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 			}
 
 			for _, cve := range def.Advisory.Cves {
-				cveKey := fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, cve.CveID)
+				cveKey := fmt.Sprintf(cveKeyFormat, family, osVer, cve.CveID)
 				if err := pipe.SAdd(ctx, cveKey, def.DefinitionID).Err(); err != nil {
-					return fmt.Errorf("Failed to SAdd CVE-ID. err: %s", err)
+					return fmt.Errorf("Failed to SAdd CVE-Ir. err: %s", err)
 				}
 				if expire > 0 {
 					if err := pipe.Expire(ctx, cveKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
@@ -413,7 +355,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 					// affected packages for Amazon OVAL needs to consider arch
 					pkgName = fmt.Sprintf("%s#%s", pkgName, pack.Arch)
 				}
-				pkgKey := fmt.Sprintf(pkgKeyFormat, root.Family, root.OSVersion, pkgName)
+				pkgKey := fmt.Sprintf(pkgKeyFormat, family, osVer, pkgName)
 
 				if err := pipe.SAdd(ctx, pkgKey, def.DefinitionID).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
@@ -466,21 +408,23 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 		if _, err = pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
+	bar.Finish()
 
-	pipe := d.conn.Pipeline()
+	pipe := r.conn.Pipeline()
 	for defID, definitions := range oldDeps {
 		for cveID := range definitions["cves"] {
-			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, cveID), defID).Err(); err != nil {
+			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), defID).Err(); err != nil {
 				return fmt.Errorf("Failed to SRem. err: %s", err)
 			}
 		}
 		for pack := range definitions["packages"] {
-			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, root.Family, root.OSVersion, pack), defID).Err(); err != nil {
+			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, pack), defID).Err(); err != nil {
 				return fmt.Errorf("Failed to SRem. err: %s", err)
 			}
 		}
-		if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, root.Family, root.OSVersion), defID).Err(); err != nil {
+		if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID).Err(); err != nil {
 			return fmt.Errorf("Failed to HDel. err: %s", err)
 		}
 	}
@@ -491,7 +435,7 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 	if err := pipe.Set(ctx, depKey, string(newDepsJSON), time.Duration(expire*uint(time.Second))).Err(); err != nil {
 		return fmt.Errorf("Failed to Set depkey. err: %s", err)
 	}
-	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, root.Family, root.OSVersion), root.Timestamp.Format("2006-01-02T15:04:05Z"), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, family, osVer), root.Timestamp.Format("2006-01-02T15:04:05Z"), time.Duration(expire*uint(time.Second))).Err(); err != nil {
 		return fmt.Errorf("Failed to Set LastModifiedKey. err: %s", err)
 	}
 	if _, err = pipe.Exec(ctx); err != nil {
@@ -502,16 +446,16 @@ func (d *RedisDriver) InsertOval(family string, root *models.Root, meta models.F
 }
 
 // InsertFileMeta inserts FileMeta
-func (d *RedisDriver) InsertFileMeta(meta models.FileMeta) error {
-	if err := d.conn.HSet(context.Background(), fileMetaKey, meta.FileName, meta.Timestamp.Format("2006-01-02T15:04:05Z")).Err(); err != nil {
+func (r *RedisDriver) InsertFileMeta(meta models.FileMeta) error {
+	if err := r.conn.HSet(context.Background(), fileMetaKey, meta.FileName, meta.Timestamp.Format("2006-01-02T15:04:05Z")).Err(); err != nil {
 		return fmt.Errorf("Failed to HSet. err: %s", err)
 	}
 	return nil
 }
 
 // GetFileMeta :
-func (d *RedisDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
-	timeStr, err := d.conn.HGet(context.Background(), fileMetaKey, meta.FileName).Result()
+func (r *RedisDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
+	timeStr, err := r.conn.HGet(context.Background(), fileMetaKey, meta.FileName).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			return models.FileMeta{}, fmt.Errorf("Failed to HGet. err: %s", err)
@@ -527,42 +471,14 @@ func (d *RedisDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error)
 	return models.FileMeta{FileName: meta.FileName, Timestamp: fileTime}, nil
 }
 
-func major(osVer string) (majorVersion string) {
-	return strings.Split(osVer, ".")[0]
-}
-
-func chunkSlice(l []models.Definition, n int) chan []models.Definition {
-	ch := make(chan []models.Definition)
-
-	go func() {
-		for i := 0; i < len(l); i += n {
-			fromIdx := i
-			toIdx := i + n
-			if toIdx > len(l) {
-				toIdx = len(l)
-			}
-			ch <- l[fromIdx:toIdx]
-		}
-		close(ch)
-	}()
-	return ch
-}
-
 // CountDefs counts the number of definitions specified by args
-func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
-	switch family {
-	case c.CentOS:
-		family = c.RedHat
-	case c.Raspbian:
-		family = c.Debian
-	case c.Amazon:
-		osVer = getAmazonLinux1or2(osVer)
-	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
-	default:
-		osVer = major(osVer)
+func (r *RedisDriver) CountDefs(family, osVer string) (int, error) {
+	family, osVer, err := formatFamilyAndOSVer(family, osVer)
+	if err != nil {
+		return 0, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
-	count, err := d.conn.HLen(context.Background(), fmt.Sprintf(defKeyFormat, family, osVer)).Result()
+	count, err := r.conn.HLen(context.Background(), fmt.Sprintf(defKeyFormat, family, osVer)).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			return 0, fmt.Errorf("Failed to HLen. err: %s", err)
@@ -574,20 +490,13 @@ func (d *RedisDriver) CountDefs(family, osVer string) (int, error) {
 }
 
 // GetLastModified get last modified time of OVAL in roots
-func (d *RedisDriver) GetLastModified(osFamily, osVer string) (time.Time, error) {
-	switch osFamily {
-	case c.CentOS:
-		osFamily = c.RedHat
-	case c.Raspbian:
-		osFamily = c.Debian
-	case c.Amazon:
-		osVer = getAmazonLinux1or2(osVer)
-	case c.Alpine, c.OpenSUSE, c.OpenSUSE + ".nonfree", c.OpenSUSELeap, c.OpenSUSELeap + ".nonfree":
-	default:
-		osVer = major(osVer)
+func (r *RedisDriver) GetLastModified(family, osVer string) (time.Time, error) {
+	family, osVer, err := formatFamilyAndOSVer(family, osVer)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
 
-	lastModifiedStr, err := d.conn.Get(context.Background(), fmt.Sprintf(lastModifiedKeyFormat, osFamily, osVer)).Result()
+	lastModifiedStr, err := r.conn.Get(context.Background(), fmt.Sprintf(lastModifiedKeyFormat, family, osVer)).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			return time.Time{}, fmt.Errorf("Failed to Get. err: %s", err)
@@ -597,30 +506,21 @@ func (d *RedisDriver) GetLastModified(osFamily, osVer string) (time.Time, error)
 
 	lastModified, err := time.Parse("2006-01-02T15:04:05Z", lastModifiedStr)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Failed to parse LastModified. err: %s", err)
+		return time.Time{}, fmt.Errorf("Failed to parse LastModifier. err: %s", err)
 	}
 	return lastModified, nil
 }
 
-// getAmazonLinux2 returns AmazonLinux1 or 2
-func getAmazonLinux1or2(osVersion string) string {
-	ss := strings.Fields(osVersion)
-	if ss[0] == "2" {
-		return "2"
-	}
-	return "1"
-}
-
 // IsGovalDictModelV1 determines if the DB was created at the time of goval-dictionary Model v1
-func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
+func (r *RedisDriver) IsGovalDictModelV1() (bool, error) {
 	ctx := context.Background()
 
-	exists, err := d.conn.Exists(ctx, fetchMetaKey).Result()
+	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
 		return false, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
 	if exists == 0 {
-		keys, _, err := d.conn.Scan(ctx, 0, "OVAL#*", 1).Result()
+		keys, _, err := r.conn.Scan(ctx, 0, "OVAL#*", 1).Result()
 		if err != nil {
 			return false, fmt.Errorf("Failed to Scan. err: %s", err)
 		}
@@ -634,10 +534,10 @@ func (d *RedisDriver) IsGovalDictModelV1() (bool, error) {
 }
 
 // GetFetchMeta get FetchMeta from Database
-func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
+func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 	ctx := context.Background()
 
-	exists, err := d.conn.Exists(ctx, fetchMetaKey).Result()
+	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
@@ -645,12 +545,12 @@ func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 		return &models.FetchMeta{GovalDictRevision: c.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
 	}
 
-	revision, err := d.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
+	revision, err := r.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
 	}
 
-	verstr, err := d.conn.HGet(ctx, fetchMetaKey, "SchemaVersion").Result()
+	verstr, err := r.conn.HGet(ctx, fetchMetaKey, "SchemaVersion").Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to HGet SchemaVersion. err: %s", err)
 	}
@@ -663,6 +563,6 @@ func (d *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
-func (d *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
-	return d.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": fetchMeta.GovalDictRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
+func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	return r.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": fetchMeta.GovalDictRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
 }

@@ -33,7 +33,9 @@ func init() {
 }
 
 func executeSelect(cmd *cobra.Command, args []string) error {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	flagPkg := viper.GetBool("by-package")
 	flagCveID := viper.GetBool("by-cveid")
@@ -90,7 +92,7 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	driver, locked, err := db.NewDB(args[0], viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before select", "err", err)

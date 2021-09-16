@@ -22,7 +22,7 @@
 	diff-server-rdb-redis
 
 SRCS = $(shell git ls-files '*.go')
-PKGS =  ./commands ./config ./db ./db/rdb ./fetcher ./models ./util
+PKGS =  ./commands ./config ./db ./fetcher ./models ./util
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'github.com/vulsio/goval-dictionary/config.Version=$(VERSION)' \
@@ -180,24 +180,24 @@ diff-package:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.openstack.cloud 6 7 8 9
 
 diff-server-rdb:
-	integration/goval-dict.old server --dbpath=$(PWD)/integration/oval.old.sqlite3 --port 1325 > /dev/null & 
-	integration/goval-dict.new server --dbpath=$(PWD)/integration/oval.new.sqlite3 --port 1326 > /dev/null &
+	integration/goval-dict.old server --dbpath=$(PWD)/integration/oval.old.sqlite3 --port 1325 > /dev/null 2>&1 &
+	integration/goval-dict.new server --dbpath=$(PWD)/integration/oval.new.sqlite3 --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package
 	pkill goval-dict.old
 	pkill goval-dict.new
 
 diff-server-redis:
-	integration/goval-dict.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null & 
-	integration/goval-dict.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	integration/goval-dict.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null 2>&1 & 
+	integration/goval-dict.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package
 	pkill goval-dict.old
 	pkill goval-dict.new
 
 diff-server-rdb-redis:
-	integration/goval-dict.new server --dbpath=$(PWD)/integration/oval.new.sqlite3 --port 1325 > /dev/null &
-	integration/goval-dict.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	integration/goval-dict.new server --dbpath=$(PWD)/integration/oval.new.sqlite3 --port 1325 > /dev/null 2>&1 &
+	integration/goval-dict.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package
 	pkill goval-dict.new

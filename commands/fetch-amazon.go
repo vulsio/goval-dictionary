@@ -29,9 +29,11 @@ func init() {
 }
 
 func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
-	driver, locked, err := db.NewDB(c.Amazon, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			return fmt.Errorf("Failed to open DB. Close DB connection before fetching: %w", err)
@@ -108,7 +110,7 @@ func execute(driver db.DB, root *models.Root) error {
 		FileName:  fmt.Sprintf("FetchUpdateInfoAmazonLinux%s", root.OSVersion),
 	}
 
-	if err := driver.InsertOval(c.Amazon, root, fmeta); err != nil {
+	if err := driver.InsertOval(root, fmeta); err != nil {
 		return fmt.Errorf("Failed to insert OVAL: %w", err)
 	}
 	if err := driver.InsertFileMeta(fmeta); err != nil {

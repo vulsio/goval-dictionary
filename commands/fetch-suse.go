@@ -35,12 +35,14 @@ $ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 func init() {
 	fetchCmd.AddCommand(fetchSUSECmd)
 
-	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type")
+	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type(choices: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud)")
 	_ = viper.BindPFlag("suse-type", fetchSUSECmd.PersistentFlags().Lookup("suse-type"))
 }
 
 func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	if len(args) == 0 {
 		log15.Error("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
@@ -74,7 +76,7 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to fetch suse command. err: specify SUSE type to fetch")
 	}
 
-	driver, locked, err := db.NewDB(suseType, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
@@ -124,12 +126,7 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		roots := models.ConvertSUSEToModel(fmeta.FileName, &ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
-			if err := driver.NewOvalDB(root.Family); err != nil {
-				log15.Error("Failed to NewOvalDB for Family found in SUSE OVAL", "err", err)
-				return err
-			}
-
-			if err := driver.InsertOval(root.Family, &root, fmeta); err != nil {
+			if err := driver.InsertOval(&root, fmeta); err != nil {
 				log15.Error("Failed to insert oval", "err", err)
 				return err
 			}

@@ -17,8 +17,8 @@ goval-dictionary requires the following packages.
 ### Install
 
 ```bash
-$ mkdir -p $GOPATH/src/github.com/kotakanbe
-$ cd $GOPATH/src/github.com/kotakanbe
+$ mkdir -p $GOPATH/src/github.com/vulsio
+$ cd $GOPATH/src/github.com/vulsio
 $ git clone https://github.com/vulsio/goval-dictionary.git
 $ cd goval-dictionary
 $ make install

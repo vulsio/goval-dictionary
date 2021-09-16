@@ -1,7 +1,7 @@
 project_name: goval-dictionary
 release:
   github:
-    owner: kotakanbe
+    owner: vulsio
     name: goval-dictionary
 builds:
 - goos:

@@ -31,7 +31,7 @@ func init() {
 	_ = viper.BindPFlag("by-cveid", selectCmd.PersistentFlags().Lookup("by-cveid"))
 }
 
-func executeSelect(cmd *cobra.Command, args []string) error {
+func executeSelect(_ *cobra.Command, args []string) error {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}

@@ -57,6 +57,11 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
+		return err
+	}
+
 	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
 	if err != nil {
 		log15.Error("Failed to fetch updateinfo for Amazon Linux1", "err", err)
@@ -88,11 +93,6 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
 	if err := execute(driver, &root); err != nil {
 		log15.Error("Failed to Insert Amazon2", "err", err)
-		return err
-	}
-
-	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
 		return err
 	}
 

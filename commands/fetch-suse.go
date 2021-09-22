@@ -96,6 +96,11 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
+		return err
+	}
+
 	var results []fetcher.FetchResult
 	results, err = fetcher.FetchSUSEFiles(suseType, vers)
 	if err != nil {
@@ -137,11 +142,6 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 			log15.Error("Failed to insert meta", "err", err)
 			return err
 		}
-	}
-
-	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
-		return err
 	}
 
 	return nil

@@ -54,6 +54,11 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
+		return err
+	}
+
 	results, err := fetcher.FetchOracleFiles()
 	if err != nil {
 		log15.Error("Failed to fetch files", "err", err)
@@ -106,11 +111,6 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 
 	if err := driver.InsertFileMeta(fmeta); err != nil {
 		log15.Error("Failed to insert meta", "err", err)
-		return err
-	}
-
-	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
 		return err
 	}
 

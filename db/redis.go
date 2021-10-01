@@ -84,21 +84,18 @@ func (r *RedisDriver) Name() string {
 // OpenDB opens Database
 func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
 	if err = r.connectRedis(dbPath); err != nil {
-		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
+		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
-	return
+	return false, nil
 }
 
 func (r *RedisDriver) connectRedis(dbPath string) error {
-	var err error
-	var option *redis.Options
-	if option, err = redis.ParseURL(dbPath); err != nil {
-		log15.Error("Failed to parse url.", "err", err)
-		return err
+	option, err := redis.ParseURL(dbPath)
+	if err != nil {
+		return xerrors.Errorf("Failed to parse url. err: %w", err)
 	}
 	r.conn = redis.NewClient(option)
-	err = r.conn.Ping(context.Background()).Err()
-	return err
+	return r.conn.Ping(context.Background()).Err()
 }
 
 // CloseDB close Database
@@ -241,8 +238,7 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 func restoreDefinition(defstr, family, version, arch string) (models.Definition, error) {
 	var def models.Definition
 	if err := json.Unmarshal([]byte(defstr), &def); err != nil {
-		log15.Error("Failed to Unmarshal json.", "err", err)
-		return models.Definition{}, err
+		return def, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 	}
 
 	switch family {

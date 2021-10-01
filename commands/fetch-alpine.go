@@ -37,7 +37,6 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if len(args) == 0 {
-		log15.Error("Specify versions to fetch")
 		return xerrors.New("Failed to fetch alpine command. err: specify versions to fetch")
 	}
 
@@ -54,32 +53,26 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	results, err := fetcher.FetchAlpineFiles(vers)
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	// Join community.yaml, main.yaml
@@ -91,8 +84,7 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	for _, r := range results {
 		secdb, err := unmarshalYml(r.Body)
 		if err != nil {
-			log15.Error("Failed to unmarshal yml.", "err", err)
-			return err
+			return xerrors.Errorf("Failed to unmarshal yml. err %w", err)
 		}
 
 		defs := models.ConvertAlpineToModel(secdb)
@@ -118,8 +110,7 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 
 		timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
 		if err != nil {
-			log15.Error("Failed to parse timestamp", "url", t.url, "err", err)
-			return err
+			return xerrors.Errorf("Failed to parse timestamp. url: %s, err: %w", t.url, err)
 		}
 
 		fmeta := models.FileMeta{
@@ -129,12 +120,10 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
 		if err := driver.InsertOval(&root, fmeta); err != nil {
-			log15.Error("Failed to insert meta.", "err", err)
-			return err
+			return xerrors.Errorf("Failed to insert meta. err: %w", err)
 		}
 		if err := driver.InsertFileMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
+			return xerrors.Errorf("Failed to insert meta. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
@@ -146,7 +135,7 @@ func unmarshalYml(data []byte) (*models.AlpineSecDB, error) {
 	t := models.AlpineSecDB{}
 	err := yaml.Unmarshal([]byte(data), &t)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal: %s", err)
+		return nil, xerrors.Errorf("Failed to unmarshal: %w", err)
 	}
 	return &t, nil
 }

@@ -227,7 +227,7 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
-		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -235,7 +235,6 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	log15.Debug(fmt.Sprintf("in %s", family))
 	tx := r.conn.Begin()
 
 	oldmeta := models.FileMeta{}

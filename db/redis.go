@@ -273,7 +273,6 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 // InsertOval inserts OVAL
 func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err error) {
 	ctx := context.Background()
-	expire := viper.GetUint("expire")
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
@@ -330,15 +329,6 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 				if err := pipe.SAdd(ctx, cveKey, def.DefinitionID).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd CVE-Ir. err: %s", err)
 				}
-				if expire > 0 {
-					if err := pipe.Expire(ctx, cveKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-					}
-				} else {
-					if err := pipe.Persist(ctx, cveKey).Err(); err != nil {
-						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-					}
-				}
 
 				newDeps[def.DefinitionID]["cves"][cve.CveID] = struct{}{}
 				if _, ok := oldDeps[def.DefinitionID]; ok {
@@ -359,15 +349,6 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 
 				if err := pipe.SAdd(ctx, pkgKey, def.DefinitionID).Err(); err != nil {
 					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
-				}
-				if expire > 0 {
-					if err := pipe.Expire(ctx, pkgKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-					}
-				} else {
-					if err := pipe.Persist(ctx, pkgKey).Err(); err != nil {
-						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-					}
 				}
 
 				newDeps[def.DefinitionID]["packages"][pkgName] = struct{}{}
@@ -394,15 +375,6 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 				if len(oldDeps[def.DefinitionID]) == 0 {
 					delete(oldDeps, def.DefinitionID)
 				}
-			}
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, defKey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-			}
-		} else {
-			if err := pipe.Persist(ctx, defKey).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 			}
 		}
 		if _, err = pipe.Exec(ctx); err != nil {
@@ -432,10 +404,10 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 	if err != nil {
 		return fmt.Errorf("Failed to Marshal JSON. err: %s", err)
 	}
-	if err := pipe.Set(ctx, depKey, string(newDepsJSON), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+	if err := pipe.Set(ctx, depKey, string(newDepsJSON), 0).Err(); err != nil {
 		return fmt.Errorf("Failed to Set depkey. err: %s", err)
 	}
-	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, family, osVer), root.Timestamp.Format("2006-01-02T15:04:05Z"), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, family, osVer), root.Timestamp.Format("2006-01-02T15:04:05Z"), 0).Err(); err != nil {
 		return fmt.Errorf("Failed to Set LastModifiedKey. err: %s", err)
 	}
 	if _, err = pipe.Exec(ctx); err != nil {

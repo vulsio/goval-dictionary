@@ -36,9 +36,9 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
-			return fmt.Errorf("Failed to open DB. Close DB connection before fetching: %w", err)
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching: %w", err)
 		}
-		return fmt.Errorf("Failed to open DB: %w", err)
+		return xerrors.Errorf("Failed to open DB: %w", err)
 	}
 	defer func() {
 		err := driver.CloseDB()
@@ -49,23 +49,19 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
 	if err != nil {
-		log15.Error("Failed to fetch updateinfo for Amazon Linux1", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux1. err: %w", err)
 	}
 	root := models.Root{
 		Family:      c.Amazon,
@@ -75,14 +71,12 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
 	if err := execute(driver, &root); err != nil {
-		log15.Error("Failed to Insert Amazon1", "err", err)
-		return err
+		return xerrors.Errorf("Failed to Insert Amazon1. err: %w", err)
 	}
 
 	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
 	if err != nil {
-		log15.Error("Failed to fetch updateinfo for Amazon Linux2", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2. err: %w", err)
 	}
 	root = models.Root{
 		Family:      c.Amazon,
@@ -92,8 +86,7 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
 	if err := execute(driver, &root); err != nil {
-		log15.Error("Failed to Insert Amazon2", "err", err)
-		return err
+		return xerrors.Errorf("Failed to Insert Amazon2. err: %w", err)
 	}
 
 	return nil
@@ -114,8 +107,7 @@ func execute(driver db.DB, root *models.Root) error {
 		return fmt.Errorf("Failed to insert OVAL: %w", err)
 	}
 	if err := driver.InsertFileMeta(fmeta); err != nil {
-		log15.Error("Failed to insert meta", "err", err)
-		return fmt.Errorf("Failed to insert FileMeta: %w", err)
+		return xerrors.Errorf("Failed to insert meta. err %w", err)
 	}
 	log15.Info("Finish", "Updated", len(root.Definitions))
 

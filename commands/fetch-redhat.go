@@ -36,33 +36,27 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if len(args) == 0 {
-		log15.Error("Specify versions to fetch")
 		return xerrors.New("Failed to fetch redhat command. err: specify versions to fetch")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
 		return err
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	// Distinct
@@ -71,8 +65,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 	for _, arg := range args {
 		ver, err := strconv.Atoi(arg)
 		if err != nil || ver < 5 {
-			log15.Error("Specify version to fetch (from 5 to latest RHEL version)", "arg", arg)
-			return err
+			return xerrors.Errorf("Specify version to fetch (from 5 to latest RHEL version). arg: %s", arg)
 		}
 		v[arg] = true
 	}
@@ -82,15 +75,13 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 
 	results, err := fetcher.FetchRedHatFiles(vers)
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
-			return err
+			return xerrors.Errorf("Failed to unmarshal. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 		defs := models.ConvertRedHatToModel(&ovalroot)
@@ -98,8 +89,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
-			log15.Error("Failed to parse time", "err", err)
-			return err
+			return xerrors.Errorf("Failed to parse time. err: %w", err)
 		}
 
 		root := models.Root{
@@ -116,12 +106,10 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		}
 
 		if err := driver.InsertOval(&root, fmeta); err != nil {
-			log15.Error("Failed to insert oval", "err", err)
-			return err
+			return xerrors.Errorf("Failed to insert oval. err: %w", err)
 		}
 		if err := driver.InsertFileMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
+			return xerrors.Errorf("Failed to insert meta. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}

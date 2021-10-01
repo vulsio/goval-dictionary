@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
 	"golang.org/x/xerrors"
@@ -33,8 +32,7 @@ type DB interface {
 // NewDB return DB accessor.
 func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err error) {
 	if driver, err = newDB(dbType); err != nil {
-		log15.Error("Failed to new db.", "err", err)
-		return driver, false, err
+		return driver, false, xerrors.Errorf("Failed to new db. err: %w", err)
 	}
 
 	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL); err != nil {
@@ -46,17 +44,14 @@ func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err er
 
 	isV1, err := driver.IsGovalDictModelV1()
 	if err != nil {
-		log15.Error("Failed to IsGovalDictModelV1.", "err", err)
-		return nil, false, err
+		return nil, false, xerrors.Errorf("Failed to IsGovalDictModelV1. err: %w", err)
 	}
 	if isV1 {
-		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
 		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
 	}
 
 	if err := driver.MigrateDB(); err != nil {
-		log15.Error("Failed to migrate db.", "err", err)
-		return driver, false, err
+		return driver, false, xerrors.Errorf("Failed to migrate db. err: %w", err)
 	}
 	return driver, false, nil
 }

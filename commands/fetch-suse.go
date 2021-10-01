@@ -45,8 +45,7 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	if len(args) == 0 {
-		log15.Error("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
-		return xerrors.New("Failed to fetch suse command. err: specify versions to fetch")
+		return xerrors.New("Failed to fetch suse command. err: specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
 	}
 
 	// Distinct
@@ -72,55 +71,46 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 	case "suse-openstack-cloud":
 		suseType = c.SUSEOpenstackCloud
 	default:
-		log15.Error("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud")
-		return xerrors.New("Failed to fetch suse command. err: specify SUSE type to fetch")
+		return xerrors.Errorf("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
 		return err
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	var results []fetcher.FetchResult
 	results, err = fetcher.FetchSUSEFiles(suseType, vers)
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
-			return err
+			return xerrors.Errorf("Failed to unmarshal. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
 		var timeformat = "2006-01-02T15:04:05"
 		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
 		if err != nil {
-			log15.Error("Failed to parse time", "err", err)
-			return err
+			return xerrors.Errorf("Failed to parse time. err: %w", err)
 		}
 		ss := strings.Split(r.URL, "/")
 		fmeta := models.FileMeta{
@@ -132,15 +122,13 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		for _, root := range roots {
 			root.Timestamp = time.Now()
 			if err := driver.InsertOval(&root, fmeta); err != nil {
-				log15.Error("Failed to insert oval", "err", err)
-				return err
+				return xerrors.Errorf("Failed to insert oval. err: %w", err)
 			}
 			log15.Info("Finish", "Updated", len(root.Definitions))
 		}
 
 		if err := driver.InsertFileMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
+			return xerrors.Errorf("Failed to insert meta. err: %w", err)
 		}
 	}
 

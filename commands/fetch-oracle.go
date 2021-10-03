@@ -38,7 +38,7 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 		if locked {
 			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		return xerrors.Errorf("Failed to open DB: %w", err)
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()

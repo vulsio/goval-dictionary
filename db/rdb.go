@@ -76,14 +76,13 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 		if r.name == dialectSqlite3 {
 			switch err.(sqlite3.Error).Code {
 			case sqlite3.ErrLocked, sqlite3.ErrBusy:
-				return true, fmt.Errorf(msg)
+				return true, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 			}
 		}
-		return false, fmt.Errorf(msg)
+		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
 
 	if r.name == dialectSqlite3 {
@@ -106,7 +105,7 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.Cpe{},
 		&models.Debian{},
 	); err != nil {
-		return fmt.Errorf("Failed to migrate. err: %s", err)
+		return xerrors.Errorf("Failed to migrate. err: %w", err)
 	}
 
 	return nil
@@ -132,7 +131,7 @@ func (r *RDBDriver) CloseDB() (err error) {
 func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	q := r.conn.
@@ -184,7 +183,7 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	q := r.conn.
@@ -307,7 +306,7 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 func (r *RDBDriver) CountDefs(family, osVer string) (int, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return 0, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	root := models.Root{}
@@ -330,7 +329,7 @@ func (r *RDBDriver) CountDefs(family, osVer string) (int, error) {
 func (r *RDBDriver) GetLastModified(family, osVer string) (time.Time, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return time.Time{}, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	root := models.Root{}

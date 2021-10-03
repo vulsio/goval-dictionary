@@ -38,7 +38,7 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 		if locked {
 			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		return err
+		return xerrors.Errorf("Failed to open DB: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
@@ -48,7 +48,6 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 	if fetchMeta.OutDated() {
 		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
-
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
@@ -62,7 +61,7 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			return xerrors.Errorf("Failed to unmarshal. url: %s, err: %w", r.URL, err)
+			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 

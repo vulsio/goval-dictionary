@@ -65,7 +65,6 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	if fetchMeta.OutDated() {
 		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
-
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
@@ -84,7 +83,7 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	for _, r := range results {
 		secdb, err := unmarshalYml(r.Body)
 		if err != nil {
-			return xerrors.Errorf("Failed to unmarshal yml. err %w", err)
+			return xerrors.Errorf("Failed to unmarshal yml. err: %w", err)
 		}
 
 		defs := models.ConvertAlpineToModel(secdb)

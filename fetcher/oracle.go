@@ -2,6 +2,8 @@ package fetcher
 
 import (
 	"fmt"
+
+	"golang.org/x/xerrors"
 )
 
 func newOracleFetchRequests() (reqs []fetchRequest) {
@@ -23,7 +25,7 @@ func FetchOracleFiles() ([]FetchResult, error) {
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
-			fmt.Errorf("Failed to fetch. err: %s", err)
+			xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
 	return results, nil
 }

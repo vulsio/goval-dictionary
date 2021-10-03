@@ -5,6 +5,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/vulsio/goval-dictionary/config"
+	"golang.org/x/xerrors"
 )
 
 // https://www.debian.org/security/oval/
@@ -52,7 +53,7 @@ func FetchDebianFiles(versions []string) ([]FetchResult, error) {
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
-			fmt.Errorf("Failed to fetch. err: %s", err)
+			xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
 	return results, nil
 }

@@ -62,7 +62,7 @@ func newDB(dbType string) (DB, error) {
 	case dialectRedis:
 		return &RedisDriver{name: dbType}, nil
 	}
-	return nil, fmt.Errorf("Invalid database dialect. err: %s", dbType)
+	return nil, fmt.Errorf("Invalid database dialect. dbType: %s", dbType)
 }
 
 func formatFamilyAndOSVer(family, osVer string) (string, string, error) {

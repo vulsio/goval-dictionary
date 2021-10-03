@@ -14,6 +14,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/goval-dictionary/util"
+	"golang.org/x/xerrors"
 )
 
 type fetchRequest struct {
@@ -104,20 +105,20 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 	httpProxy := viper.GetString("http-proxy")
 	if httpProxy != "" {
 		if proxyURL, err = url.Parse(httpProxy); err != nil {
-			return nil, fmt.Errorf("Failed to parse proxy url: %s", err)
+			return nil, xerrors.Errorf("Failed to parse proxy url. err: %w", err)
 		}
 		httpClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 	}
 
 	u, err := url.Parse(req.url)
 	if err != nil {
-		return nil, fmt.Errorf("aborting: could not parse given URL: %v", err)
+		return nil, xerrors.Errorf("aborting: could not parse given URL: %v", err)
 	}
 
 	buf := bytes.Buffer{}
 	htc := htcat.New(httpClient, u, concurrency)
 	if _, err := htc.WriteTo(&buf); err != nil {
-		return nil, fmt.Errorf("aborting: could not write to output stream: %v",
+		return nil, xerrors.Errorf("aborting: could not write to output stream: %v",
 			err)
 	}
 
@@ -144,20 +145,20 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	httpProxy := viper.GetString("http-proxy")
 	if httpProxy != "" {
 		if proxyURL, err = url.Parse(httpProxy); err != nil {
-			return nil, fmt.Errorf("Failed to parse proxy url: %s", err)
+			return nil, xerrors.Errorf("Failed to parse proxy url. err: %w", err)
 		}
 		httpClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
 	}
 
 	httpreq, err := http.NewRequest("GET", req.url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Download failed: %v", err)
+		return nil, xerrors.Errorf("Failed to download. err: %w", err)
 	}
 
 	httpreq.Header.Set("User-Agent", "curl/7.37.0")
 	resp, err = httpClient.Do(httpreq)
 	if err != nil {
-		return nil, fmt.Errorf("Download failed: %v", err)
+		return nil, xerrors.Errorf("Failed to download. err: %w", err)
 	}
 	defer resp.Body.Close()
 

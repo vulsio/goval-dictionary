@@ -283,7 +283,7 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 	bar := pb.StartNew(len(root.Definitions))
 	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
-		return xerrors.Errorf("Failed to insert. err: %w", err)
+		return xerrors.Errorf("Failed to insert Root. err: %w", err)
 	}
 
 	for i := range root.Definitions {
@@ -293,7 +293,7 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 	for idx := range chunkSlice(len(root.Definitions), batchSize) {
 		if err := tx.Create(root.Definitions[idx.From:idx.To]).Error; err != nil {
 			tx.Rollback()
-			return xerrors.Errorf("Failed to insert. err: %w", err)
+			return xerrors.Errorf("Failed to insert Definitions. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}

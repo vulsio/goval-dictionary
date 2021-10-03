@@ -107,28 +107,14 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
-		if err != nil {
-			return xerrors.Errorf("Failed to parse time. err: %w", err)
-		}
 		ss := strings.Split(r.URL, "/")
-		fmeta := models.FileMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
-
-		roots := models.ConvertSUSEToModel(fmeta.FileName, &ovalroot)
+		roots := models.ConvertSUSEToModel(ss[len(ss)-1], &ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
-			if err := driver.InsertOval(&root, fmeta); err != nil {
-				return xerrors.Errorf("Failed to insert oval. err: %w", err)
+			if err := driver.InsertOval(&root); err != nil {
+				return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 			}
 			log15.Info("Finish", "Updated", len(root.Definitions))
-		}
-
-		if err := driver.InsertFileMeta(fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
 		}
 	}
 

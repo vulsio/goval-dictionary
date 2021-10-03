@@ -108,22 +108,9 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 
-		timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
-		if err != nil {
-			return xerrors.Errorf("Failed to parse timestamp. url: %s, err: %w", t.url, err)
-		}
-
-		fmeta := models.FileMeta{
-			Timestamp: timestamp,
-			FileName:  t.url,
-		}
-
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
-		}
-		if err := driver.InsertFileMeta(fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}

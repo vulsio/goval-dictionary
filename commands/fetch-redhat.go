@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/xml"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -84,32 +83,15 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 			return xerrors.Errorf("Failed to unmarshal. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
-		defs := models.ConvertRedHatToModel(&ovalroot)
-
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
-		if err != nil {
-			return xerrors.Errorf("Failed to parse time. err: %w", err)
-		}
-
 		root := models.Root{
 			Family:      c.RedHat,
 			OSVersion:   r.Target,
-			Definitions: defs,
+			Definitions: models.ConvertRedHatToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 
-		ss := strings.Split(r.URL, "/")
-		fmeta := models.FileMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
-
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert oval. err: %w", err)
-		}
-		if err := driver.InsertFileMeta(fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}

@@ -93,21 +93,8 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 }
 
 func execute(driver db.DB, root *models.Root) error {
-	timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
-	if err != nil {
-		return fmt.Errorf("Failed to parse timestamp. err: %w", err)
-	}
-
-	fmeta := models.FileMeta{
-		Timestamp: timestamp,
-		FileName:  fmt.Sprintf("FetchUpdateInfoAmazonLinux%s", root.OSVersion),
-	}
-
-	if err := driver.InsertOval(root, fmeta); err != nil {
-		return fmt.Errorf("Failed to insert OVAL: %w", err)
-	}
-	if err := driver.InsertFileMeta(fmeta); err != nil {
-		return xerrors.Errorf("Failed to insert meta. err %w", err)
+	if err := driver.InsertOval(root); err != nil {
+		return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 	}
 	log15.Info("Finish", "Updated", len(root.Definitions))
 

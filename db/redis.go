@@ -49,11 +49,9 @@ import (
   ┌───┬─────────────────────────────┬───────────────┬───────────┬─────────────────────────────────────────┐
   │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF │ $DEFINITIONID │ $OVALJSON │ TO GET OVALJSON                         │
   ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 3 │ OVAL#FILEMETA               │   $FILENAME   │   string  │ GET Fetched OVAL Update Time            │
+  │ 2 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
   ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 4 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
-  ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 5 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
+  │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
   └───┴─────────────────────────────┴───────────────┴───────────┴─────────────────────────────────────────┘
 
   **/
@@ -267,7 +265,7 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 }
 
 // InsertOval inserts OVAL
-func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err error) {
+func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -278,15 +276,7 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 	if err != nil {
 		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
 	}
-
-	oldFileMeta, err := r.GetFileMeta(meta)
-	if err != nil {
-		return fmt.Errorf("Failed to GetFileMeta. err: %s", err)
-	}
-	if meta.Timestamp.Equal(oldFileMeta.Timestamp) {
-		log15.Info("Skip (Same Timestamp)", "Family", family, "Version", osVer)
-		return nil
-	}
+	log15.Info("Refreshing...", "Family", family, "Version", osVer)
 
 	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{}
@@ -404,32 +394,6 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 	}
 
 	return nil
-}
-
-// InsertFileMeta inserts FileMeta
-func (r *RedisDriver) InsertFileMeta(meta models.FileMeta) error {
-	if err := r.conn.HSet(context.Background(), fileMetaKey, meta.FileName, meta.Timestamp.Format("2006-01-02T15:04:05Z")).Err(); err != nil {
-		return fmt.Errorf("Failed to HSet. err: %s", err)
-	}
-	return nil
-}
-
-// GetFileMeta :
-func (r *RedisDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
-	timeStr, err := r.conn.HGet(context.Background(), fileMetaKey, meta.FileName).Result()
-	if err != nil {
-		if !errors.Is(err, redis.Nil) {
-			return models.FileMeta{}, fmt.Errorf("Failed to HGet. err: %s", err)
-		}
-		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
-	}
-
-	fileTime, err := time.Parse("2006-01-02T15:04:05Z", timeStr)
-	if err != nil {
-		return models.FileMeta{}, fmt.Errorf("Failed to parse models.FileMeta.Timestamp. err: %s", err)
-	}
-
-	return models.FileMeta{FileName: meta.FileName, Timestamp: fileTime}, nil
 }
 
 // CountDefs counts the number of definitions specified by args

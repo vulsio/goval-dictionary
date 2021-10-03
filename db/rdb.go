@@ -96,7 +96,6 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 func (r *RDBDriver) MigrateDB() error {
 	if err := r.conn.AutoMigrate(
 		&models.FetchMeta{},
-		&models.FileMeta{},
 		&models.Root{},
 		&models.Definition{},
 		&models.Package{},
@@ -224,11 +223,12 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 }
 
 // InsertOval inserts OVAL
-func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
+func (r *RDBDriver) InsertOval(root *models.Root) error {
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
 		return xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
+	log15.Info("Refreshing...", "Family", family, "Version", osVer)
 
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -236,23 +236,8 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	}
 
 	tx := r.conn.Begin()
-
-	oldmeta := models.FileMeta{}
-	result := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return xerrors.Errorf("Failed to get filemeta: %w", result.Error)
-	}
-
-	if result.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log15.Info("Skip (Same Timestamp)", "Family", family, "Version", osVer)
-		return tx.Rollback().Error
-	}
-
-	log15.Info("Refreshing...", "Family", family, "Version", osVer)
-
 	old := models.Root{}
-	result = tx.Where(&models.Root{Family: family, OSVersion: osVer}).First(&old)
+	result := tx.Where(&models.Root{Family: family, OSVersion: osVer}).First(&old)
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		tx.Rollback()
 		return xerrors.Errorf("Failed to select old defs: %w", result.Error)
@@ -316,52 +301,6 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	bar.Finish()
 
 	return tx.Commit().Error
-}
-
-// InsertFileMeta inserts FileMeta
-func (r *RDBDriver) InsertFileMeta(meta models.FileMeta) error {
-	tx := r.conn.Begin()
-
-	oldmeta := models.FileMeta{}
-	result := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return xerrors.Errorf("Failed to get filemeta: %w", result.Error)
-	}
-
-	if oldmeta.Timestamp.Equal(meta.Timestamp) {
-		return tx.Rollback().Error
-	}
-
-	if result.RowsAffected == 0 {
-		if err := tx.Create(&meta).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to insert FileMeta: %s", err)
-		}
-	} else {
-		// Update FileMeta
-		oldmeta.Timestamp = meta.Timestamp
-		oldmeta.FileName = meta.FileName
-		if err := tx.Save(&oldmeta).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to update FileMeta: %s", err)
-		}
-	}
-
-	tx.Commit()
-	return nil
-}
-
-// GetFileMeta :
-func (r *RDBDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
-	filemeta := models.FileMeta{}
-	if err := r.conn.Where(&models.FileMeta{FileName: meta.FileName}).Take(&filemeta).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.FileMeta{}, fmt.Errorf("Failed to get filemeta: %s", err)
-		}
-		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
-	}
-	return filemeta, nil
 }
 
 // CountDefs counts the number of definitions specified by args

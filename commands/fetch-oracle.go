@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/xml"
-	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -60,26 +59,12 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	osVerDefs := map[string][]models.Definition{}
-	fmeta := models.FileMeta{}
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
-
-		//  var timeformat = "2006-01-02T15:04:05.999-07:00"
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, strings.Split(ovalroot.Generator.Timestamp, ".")[0])
-		if err != nil {
-			return xerrors.Errorf("Failed to parse time. err: %w", err)
-		}
-
-		ss := strings.Split(r.URL, "/")
-		fmeta = models.FileMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
 
 		for osVer, defs := range models.ConvertOracleToModel(&ovalroot) {
 			osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
@@ -94,14 +79,10 @@ func fetchOracle(cmd *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert oval. err: %w", err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
-	}
-
-	if err := driver.InsertFileMeta(fmeta); err != nil {
-		return xerrors.Errorf("Failed to insert meta. err: %w", err)
 	}
 
 	return nil

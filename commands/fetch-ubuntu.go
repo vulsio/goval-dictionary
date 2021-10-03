@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/xml"
-	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -80,32 +79,15 @@ func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
-		defs := models.ConvertUbuntuToModel(&ovalroot)
-
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
-		if err != nil {
-			return xerrors.Errorf("Failed to parse time. err: %w", err)
-		}
-
 		root := models.Root{
 			Family:      c.Ubuntu,
 			OSVersion:   r.Target,
-			Definitions: defs,
+			Definitions: models.ConvertUbuntuToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 
-		ss := strings.Split(r.URL, "/")
-		fmeta := models.FileMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
-
-		if err := driver.InsertOval(&root, fmeta); err != nil {
+		if err := driver.InsertOval(&root); err != nil {
 			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
-		}
-		if err := driver.InsertFileMeta(fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}

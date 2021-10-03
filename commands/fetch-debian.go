@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/xml"
-	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -83,33 +82,15 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
-		defs := models.ConvertDebianToModel(&ovalroot)
-
-		var timeformat = "2006-01-02T15:04:05"
-		var t time.Time
-		t, err = time.Parse(timeformat, strings.Split(ovalroot.Generator.Timestamp, ".")[0])
-		if err != nil {
-			return xerrors.Errorf("Failed to parse timestamp. url: %s, err: %w", r.URL, err)
-		}
-
 		root := models.Root{
 			Family:      c.Debian,
 			OSVersion:   r.Target,
-			Definitions: defs,
+			Definitions: models.ConvertDebianToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 
-		ss := strings.Split(r.URL, "/")
-		fmeta := models.FileMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
-
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert ova. err: %w", err)
-		}
-		if err := driver.InsertFileMeta(fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}

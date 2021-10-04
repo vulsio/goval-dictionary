@@ -112,14 +112,13 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 
 	u, err := url.Parse(req.url)
 	if err != nil {
-		return nil, xerrors.Errorf("aborting: could not parse given URL: %v", err)
+		return nil, xerrors.Errorf("Failed to parse given URL: %w", err)
 	}
 
 	buf := bytes.Buffer{}
 	htc := htcat.New(httpClient, u, concurrency)
 	if _, err := htc.WriteTo(&buf); err != nil {
-		return nil, xerrors.Errorf("aborting: could not write to output stream: %v",
-			err)
+		return nil, xerrors.Errorf("Failed to write to output stream: %w", err)
 	}
 
 	var bytesBody []byte
@@ -137,7 +136,6 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 }
 
 func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
-	var errs []error
 	var proxyURL *url.URL
 	var resp *http.Response
 
@@ -160,15 +158,18 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to download. err: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to HTTP GET. url: %s, response: %+v", req.url, resp)
+	}
 
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, resp.Body); err != nil {
 		return nil, err
-	}
-	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
-		return nil, fmt.Errorf(
-			"HTTP error. errs: %v, url: %s", errs, req.url)
 	}
 
 	var bytesBody []byte

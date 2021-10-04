@@ -21,14 +21,6 @@ func (f FetchMeta) OutDated() bool {
 	return f.SchemaVersion != LatestSchemaVersion
 }
 
-// FileMeta has metadata
-type FileMeta struct {
-	ID uint `gorm:"primary_key"`
-
-	FileName  string `gorm:"type:varchar(255)"`
-	Timestamp time.Time
-}
-
 // Root is root struct
 type Root struct {
 	ID          uint   `gorm:"primary_key"`

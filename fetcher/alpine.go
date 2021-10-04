@@ -2,6 +2,8 @@ package fetcher
 
 import (
 	"fmt"
+
+	"golang.org/x/xerrors"
 )
 
 const community = "https://secdb.alpinelinux.org/v%s/community.yaml"
@@ -35,7 +37,7 @@ func FetchAlpineFiles(versions []string) ([]FetchResult, error) {
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
-			fmt.Errorf("Failed to fetch. err: %s", err)
+			xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
 	return results, nil
 }

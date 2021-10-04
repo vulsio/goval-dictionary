@@ -2,6 +2,8 @@ package fetcher
 
 import (
 	"fmt"
+
+	"golang.org/x/xerrors"
 )
 
 func newRedHatFetchRequests(target []string) (reqs []fetchRequest) {
@@ -27,7 +29,7 @@ func FetchRedHatFiles(versions []string) ([]FetchResult, error) {
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
 		return nil,
-			fmt.Errorf("Failed to fetch. err: %s", err)
+			xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
 	return results, nil
 }

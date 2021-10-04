@@ -23,8 +23,7 @@ type DB interface {
 
 	GetByPackName(family string, osVer string, packName string, arch string) ([]models.Definition, error)
 	GetByCveID(family string, osVer string, cveID string, arch string) ([]models.Definition, error)
-	InsertOval(*models.Root, models.FileMeta) error
-	InsertFileMeta(models.FileMeta) error
+	InsertOval(*models.Root) error
 	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) (time.Time, error)
 }
@@ -63,7 +62,7 @@ func newDB(dbType string) (DB, error) {
 	case dialectRedis:
 		return &RedisDriver{name: dbType}, nil
 	}
-	return nil, fmt.Errorf("Invalid database dialect. err: %s", dbType)
+	return nil, fmt.Errorf("Invalid database dialect. dbType: %s", dbType)
 }
 
 func formatFamilyAndOSVer(family, osVer string) (string, string, error) {

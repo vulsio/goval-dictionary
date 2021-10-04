@@ -76,14 +76,13 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 		if r.name == dialectSqlite3 {
 			switch err.(sqlite3.Error).Code {
 			case sqlite3.ErrLocked, sqlite3.ErrBusy:
-				return true, fmt.Errorf(msg)
+				return true, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 			}
 		}
-		return false, fmt.Errorf(msg)
+		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
 
 	if r.name == dialectSqlite3 {
@@ -96,7 +95,6 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 func (r *RDBDriver) MigrateDB() error {
 	if err := r.conn.AutoMigrate(
 		&models.FetchMeta{},
-		&models.FileMeta{},
 		&models.Root{},
 		&models.Definition{},
 		&models.Package{},
@@ -107,7 +105,7 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.Cpe{},
 		&models.Debian{},
 	); err != nil {
-		return fmt.Errorf("Failed to migrate. err: %s", err)
+		return xerrors.Errorf("Failed to migrate. err: %w", err)
 	}
 
 	return nil
@@ -133,7 +131,7 @@ func (r *RDBDriver) CloseDB() (err error) {
 func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	q := r.conn.
@@ -185,7 +183,7 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	q := r.conn.
@@ -224,11 +222,12 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 }
 
 // InsertOval inserts OVAL
-func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
+func (r *RDBDriver) InsertOval(root *models.Root) error {
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
 		return xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
+	log15.Info("Refreshing...", "Family", family, "Version", osVer)
 
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -236,23 +235,8 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	}
 
 	tx := r.conn.Begin()
-
-	oldmeta := models.FileMeta{}
-	result := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return xerrors.Errorf("Failed to get filemeta: %w", result.Error)
-	}
-
-	if result.RowsAffected > 0 && oldmeta.Timestamp.Equal(meta.Timestamp) {
-		log15.Info("Skip (Same Timestamp)", "Family", family, "Version", osVer)
-		return tx.Rollback().Error
-	}
-
-	log15.Info("Refreshing...", "Family", family, "Version", osVer)
-
 	old := models.Root{}
-	result = tx.Where(&models.Root{Family: family, OSVersion: osVer}).First(&old)
+	result := tx.Where(&models.Root{Family: family, OSVersion: osVer}).First(&old)
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		tx.Rollback()
 		return xerrors.Errorf("Failed to select old defs: %w", result.Error)
@@ -299,7 +283,7 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	bar := pb.StartNew(len(root.Definitions))
 	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
-		return xerrors.Errorf("Failed to insert. err: %w", err)
+		return xerrors.Errorf("Failed to insert Root. err: %w", err)
 	}
 
 	for i := range root.Definitions {
@@ -309,7 +293,7 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	for idx := range chunkSlice(len(root.Definitions), batchSize) {
 		if err := tx.Create(root.Definitions[idx.From:idx.To]).Error; err != nil {
 			tx.Rollback()
-			return xerrors.Errorf("Failed to insert. err: %w", err)
+			return xerrors.Errorf("Failed to insert Definitions. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}
@@ -318,57 +302,11 @@ func (r *RDBDriver) InsertOval(root *models.Root, meta models.FileMeta) error {
 	return tx.Commit().Error
 }
 
-// InsertFileMeta inserts FileMeta
-func (r *RDBDriver) InsertFileMeta(meta models.FileMeta) error {
-	tx := r.conn.Begin()
-
-	oldmeta := models.FileMeta{}
-	result := tx.Where(&models.FileMeta{FileName: meta.FileName}).First(&oldmeta)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		tx.Rollback()
-		return xerrors.Errorf("Failed to get filemeta: %w", result.Error)
-	}
-
-	if oldmeta.Timestamp.Equal(meta.Timestamp) {
-		return tx.Rollback().Error
-	}
-
-	if result.RowsAffected == 0 {
-		if err := tx.Create(&meta).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to insert FileMeta: %s", err)
-		}
-	} else {
-		// Update FileMeta
-		oldmeta.Timestamp = meta.Timestamp
-		oldmeta.FileName = meta.FileName
-		if err := tx.Save(&oldmeta).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Failed to update FileMeta: %s", err)
-		}
-	}
-
-	tx.Commit()
-	return nil
-}
-
-// GetFileMeta :
-func (r *RDBDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
-	filemeta := models.FileMeta{}
-	if err := r.conn.Where(&models.FileMeta{FileName: meta.FileName}).Take(&filemeta).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.FileMeta{}, fmt.Errorf("Failed to get filemeta: %s", err)
-		}
-		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
-	}
-	return filemeta, nil
-}
-
 // CountDefs counts the number of definitions specified by args
 func (r *RDBDriver) CountDefs(family, osVer string) (int, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return 0, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	root := models.Root{}
@@ -391,7 +329,7 @@ func (r *RDBDriver) CountDefs(family, osVer string) (int, error) {
 func (r *RDBDriver) GetLastModified(family, osVer string) (time.Time, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return time.Time{}, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	root := models.Root{}

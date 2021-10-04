@@ -49,11 +49,9 @@ import (
   ┌───┬─────────────────────────────┬───────────────┬───────────┬─────────────────────────────────────────┐
   │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF │ $DEFINITIONID │ $OVALJSON │ TO GET OVALJSON                         │
   ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 3 │ OVAL#FILEMETA               │   $FILENAME   │   string  │ GET Fetched OVAL Update Time            │
+  │ 2 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
   ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 4 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision │
-  ├───┼─────────────────────────────┼───────────────┼───────────┼─────────────────────────────────────────┤
-  │ 5 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
+  │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version  │
   └───┴─────────────────────────────┴───────────────┴───────────┴─────────────────────────────────────────┘
 
   **/
@@ -83,7 +81,7 @@ func (r *RedisDriver) Name() string {
 
 // OpenDB opens Database
 func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	if err = r.connectRedis(dbPath); err != nil {
+	if err := r.connectRedis(dbPath); err != nil {
 		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
 	return false, nil
@@ -118,7 +116,7 @@ func (r *RedisDriver) MigrateDB() error {
 func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]models.Definition, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	ctx := context.Background()
@@ -132,7 +130,7 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		} else {
 			dbsize, err := r.conn.DBSize(ctx).Result()
 			if err != nil {
-				return nil, fmt.Errorf("Failed to DBSize. err: %s", err)
+				return nil, xerrors.Errorf("Failed to DBSize. err: %w", err)
 			}
 
 			var cursor uint64
@@ -141,7 +139,7 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 				var err error
 				keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf("%s#%s", key, "*"), dbsize/5).Result()
 				if err != nil {
-					return nil, fmt.Errorf("Failed to Scan. err: %s", err)
+					return nil, xerrors.Errorf("Failed to Scan. err: %w", err)
 				}
 
 				pkgKeys = append(pkgKeys, keys...)
@@ -161,14 +159,14 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	}
 	cmders, err := pipe.Exec(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
 
 	defIDs := []string{}
 	for _, cmder := range cmders {
 		result, err := cmder.(*redis.StringSliceCmd).Result()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to SMembers. err: %s", err)
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 		}
 
 		defIDs = append(defIDs, result...)
@@ -179,18 +177,18 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 	defStrs, err := r.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HMGet. err: %s", err)
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
 	}
 
 	defs := []models.Definition{}
 	for _, defstr := range defStrs {
 		if defstr == nil {
-			return nil, fmt.Errorf("Failed to HMGet. err: Some fields do not exist. defIDs: %q", defIDs)
+			return nil, xerrors.Errorf("Failed to HMGet. err: Some fields do not exist. defIDs: %q", defIDs)
 		}
 
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
+			return nil, xerrors.Errorf("Failed to restoreDefinition. err: %w", err)
 		}
 		defs = append(defs, def)
 	}
@@ -202,13 +200,13 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Definition, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	ctx := context.Background()
 	defIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID)).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to SMembers. err: %s", err)
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 	}
 	if len(defIDs) == 0 {
 		return []models.Definition{}, nil
@@ -216,18 +214,18 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 
 	defStrs, err := r.conn.HMGet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defIDs...).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HMGet. err: %s", err)
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
 	}
 
 	defs := []models.Definition{}
 	for _, defstr := range defStrs {
 		if defstr == nil {
-			return nil, fmt.Errorf("Failed to HMGet. err: Some fields do not exist. defIDs: %q", defIDs)
+			return nil, xerrors.Errorf("Failed to HMGet. err: Some fields do not exist. defIDs: %q", defIDs)
 		}
 
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to restoreDefinition. err: %s", err)
+			return nil, xerrors.Errorf("Failed to restoreDefinition. err: %w", err)
 		}
 		defs = append(defs, def)
 	}
@@ -238,7 +236,7 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 func restoreDefinition(defstr, family, version, arch string) (models.Definition, error) {
 	var def models.Definition
 	if err := json.Unmarshal([]byte(defstr), &def); err != nil {
-		return def, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		return models.Definition{}, xerrors.Errorf("Failed to Unmarshal JSON. err: %w", err)
 	}
 
 	switch family {
@@ -267,7 +265,7 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 }
 
 // InsertOval inserts OVAL
-func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err error) {
+func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -276,17 +274,9 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 
 	family, osVer, err := formatFamilyAndOSVer(root.Family, root.OSVersion)
 	if err != nil {
-		return fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
-
-	oldFileMeta, err := r.GetFileMeta(meta)
-	if err != nil {
-		return fmt.Errorf("Failed to GetFileMeta. err: %s", err)
-	}
-	if meta.Timestamp.Equal(oldFileMeta.Timestamp) {
-		log15.Info("Skip (Same Timestamp)", "Family", family, "Version", osVer)
-		return nil
-	}
+	log15.Info("Refreshing...", "Family", family, "Version", osVer)
 
 	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{}
@@ -294,13 +284,13 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 	oldDepsStr, err := r.conn.Get(ctx, depKey).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
-			return fmt.Errorf("Failed to Get key: %s. err: %s", depKey, err)
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
 		}
 		oldDepsStr = "{}"
 	}
 	var oldDeps map[string]map[string]map[string]struct{}
 	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
-		return fmt.Errorf("Failed to unmarshal JSON. err: %s", err)
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
 	bar := pb.StartNew(len(root.Definitions))
@@ -309,11 +299,11 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 		for _, def := range root.Definitions[idx.From:idx.To] {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
-				return fmt.Errorf("Failed to marshal json. err: %s", err)
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
 
 			if err := pipe.HSet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), def.DefinitionID, string(dj)).Err(); err != nil {
-				return fmt.Errorf("Failed to HSet. err: %s", err)
+				return xerrors.Errorf("Failed to HSet. err: %w", err)
 			}
 			if _, ok := newDeps[def.DefinitionID]; !ok {
 				newDeps[def.DefinitionID] = map[string]map[string]struct{}{"cves": {}, "packages": {}}
@@ -321,7 +311,7 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 
 			for _, cve := range def.Advisory.Cves {
 				if err := pipe.SAdd(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cve.CveID), def.DefinitionID).Err(); err != nil {
-					return fmt.Errorf("Failed to SAdd CVE-Ir. err: %s", err)
+					return xerrors.Errorf("Failed to SAdd CVEID. err: %w", err)
 				}
 				newDeps[def.DefinitionID]["cves"][cve.CveID] = struct{}{}
 				if _, ok := oldDeps[def.DefinitionID]; ok {
@@ -340,7 +330,7 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 				}
 
 				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pkgName), def.DefinitionID).Err(); err != nil {
-					return fmt.Errorf("Failed to SAdd Package. err: %s", err)
+					return xerrors.Errorf("Failed to SAdd Package. err: %w", err)
 				}
 				newDeps[def.DefinitionID]["packages"][pkgName] = struct{}{}
 				if _, ok := oldDeps[def.DefinitionID]; ok {
@@ -367,7 +357,7 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 			}
 		}
 		if _, err = pipe.Exec(ctx); err != nil {
-			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}
@@ -377,72 +367,46 @@ func (r *RedisDriver) InsertOval(root *models.Root, meta models.FileMeta) (err e
 	for defID, definitions := range oldDeps {
 		for cveID := range definitions["cves"] {
 			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), defID).Err(); err != nil {
-				return fmt.Errorf("Failed to SRem. err: %s", err)
+				return xerrors.Errorf("Failed to SRem. err: %w", err)
 			}
 		}
 		for pack := range definitions["packages"] {
 			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, pack), defID).Err(); err != nil {
-				return fmt.Errorf("Failed to SRem. err: %s", err)
+				return xerrors.Errorf("Failed to SRem. err: %w", err)
 			}
 		}
 		if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID).Err(); err != nil {
-			return fmt.Errorf("Failed to HDel. err: %s", err)
+			return xerrors.Errorf("Failed to HDel. err: %w", err)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
 	if err != nil {
-		return fmt.Errorf("Failed to Marshal JSON. err: %s", err)
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
 	if err := pipe.Set(ctx, depKey, string(newDepsJSON), 0).Err(); err != nil {
-		return fmt.Errorf("Failed to Set depkey. err: %s", err)
+		return xerrors.Errorf("Failed to Set depkey. err: %w", err)
 	}
 	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, family, osVer), root.Timestamp.Format("2006-01-02T15:04:05Z"), 0).Err(); err != nil {
-		return fmt.Errorf("Failed to Set LastModifiedKey. err: %s", err)
+		return xerrors.Errorf("Failed to Set LastModifiedKey. err: %w", err)
 	}
 	if _, err = pipe.Exec(ctx); err != nil {
-		return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
 
 	return nil
-}
-
-// InsertFileMeta inserts FileMeta
-func (r *RedisDriver) InsertFileMeta(meta models.FileMeta) error {
-	if err := r.conn.HSet(context.Background(), fileMetaKey, meta.FileName, meta.Timestamp.Format("2006-01-02T15:04:05Z")).Err(); err != nil {
-		return fmt.Errorf("Failed to HSet. err: %s", err)
-	}
-	return nil
-}
-
-// GetFileMeta :
-func (r *RedisDriver) GetFileMeta(meta models.FileMeta) (models.FileMeta, error) {
-	timeStr, err := r.conn.HGet(context.Background(), fileMetaKey, meta.FileName).Result()
-	if err != nil {
-		if !errors.Is(err, redis.Nil) {
-			return models.FileMeta{}, fmt.Errorf("Failed to HGet. err: %s", err)
-		}
-		return models.FileMeta{FileName: meta.FileName, Timestamp: time.Time{}}, nil
-	}
-
-	fileTime, err := time.Parse("2006-01-02T15:04:05Z", timeStr)
-	if err != nil {
-		return models.FileMeta{}, fmt.Errorf("Failed to parse models.FileMeta.Timestamp. err: %s", err)
-	}
-
-	return models.FileMeta{FileName: meta.FileName, Timestamp: fileTime}, nil
 }
 
 // CountDefs counts the number of definitions specified by args
 func (r *RedisDriver) CountDefs(family, osVer string) (int, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return 0, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	count, err := r.conn.HLen(context.Background(), fmt.Sprintf(defKeyFormat, family, osVer)).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
-			return 0, fmt.Errorf("Failed to HLen. err: %s", err)
+			return 0, xerrors.Errorf("Failed to HLen. err: %w", err)
 		}
 		return 0, nil
 	}
@@ -454,20 +418,20 @@ func (r *RedisDriver) CountDefs(family, osVer string) (int, error) {
 func (r *RedisDriver) GetLastModified(family, osVer string) (time.Time, error) {
 	family, osVer, err := formatFamilyAndOSVer(family, osVer)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Failed to formatFamilyAndOSVer. err: %s", err)
+		return time.Time{}, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
 	}
 
 	lastModifiedStr, err := r.conn.Get(context.Background(), fmt.Sprintf(lastModifiedKeyFormat, family, osVer)).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
-			return time.Time{}, fmt.Errorf("Failed to Get. err: %s", err)
+			return time.Time{}, xerrors.Errorf("Failed to Get. err: %w", err)
 		}
 		return time.Now().AddDate(-100, 0, 0), nil
 	}
 
 	lastModified, err := time.Parse("2006-01-02T15:04:05Z", lastModifiedStr)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Failed to parse LastModifier. err: %s", err)
+		return time.Time{}, xerrors.Errorf("Failed to parse LastModifier. err: %w", err)
 	}
 	return lastModified, nil
 }
@@ -478,12 +442,12 @@ func (r *RedisDriver) IsGovalDictModelV1() (bool, error) {
 
 	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
-		return false, fmt.Errorf("Failed to Exists. err: %s", err)
+		return false, xerrors.Errorf("Failed to Exists. err: %w", err)
 	}
 	if exists == 0 {
 		keys, _, err := r.conn.Scan(ctx, 0, "OVAL#*", 1).Result()
 		if err != nil {
-			return false, fmt.Errorf("Failed to Scan. err: %s", err)
+			return false, xerrors.Errorf("Failed to Scan. err: %w", err)
 		}
 		if len(keys) == 0 {
 			return false, nil
@@ -500,7 +464,7 @@ func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 
 	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to Exists. err: %s", err)
+		return nil, xerrors.Errorf("Failed to Exists. err: %w", err)
 	}
 	if exists == 0 {
 		return &models.FetchMeta{GovalDictRevision: c.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
@@ -508,16 +472,16 @@ func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 
 	revision, err := r.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+		return nil, xerrors.Errorf("Failed to HGet Revision. err: %w", err)
 	}
 
 	verstr, err := r.conn.HGet(ctx, fetchMetaKey, "SchemaVersion").Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HGet SchemaVersion. err: %s", err)
+		return nil, xerrors.Errorf("Failed to HGet SchemaVersion. err: %w", err)
 	}
 	version, err := strconv.ParseUint(verstr, 10, 8)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to ParseUint. err: %s", err)
+		return nil, xerrors.Errorf("Failed to ParseUint. err: %w", err)
 	}
 
 	return &models.FetchMeta{GovalDictRevision: revision, SchemaVersion: uint(version)}, nil

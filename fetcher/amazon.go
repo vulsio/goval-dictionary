@@ -10,6 +10,7 @@ import (
 	"path"
 
 	"github.com/inconshreveable/log15"
+	"golang.org/x/xerrors"
 )
 
 const (
@@ -85,7 +86,7 @@ func FetchUpdateInfoAmazonLinux2() (*UpdateInfo, error) {
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err error) {
 	results, err := fetchFeedFiles([]fetchRequest{{url: mirrorListURL}})
 	if err != nil || len(results) != 1 {
-		return nil, fmt.Errorf("Failed to fetch mirror list files. err: %s", err)
+		return nil, xerrors.Errorf("Failed to fetch mirror list files. err: %w", err)
 	}
 
 	mirrors := []string{}
@@ -98,7 +99,7 @@ func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err er
 
 	uinfoURLs, err := fetchUpdateInfoURL(mirrors)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch updateInfo URL. err: %s", err)
+		return nil, xerrors.Errorf("Failed to fetch updateInfo URL. err: %w", err)
 	}
 	for _, url := range uinfoURLs {
 		uinfo, err = fetchUpdateInfo(url)
@@ -164,11 +165,11 @@ func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 func fetchUpdateInfo(url string) (*UpdateInfo, error) {
 	results, err := fetchFeedFiles([]fetchRequest{{url: url}})
 	if err != nil || len(results) != 1 {
-		return nil, fmt.Errorf("Failed to fetch updateInfo. err: %s", err)
+		return nil, xerrors.Errorf("Failed to fetch updateInfo. err: %w", err)
 	}
 	r, err := gzip.NewReader(bytes.NewBuffer(results[0].Body))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to decompress updateInfo. err: %s", err)
+		return nil, xerrors.Errorf("Failed to decompress updateInfo. err: %w", err)
 	}
 	defer r.Close()
 

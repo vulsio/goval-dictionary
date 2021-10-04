@@ -30,7 +30,7 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 		logPath := filepath.Join(logDir, "access.log")
 		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			return xerrors.Errorf("Failed to open a log file: %s", err)
+			return xerrors.Errorf("Failed to open a log file. err: %w", err)
 		}
 		defer f.Close()
 		e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: f}))

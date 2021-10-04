@@ -65,7 +65,6 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	if fetchMeta.OutDated() {
 		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
-
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
@@ -84,7 +83,7 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 	for _, r := range results {
 		secdb, err := unmarshalYml(r.Body)
 		if err != nil {
-			return xerrors.Errorf("Failed to unmarshal yml. err %w", err)
+			return xerrors.Errorf("Failed to unmarshal yml. err: %w", err)
 		}
 
 		defs := models.ConvertAlpineToModel(secdb)
@@ -108,22 +107,9 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 
-		timestamp, err := time.Parse("2006-01-02T15:04:05Z", time.Now().Format("2006-01-02T15:04:05Z"))
-		if err != nil {
-			return xerrors.Errorf("Failed to parse timestamp. url: %s, err: %w", t.url, err)
-		}
-
-		fmeta := models.FileMeta{
-			Timestamp: timestamp,
-			FileName:  t.url,
-		}
-
 		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
-		if err := driver.InsertOval(&root, fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
-		}
-		if err := driver.InsertFileMeta(fmeta); err != nil {
-			return xerrors.Errorf("Failed to insert meta. err: %w", err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}

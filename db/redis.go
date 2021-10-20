@@ -226,6 +226,7 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 			// Only Logging
 			// TODO: remove invalid keys
 			log15.Error("Failed to HMGet. Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
+			continue
 		}
 
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)

@@ -80,19 +80,23 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	if err := r.connectRedis(dbPath); err != nil {
+func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool, option Option) (locked bool, err error) {
+	if err := r.connectRedis(dbPath, option); err != nil {
 		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
 	return false, nil
 }
 
-func (r *RedisDriver) connectRedis(dbPath string) error {
-	option, err := redis.ParseURL(dbPath)
+func (r *RedisDriver) connectRedis(dbPath string, option Option) error {
+	opt, err := redis.ParseURL(dbPath)
 	if err != nil {
 		return xerrors.Errorf("Failed to parse url. err: %w", err)
 	}
-	r.conn = redis.NewClient(option)
+
+	if 0 < option.RedisTimeout.Seconds() {
+		opt.ReadTimeout = option.RedisTimeout
+	}
+	r.conn = redis.NewClient(opt)
 	return r.conn.Ping(context.Background()).Err()
 }
 

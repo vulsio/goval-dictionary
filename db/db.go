@@ -13,7 +13,7 @@ import (
 // DB is interface for a database driver
 type DB interface {
 	Name() string
-	OpenDB(string, string, bool) (bool, error)
+	OpenDB(string, string, bool, Option) (bool, error)
 	CloseDB() error
 	MigrateDB() error
 
@@ -28,13 +28,17 @@ type DB interface {
 	GetLastModified(string, string) (time.Time, error)
 }
 
+type Option struct {
+	RedisTimeout time.Duration
+}
+
 // NewDB return DB accessor.
-func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err error) {
+func NewDB(dbType, dbPath string, debugSQL bool, option Option) (driver DB, locked bool, err error) {
 	if driver, err = newDB(dbType); err != nil {
 		return driver, false, xerrors.Errorf("Failed to new db. err: %w", err)
 	}
 
-	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL); err != nil {
+	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL, option); err != nil {
 		if locked {
 			return nil, true, err
 		}

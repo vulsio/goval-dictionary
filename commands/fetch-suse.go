@@ -74,7 +74,7 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud")
 	}
 
-	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
 			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)

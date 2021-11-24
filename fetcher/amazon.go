@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	amazonLinux1MirrorListURI = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
-	amazonLinux2MirrorListURI = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
+	amazonLinux1MirrorListURI  = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
+	amazonLinux2MirrorListURI  = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
+	amazonLinux22MirrorListURI = "https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/2022.0.20211118/x86_64/mirror.list"
 )
 
 // RepoMd has repomd data
@@ -81,6 +82,11 @@ func FetchUpdateInfoAmazonLinux1() (*UpdateInfo, error) {
 // FetchUpdateInfoAmazonLinux2 fetches a list of Amazon Linux2 updateinfo
 func FetchUpdateInfoAmazonLinux2() (*UpdateInfo, error) {
 	return fetchUpdateInfoAmazonLinux(amazonLinux2MirrorListURI)
+}
+
+// FetchUpdateInfoAmazonLinux22 fetches a list of Amazon Linux2 updateinfo
+func FetchUpdateInfoAmazonLinux22() (*UpdateInfo, error) {
+	return fetchUpdateInfoAmazonLinux(amazonLinux22MirrorListURI)
 }
 
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err error) {

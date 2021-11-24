@@ -113,6 +113,9 @@ func majorDotMinor(osVer string) (majorMinorVersion string) {
 // getAmazonLinux2 returns AmazonLinux1 or 2
 func getAmazonLinux1or2(osVersion string) string {
 	ss := strings.Fields(osVersion)
+	if ss[0] == "22" {
+		return "22"
+	}
 	if ss[0] == "2" {
 		return "2"
 	}

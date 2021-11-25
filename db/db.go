@@ -86,7 +86,7 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 	case c.Oracle:
 		osVer = major(osVer)
 	case c.Amazon:
-		osVer = getAmazonLinux1or2(osVer)
+		osVer = getAmazonLinuxVer(osVer)
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
 	default:
@@ -110,11 +110,11 @@ func majorDotMinor(osVer string) (majorMinorVersion string) {
 	return strings.Join(ss[:2], ".")
 }
 
-// getAmazonLinux2 returns AmazonLinux1 or 2
-func getAmazonLinux1or2(osVersion string) string {
+// getAmazonLinuxVer returns AmazonLinux 1, 2, 2022
+func getAmazonLinuxVer(osVersion string) string {
 	ss := strings.Fields(osVersion)
-	if ss[0] == "22" {
-		return "22"
+	if ss[0] == "2022" {
+		return "2022"
 	}
 	if ss[0] == "2" {
 		return "2"

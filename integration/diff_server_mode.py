@@ -141,7 +141,7 @@ elif args.ostype == 'oracle':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'amazon':
-    if len(list(set(args.release) - set(['1', '2']))) > 0:
+    if len(list(set(args.release) - set(['1', '2', '2022']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError

@@ -13,11 +13,25 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const (
-	amazonLinux1MirrorListURI    = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
-	amazonLinux2MirrorListURI    = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
-	amazonLinux2022MirrorListURI = "https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/2022.0.20211118/x86_64/mirror.list"
-)
+type mirrorInfo struct {
+	URIFormat string
+	Arches    []string
+}
+
+var AmazonMirrors = map[string]mirrorInfo{
+	"1": {
+		URIFormat: "http://repo.us-west-2.amazonaws.com/2018.03/updates/%s/mirror.list",
+		Arches:    []string{"x86_64"},
+	},
+	"2": {
+		URIFormat: "https://cdn.amazonlinux.com/2/core/latest/%s/mirror.list",
+		Arches:    []string{"x86_64", "aarch64"},
+	},
+	"2022": {
+		URIFormat: "https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/2022.0.20211118/%s/mirror.list",
+		Arches:    []string{"x86_64", "aarch64"},
+	},
+}
 
 // RepoMd has repomd data
 type RepoMd struct {
@@ -74,19 +88,22 @@ type Package struct {
 	Filename string `xml:"filename" json:"filename,omitempty"`
 }
 
-// FetchUpdateInfoAmazonLinux1 fetches a list of Amazon Linux1 updateinfo
-func FetchUpdateInfoAmazonLinux1() (*UpdateInfo, error) {
-	return fetchUpdateInfoAmazonLinux(amazonLinux1MirrorListURI)
-}
+// FetchUpdateInfoAmazonLinux fetches a list of Amazon Linux updateinfo
+func FetchUpdateInfoAmazonLinux(version string) (*UpdateInfo, error) {
+	mirror, ok := AmazonMirrors[version]
+	if !ok {
+		return nil, xerrors.Errorf("Failed to find version: %s", version)
+	}
 
-// FetchUpdateInfoAmazonLinux2 fetches a list of Amazon Linux2 updateinfo
-func FetchUpdateInfoAmazonLinux2() (*UpdateInfo, error) {
-	return fetchUpdateInfoAmazonLinux(amazonLinux2MirrorListURI)
-}
-
-// FetchUpdateInfoAmazonLinux2022 fetches a list of Amazon Linux2022 updateinfo
-func FetchUpdateInfoAmazonLinux2022() (*UpdateInfo, error) {
-	return fetchUpdateInfoAmazonLinux(amazonLinux2022MirrorListURI)
+	alases := []ALAS{}
+	for _, arch := range mirror.Arches {
+		uinfo, err := fetchUpdateInfoAmazonLinux(fmt.Sprintf(mirror.URIFormat, arch))
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to fetchUpdateInfoAmazonLinux. err: %w", err)
+		}
+		alases = append(alases, uinfo.ALASList...)
+	}
+	return &UpdateInfo{ALASList: alases}, nil
 }
 
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err error) {
@@ -118,7 +135,7 @@ func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err er
 	return nil, fmt.Errorf("Failed to fetch updateinfo")
 }
 
-// FetchUpdateInfoURL fetches update info urls for AmazonLinux1 and Amazon Linux2.
+// fetchUpdateInfoURL fetches update info urls for AmazonLinux1, Amazon Linux2 and Amazon Linux2022.
 func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 	reqs := []fetchRequest{}
 	for _, mirror := range mirrors {

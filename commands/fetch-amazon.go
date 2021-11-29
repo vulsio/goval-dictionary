@@ -58,21 +58,49 @@ func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	for version := range fetcher.AmazonMirrors {
-		uinfo, err := fetcher.FetchUpdateInfoAmazonLinux(version)
-		if err != nil {
-			return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux%s. err: %w", version, err)
-		}
-		root := models.Root{
-			Family:      c.Amazon,
-			OSVersion:   version,
-			Definitions: models.ConvertAmazonToModel(uinfo),
-			Timestamp:   time.Now(),
-		}
-		log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux%s. Inserting to DB", len(root.Definitions), version))
-		if err := execute(driver, &root); err != nil {
-			return xerrors.Errorf("Failed to Insert Amazon Linux%s. err: %w", version, err)
-		}
+	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux1. err: %w", err)
+	}
+	root := models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "1",
+		Definitions: models.ConvertAmazonToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon1. err: %w", err)
+	}
+
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2. err: %w", err)
+	}
+	root = models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "2",
+		Definitions: models.ConvertAmazonToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon2. err: %w", err)
+	}
+
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2022()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2022. err: %w", err)
+	}
+	root = models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "2022",
+		Definitions: models.ConvertAmazonToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2022. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon22. err: %w", err)
 	}
 
 	return nil

@@ -13,6 +13,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// updateinfo for x86_64 also contains information for aarch64
 const (
 	amazonLinux1MirrorListURI    = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
 	amazonLinux2MirrorListURI    = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
@@ -118,7 +119,7 @@ func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err er
 	return nil, fmt.Errorf("Failed to fetch updateinfo")
 }
 
-// FetchUpdateInfoURL fetches update info urls for AmazonLinux1 and Amazon Linux2.
+// FetchUpdateInfoURL fetches update info urls for AmazonLinux1 ,Amazon Linux2 and Amazon Linux2022.
 func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 	reqs := []fetchRequest{}
 	for _, mirror := range mirrors {

@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/xml"
+	"io"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -13,6 +15,7 @@ import (
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
+	"golang.org/x/text/encoding/ianaindex"
 	"golang.org/x/xerrors"
 )
 
@@ -76,7 +79,7 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
-		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+		if err = Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
@@ -94,5 +97,26 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
+	return nil
+}
+
+func Unmarshal(data []byte, v interface{}) error {
+	decoder := xml.NewDecoder(bytes.NewBuffer(data))
+	decoder.CharsetReader = func(charset string, reader io.Reader) (io.Reader, error) {
+		enc, err := ianaindex.IANA.Encoding(charset)
+		if err != nil {
+			// ignore for now, Debian sends ASCII which is not a valid IANA encoding
+		}
+		if enc == nil {
+			// Assume it's compatible with (a subset of) UTF-8 encoding
+			// Bug: https://github.com/golang/go/issues/19421
+			return reader, nil
+		}
+		return enc.NewDecoder().Reader(reader), nil
+	}
+
+	if err := decoder.Decode(&v); err != nil {
+		return err
+	}
 	return nil
 }

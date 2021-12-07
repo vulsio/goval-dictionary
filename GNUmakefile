@@ -5,8 +5,11 @@
 	lint \
 	vet \
 	fmt \
+	mlint \
+	fmtcheck \
 	pretest \
 	test \
+	unused \
 	cov \
 	clean \
 	build-integration \

@@ -143,14 +143,17 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		Preload("Advisory.AffectedCPEList").
 		Preload("References")
 
-	if family == c.Debian {
-		q = q.Preload("Debian")
-	}
-
-	if arch == "" {
+	switch family {
+	case c.Debian:
+		q = q.Preload("Debian").Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+	case c.Amazon, c.Oracle:
+		if arch == "" {
+			q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+		} else {
+			q = q.Where("`packages`.`name` = ? AND `packages`.`arch` = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
+		}
+	default:
 		q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
-	} else {
-		q = q.Where("`packages`.`name` = ? AND `packages`.`arch` = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
 	}
 
 	// Specify limit number to avoid `too many SQL variable`.
@@ -197,14 +200,17 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		Preload("Advisory.AffectedCPEList").
 		Preload("References")
 
-	if family == c.Debian {
-		q = q.Preload("Debian")
-	}
-
-	if arch == "" {
+	switch family {
+	case c.Debian:
+		q = q.Preload("Debian").Preload("AffectedPacks")
+	case c.Amazon, c.Oracle:
+		if arch == "" {
+			q = q.Preload("AffectedPacks")
+		} else {
+			q = q.Preload("AffectedPacks", "arch = ?", arch)
+		}
+	default:
 		q = q.Preload("AffectedPacks")
-	} else {
-		q = q.Preload("AffectedPacks", "arch = ?", arch)
 	}
 
 	defs := []models.Definition{}

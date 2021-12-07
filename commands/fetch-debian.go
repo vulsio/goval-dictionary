@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/xml"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
+	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
 )
 
@@ -76,7 +78,10 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
-		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+
+		decoder := xml.NewDecoder(bytes.NewReader(r.Body))
+		decoder.CharsetReader = charset.NewReaderLabel
+		if err := decoder.Decode(&ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))

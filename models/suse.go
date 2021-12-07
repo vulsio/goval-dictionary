@@ -308,7 +308,7 @@ func getOSNameVersion(s string) (string, string, error) {
 	ss := strings.Split(strings.ToLower(s), " ")
 	osVerIndex := 0
 	for i := len(ss) - 1; i >= 0; i = i - 1 {
-		_, err := strconv.ParseFloat(ss[i], 0)
+		_, err := strconv.ParseFloat(ss[i], 32)
 		if err != nil {
 			if strings.Contains(ss[i], "-") {
 				sss := strings.Split(ss[i], "-")

@@ -189,7 +189,7 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 		if defstr == nil {
 			// Only Logging
 			// TODO: remove invalid keys
-			log15.Error("Failed to HMGet. Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
+			log15.Warn("Failed to HMGet. Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
 			continue
 		}
 
@@ -229,7 +229,7 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 		if defstr == nil {
 			// Only Logging
 			// TODO: remove invalid keys
-			log15.Error("Failed to HMGet. Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
+			log15.Warn("Failed to HMGet. Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
 			continue
 		}
 

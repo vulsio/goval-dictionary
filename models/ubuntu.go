@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -17,17 +16,16 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			continue
 		}
 
-		cve := Cve{}
-		cveID := strings.Split(d.Title, " ")[0]
-		if strings.HasPrefix(cveID, "CVE-") {
-			cve = Cve{
-				CveID: cveID,
-				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", cveID),
-			}
-		}
-
+		cves := []Cve{}
 		rs := []Reference{}
 		for _, r := range d.References {
+			if r.Source == "CVE" {
+				cves = append(cves, Cve{
+					CveID: r.RefID,
+					Href:  r.RefURL,
+				})
+			}
+
 			rs = append(rs, Reference{
 				Source: r.Source,
 				RefID:  r.RefID,
@@ -55,7 +53,7 @@ func ConvertUbuntuToModel(root *oval.Root) (defs []Definition) {
 			Description:  d.Description,
 			Advisory: Advisory{
 				Severity:        d.Advisory.Severity,
-				Cves:            []Cve{cve},
+				Cves:            cves,
 				Bugzillas:       []Bugzilla{},
 				AffectedCPEList: []Cpe{},
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),

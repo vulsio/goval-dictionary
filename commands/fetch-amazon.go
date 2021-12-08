@@ -100,7 +100,7 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2022. Inserting to DB", len(root.Definitions)))
 	if err := execute(driver, &root); err != nil {
-		return xerrors.Errorf("Failed to Insert Amazon22. err: %w", err)
+		return xerrors.Errorf("Failed to Insert Amazon2022. err: %w", err)
 	}
 
 	return nil

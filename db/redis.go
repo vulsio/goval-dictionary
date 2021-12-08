@@ -381,7 +381,7 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 			}
 		}
 		for pack := range definitions["packages"] {
-			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, pack), defID).Err(); err != nil {
+			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pack), defID).Err(); err != nil {
 				return xerrors.Errorf("Failed to SRem. err: %w", err)
 			}
 		}

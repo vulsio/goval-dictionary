@@ -385,8 +385,10 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 				return xerrors.Errorf("Failed to SRem. err: %w", err)
 			}
 		}
-		if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID).Err(); err != nil {
-			return xerrors.Errorf("Failed to HDel. err: %w", err)
+		if _, ok := newDeps[defID]; !ok {
+			if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID).Err(); err != nil {
+				return xerrors.Errorf("Failed to HDel. err: %w", err)
+			}
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)

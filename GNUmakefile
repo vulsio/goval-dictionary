@@ -1,13 +1,15 @@
 .PHONY: \
+	all \
 	build \
 	install \
-	all \
-	vendor \
+	lint \
 	vet \
 	fmt \
+	mlint \
 	fmtcheck \
 	pretest \
 	test \
+	unused \
 	cov \
 	clean \
 	build-integration \
@@ -40,6 +42,10 @@ b: 	main.go pretest
 install: main.go pretest
 	$(GO) install -ldflags "$(LDFLAGS)"
 
+lint:
+	$(GO_OFF) get -u github.com/mgechev/revive
+	revive -config ./.revive.toml -formatter plain $(PKGS)
+
 vet:
 	echo $(PKGS) | xargs env $(GO) vet || exit;
 
@@ -52,9 +58,9 @@ mlint:
 fmtcheck:
 	$(foreach file,$(SRCS),gofmt -s -d $(file);)
 
-pretest: vet fmtcheck
+pretest: lint vet fmtcheck
 
-test: 
+test: pretest
 	$(GO) test -cover -v ./... || exit;
 
 unused:

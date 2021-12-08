@@ -28,6 +28,7 @@ type DB interface {
 	GetLastModified(string, string) (time.Time, error)
 }
 
+// Option :
 type Option struct {
 	RedisTimeout time.Duration
 }

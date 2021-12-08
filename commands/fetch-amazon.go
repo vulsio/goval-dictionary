@@ -28,7 +28,7 @@ func init() {
 	fetchCmd.AddCommand(fetchAmazonCmd)
 }
 
-func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
+func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}

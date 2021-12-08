@@ -188,6 +188,7 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	delDefIDs := []string{}
 	for i, defstr := range defStrs {
 		if defstr == nil {
+			// TODO: Check the occurrence of this log while operating the service. Originally, I want to return an error because the DB is broken.
 			// Only Logging and stack missing defID fields to be deleted
 			log15.Error("Failed to HMGet. err: Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
 			delDefIDs = append(delDefIDs, defIDs[i])
@@ -238,6 +239,7 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	delDefIDs := []string{}
 	for i, defstr := range defStrs {
 		if defstr == nil {
+			// TODO: Check the occurrence of this log while operating the service. Originally, I want to return an error because the DB is broken.
 			// Only Logging and stack missing defID fields to be deleted
 			log15.Error("Failed to HMGet. err: Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
 			delDefIDs = append(delDefIDs, defIDs[i])

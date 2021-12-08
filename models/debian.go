@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -21,16 +20,16 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			continue
 		}
 
-		cve := Cve{}
-		if strings.HasPrefix(ovaldef.Title, "CVE-") {
-			cve = Cve{
-				CveID: ovaldef.Title,
-				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", ovaldef.Title),
-			}
-		}
-
+		cves := []Cve{}
 		rs := []Reference{}
 		for _, r := range ovaldef.References {
+			if r.Source == "CVE" {
+				cves = append(cves, Cve{
+					CveID: r.RefID,
+					Href:  r.RefURL,
+				})
+			}
+
 			rs = append(rs, Reference{
 				Source: r.Source,
 				RefID:  r.RefID,
@@ -57,7 +56,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			Description:  ovaldef.Description,
 			Advisory: Advisory{
 				Severity:        "",
-				Cves:            []Cve{cve},
+				Cves:            cves,
 				Bugzillas:       []Bugzilla{},
 				AffectedCPEList: []Cpe{},
 				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),

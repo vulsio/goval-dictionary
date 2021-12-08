@@ -312,17 +312,13 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
 
-			if err := pipe.HSet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), def.DefinitionID, string(dj)).Err(); err != nil {
-				return xerrors.Errorf("Failed to HSet. err: %w", err)
-			}
+			_ = pipe.HSet(ctx, fmt.Sprintf(defKeyFormat, family, osVer), def.DefinitionID, string(dj))
 			if _, ok := newDeps[def.DefinitionID]; !ok {
 				newDeps[def.DefinitionID] = map[string]map[string]struct{}{"cves": {}, "packages": {}}
 			}
 
 			for _, cve := range def.Advisory.Cves {
-				if err := pipe.SAdd(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cve.CveID), def.DefinitionID).Err(); err != nil {
-					return xerrors.Errorf("Failed to SAdd CVEID. err: %w", err)
-				}
+				_ = pipe.SAdd(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cve.CveID), def.DefinitionID)
 				newDeps[def.DefinitionID]["cves"][cve.CveID] = struct{}{}
 				if _, ok := oldDeps[def.DefinitionID]; ok {
 					if _, ok := oldDeps[def.DefinitionID]["cves"]; ok {
@@ -339,9 +335,7 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 					pkgName = fmt.Sprintf("%s#%s", pkgName, pack.Arch)
 				}
 
-				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pkgName), def.DefinitionID).Err(); err != nil {
-					return xerrors.Errorf("Failed to SAdd Package. err: %w", err)
-				}
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pkgName), def.DefinitionID)
 				newDeps[def.DefinitionID]["packages"][pkgName] = struct{}{}
 				if _, ok := oldDeps[def.DefinitionID]; ok {
 					if _, ok := oldDeps[def.DefinitionID]["packages"]; ok {
@@ -376,31 +370,21 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	pipe := r.conn.Pipeline()
 	for defID, definitions := range oldDeps {
 		for cveID := range definitions["cves"] {
-			if err := pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), defID).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), defID)
 		}
 		for pack := range definitions["packages"] {
-			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pack), defID).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pack), defID)
 		}
 		if _, ok := newDeps[defID]; !ok {
-			if err := pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID).Err(); err != nil {
-				return xerrors.Errorf("Failed to HDel. err: %w", err)
-			}
+			_ = pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
 	if err != nil {
 		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
-	if err := pipe.Set(ctx, depKey, string(newDepsJSON), 0).Err(); err != nil {
-		return xerrors.Errorf("Failed to Set depkey. err: %w", err)
-	}
-	if err := pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, family, osVer), root.Timestamp.Format("2006-01-02T15:04:05Z"), 0).Err(); err != nil {
-		return xerrors.Errorf("Failed to Set LastModifiedKey. err: %w", err)
-	}
+	_ = pipe.Set(ctx, depKey, string(newDepsJSON), 0)
+	_ = pipe.Set(ctx, fmt.Sprintf(lastModifiedKeyFormat, family, osVer), root.Timestamp.Format("2006-01-02T15:04:05Z"), 0)
 	if _, err = pipe.Exec(ctx); err != nil {
 		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}

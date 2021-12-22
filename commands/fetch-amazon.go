@@ -54,6 +54,7 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	if fetchMeta.OutDated() {
 		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
@@ -101,6 +102,11 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2022. Inserting to DB", len(root.Definitions)))
 	if err := execute(driver, &root); err != nil {
 		return xerrors.Errorf("Failed to Insert Amazon2022. err: %w", err)
+	}
+
+	fetchMeta.LastFetchedDate = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	return nil

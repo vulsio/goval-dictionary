@@ -31,15 +31,15 @@ LDFLAGS := -X 'github.com/vulsio/goval-dictionary/config.Version=$(VERSION)' \
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 
-all: build
+all: build test
 
-build: main.go pretest
+build: main.go
 	$(GO) build -a -ldflags "$(LDFLAGS)" -o goval-dictionary $<
 
-b: 	main.go pretest
+b: 	main.go
 	$(GO) build -ldflags "$(LDFLAGS)" -o goval-dictionary $<
 
-install: main.go pretest
+install: main.go
 	$(GO) install -ldflags "$(LDFLAGS)"
 
 lint:

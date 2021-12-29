@@ -112,9 +112,9 @@ func (o *Amazon) GetByPackName(driver *gorm.DB, osVer, packName, arch string) ([
 		Preload("References")
 
 	if arch == "" {
-		q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+		q = q.Where("packages.name = ?", packName).Preload("AffectedPacks")
 	} else {
-		q = q.Where("`packages`.`name` = ? AND `packages`.`arch` = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
+		q = q.Where("packages.name = ? AND packages.arch = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
 	}
 
 	// Specify limit number to avoid `too many SQL variable`.

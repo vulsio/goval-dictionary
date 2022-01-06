@@ -115,7 +115,7 @@ func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
-	fetchMeta.LastFetchedDate = time.Now()
+	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}

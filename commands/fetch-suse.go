@@ -118,7 +118,7 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	fetchMeta.LastFetchedDate = time.Now()
+	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}

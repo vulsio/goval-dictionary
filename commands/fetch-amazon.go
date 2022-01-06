@@ -104,7 +104,7 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to Insert Amazon2022. err: %w", err)
 	}
 
-	fetchMeta.LastFetchedDate = time.Now()
+	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}

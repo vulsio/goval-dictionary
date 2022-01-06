@@ -14,6 +14,7 @@ type FetchMeta struct {
 	gorm.Model        `json:"-"`
 	GovalDictRevision string
 	SchemaVersion     uint
+	LastFetchedAt     time.Time
 }
 
 // OutDated checks whether last fetched feed is out dated

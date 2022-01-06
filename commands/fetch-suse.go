@@ -89,6 +89,7 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 	if fetchMeta.OutDated() {
 		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
@@ -115,6 +116,11 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 			}
 			log15.Info("Finish", "Updated", len(root.Definitions))
 		}
+	}
+
+	fetchMeta.LastFetchedAt = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	return nil

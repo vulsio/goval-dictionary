@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
@@ -18,17 +20,38 @@ var selectCmd = &cobra.Command{
 	Use:   "select",
 	Short: "Select from DB",
 	Long:  `Select from DB`,
-	RunE:  executeSelect,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("by-package", cmd.PersistentFlags().Lookup("by-package")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("by-cveid", cmd.PersistentFlags().Lookup("by-cveid")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: executeSelect,
 }
 
 func init() {
-	RootCmd.AddCommand(selectCmd)
-
+	selectCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
+	selectCmd.PersistentFlags().String("dbpath", filepath.Join(os.Getenv("PWD"), "oval.sqlite3"), "/path/to/sqlite3 or SQL connection string")
+	selectCmd.PersistentFlags().String("dbtype", "sqlite3", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 	selectCmd.PersistentFlags().Bool("by-package", false, "select OVAL by package name")
-	_ = viper.BindPFlag("by-package", selectCmd.PersistentFlags().Lookup("by-package"))
-
 	selectCmd.PersistentFlags().Bool("by-cveid", false, "select OVAL by CVE-ID")
-	_ = viper.BindPFlag("by-cveid", selectCmd.PersistentFlags().Lookup("by-cveid"))
 }
 
 func executeSelect(_ *cobra.Command, args []string) error {

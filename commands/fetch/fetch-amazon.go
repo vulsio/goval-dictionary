@@ -1,4 +1,4 @@
-package commands
+package fetch
 
 import (
 	"fmt"
@@ -21,11 +21,34 @@ var fetchAmazonCmd = &cobra.Command{
 	Use:   "amazon",
 	Short: "Fetch Vulnerability dictionary from Amazon ALAS",
 	Long:  `Fetch Vulnerability dictionary from Amazon ALAS`,
-	RunE:  fetchAmazon,
-}
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
 
-func init() {
-	fetchCmd.AddCommand(fetchAmazonCmd)
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("no-details", cmd.Parent().PersistentFlags().Lookup("no-details")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchAmazon,
 }
 
 func fetchAmazon(_ *cobra.Command, _ []string) (err error) {

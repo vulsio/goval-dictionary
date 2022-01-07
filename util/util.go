@@ -22,6 +22,15 @@ func GenWorkers(num int) chan<- func() {
 	return tasks
 }
 
+// GetDefaultVulnDir :
+func GetDefaultVulnDir() string {
+	tmpDir, err := os.UserCacheDir()
+	if err != nil {
+		tmpDir = os.TempDir()
+	}
+	return filepath.Join(tmpDir, "vuln-data", "goval-dictionary")
+}
+
 // GetDefaultLogDir returns default log directory
 func GetDefaultLogDir() string {
 	defaultLogDir := "/var/log/goval-dictionary"

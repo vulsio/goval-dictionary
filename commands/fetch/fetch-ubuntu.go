@@ -1,4 +1,4 @@
-package commands
+package fetch
 
 import (
 	"encoding/xml"
@@ -16,21 +16,48 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// fetchOracleCmd is Subcommand for fetch Oracle OVAL
-var fetchOracleCmd = &cobra.Command{
-	Use:   "oracle",
-	Short: "Fetch Vulnerability dictionary from Oracle",
-	Long:  `Fetch Vulnerability dictionary from Oracle`,
-	RunE:  fetchOracle,
+// fetchUbuntuCmd is Subcommand for fetch Ubuntu OVAL
+var fetchUbuntuCmd = &cobra.Command{
+	Use:   "ubuntu",
+	Short: "Fetch Vulnerability dictionary from Ubuntu",
+	Long:  `Fetch Vulnerability dictionary from Ubuntu`,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("no-details", cmd.Parent().PersistentFlags().Lookup("no-details")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchUbuntu,
 }
 
-func init() {
-	fetchCmd.AddCommand(fetchOracleCmd)
-}
-
-func fetchOracle(_ *cobra.Command, _ []string) (err error) {
+func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
+	if len(args) == 0 {
+		return xerrors.New("Failed to fetch ubuntu command. err: specify versions to fetch")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -53,12 +80,21 @@ func fetchOracle(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchOracleFiles()
+	// Distinct
+	v := map[string]bool{}
+	vers := []string{}
+	for _, arg := range args {
+		v[arg] = true
+	}
+	for k := range v {
+		vers = append(vers, k)
+	}
+
+	results, err := fetcher.FetchUbuntuFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
-	osVerDefs := map[string][]models.Definition{}
 	for _, r := range results {
 		ovalroot := oval.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
@@ -66,16 +102,10 @@ func fetchOracle(_ *cobra.Command, _ []string) (err error) {
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
-		for osVer, defs := range models.ConvertOracleToModel(&ovalroot) {
-			osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
-		}
-	}
-
-	for osVer, defs := range osVerDefs {
 		root := models.Root{
-			Family:      c.Oracle,
-			OSVersion:   osVer,
-			Definitions: defs,
+			Family:      c.Ubuntu,
+			OSVersion:   r.Target,
+			Definitions: models.ConvertUbuntuToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 

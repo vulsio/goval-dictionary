@@ -1,6 +1,7 @@
-package commands
+package fetch
 
 import (
+	"bytes"
 	"encoding/xml"
 	"time"
 
@@ -13,28 +14,52 @@ import (
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
+	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
 )
 
-// fetchUbuntuCmd is Subcommand for fetch Ubuntu OVAL
-var fetchUbuntuCmd = &cobra.Command{
-	Use:   "ubuntu",
-	Short: "Fetch Vulnerability dictionary from Ubuntu",
-	Long:  `Fetch Vulnerability dictionary from Ubuntu`,
-	RunE:  fetchUbuntu,
+// fetchDebianCmd is Subcommand for fetch Debian OVAL
+var fetchDebianCmd = &cobra.Command{
+	Use:   "debian",
+	Short: "Fetch Vulnerability dictionary from Debian",
+	Long:  `Fetch Vulnerability dictionary from Debian`,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("no-details", cmd.Parent().PersistentFlags().Lookup("no-details")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchDebian,
 }
 
-func init() {
-	fetchCmd.AddCommand(fetchUbuntuCmd)
-}
-
-func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
+func fetchDebian(_ *cobra.Command, args []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
 	if len(args) == 0 {
-		return xerrors.New("Failed to fetch ubuntu command. err: specify versions to fetch")
+		return xerrors.New("Failed to fetch debian command. err: specify versions to fetch")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -44,6 +69,9 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 		}
 		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
+	defer func() {
+		_ = driver.CloseDB()
+	}()
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
@@ -58,8 +86,8 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 	}
 
 	// Distinct
-	v := map[string]bool{}
 	vers := []string{}
+	v := map[string]bool{}
 	for _, arg := range args {
 		v[arg] = true
 	}
@@ -67,22 +95,25 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchUbuntuFiles(vers)
+	results, err := fetcher.FetchDebianFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
 		ovalroot := oval.Root{}
-		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+
+		decoder := xml.NewDecoder(bytes.NewReader(r.Body))
+		decoder.CharsetReader = charset.NewReaderLabel
+		if err := decoder.Decode(&ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
 		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
 
 		root := models.Root{
-			Family:      c.Ubuntu,
+			Family:      c.Debian,
 			OSVersion:   r.Target,
-			Definitions: models.ConvertUbuntuToModel(&ovalroot),
+			Definitions: models.ConvertDebianToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 

@@ -7,10 +7,6 @@ import (
 	"github.com/vulsio/goval-dictionary/config"
 )
 
-func init() {
-	RootCmd.AddCommand(versionCmd)
-}
-
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version",

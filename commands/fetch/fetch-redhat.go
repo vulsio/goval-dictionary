@@ -1,4 +1,4 @@
-package commands
+package fetch
 
 import (
 	"encoding/xml"
@@ -22,11 +22,34 @@ var fetchRedHatCmd = &cobra.Command{
 	Use:   "redhat",
 	Short: "Fetch Vulnerability dictionary from RedHat",
 	Long:  `Fetch Vulnerability dictionary from RedHat`,
-	RunE:  fetchRedHat,
-}
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
 
-func init() {
-	fetchCmd.AddCommand(fetchRedHatCmd)
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("no-details", cmd.Parent().PersistentFlags().Lookup("no-details")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchRedHat,
 }
 
 func fetchRedHat(_ *cobra.Command, args []string) (err error) {

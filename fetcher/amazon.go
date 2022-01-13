@@ -133,7 +133,7 @@ func getAmazonLinux2022MirrorListURI() (uri string, err error) {
 		versions = append(versions, release.Version)
 	}
 	if len(versions) == 0 {
-		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2022. url: %s, err: %w", al2022ReleasemdURI, err)
+		return "", xerrors.Errorf("Failed to get the latest version of al2022. url: %s", al2022ReleasemdURI)
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
 	return fmt.Sprintf("https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil

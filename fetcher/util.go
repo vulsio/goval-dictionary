@@ -24,7 +24,7 @@ type fetchRequest struct {
 	concurrently bool
 }
 
-//FetchResult has url and OVAL definitions
+// FetchResult has url and OVAL definitions
 type FetchResult struct {
 	Target string
 	URL    string

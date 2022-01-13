@@ -8,16 +8,18 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"sort"
 
 	"github.com/inconshreveable/log15"
+	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
 )
 
 // updateinfo for x86_64 also contains information for aarch64
 const (
-	amazonLinux1MirrorListURI    = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
-	amazonLinux2MirrorListURI    = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
-	amazonLinux2022MirrorListURI = "https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/2022.0.20211210/x86_64/mirror.list"
+	al1MirrorListURI   = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
+	al2MirrorListURI   = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
+	al2022ReleasemdURI = "https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml"
 )
 
 // RepoMd has repomd data
@@ -75,19 +77,66 @@ type Package struct {
 	Filename string `xml:"filename" json:"filename,omitempty"`
 }
 
+// Root is a struct of releasemd.xml for AL2022
+// curl https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml
+type Root struct {
+	XMLName  xml.Name `xml:"root"`
+	Releases struct {
+		Release []struct {
+			Version string `xml:"version,attr"`
+			Update  []struct {
+				Name          string `xml:"name"`
+				VersionString string `xml:"version_string"`
+				ReleaseNotes  string `xml:"release_notes"`
+			} `xml:"update"`
+		} `xml:"release"`
+	} `xml:"releases"`
+}
+
 // FetchUpdateInfoAmazonLinux1 fetches a list of Amazon Linux1 updateinfo
 func FetchUpdateInfoAmazonLinux1() (*UpdateInfo, error) {
-	return fetchUpdateInfoAmazonLinux(amazonLinux1MirrorListURI)
+	return fetchUpdateInfoAmazonLinux(al1MirrorListURI)
 }
 
 // FetchUpdateInfoAmazonLinux2 fetches a list of Amazon Linux2 updateinfo
 func FetchUpdateInfoAmazonLinux2() (*UpdateInfo, error) {
-	return fetchUpdateInfoAmazonLinux(amazonLinux2MirrorListURI)
+	return fetchUpdateInfoAmazonLinux(al2MirrorListURI)
 }
 
 // FetchUpdateInfoAmazonLinux2022 fetches a list of Amazon Linux2022 updateinfo
 func FetchUpdateInfoAmazonLinux2022() (*UpdateInfo, error) {
-	return fetchUpdateInfoAmazonLinux(amazonLinux2022MirrorListURI)
+	uri, err := getAmazonLinux2022MirrorListURI()
+	if err != nil {
+		return nil, err
+	}
+	return fetchUpdateInfoAmazonLinux(uri)
+}
+
+func getAmazonLinux2022MirrorListURI() (uri string, err error) {
+	results, err := fetchFeedFiles([]fetchRequest{{
+		url: al2022ReleasemdURI}})
+	if err != nil || len(results) != 1 {
+		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2022. url: %s, err: %w", al2022ReleasemdURI, err)
+	}
+
+	var root Root
+	// Since the XML charset encoding is defined as `utf8`` instead of `utf-8``, the following error will occur if it do not define a CharsetReader.
+	// `Failed to fetch updateinfo for Amazon Linux2022. err: xml: encoding "utf8" declared but Decoder.CharsetReader is nil`
+	decoder := xml.NewDecoder(bytes.NewReader(results[0].Body))
+	decoder.CharsetReader = charset.NewReaderLabel
+	if err := decoder.Decode(&root); err != nil {
+		return "", err
+	}
+
+	versions := []string{}
+	for _, release := range root.Releases.Release {
+		versions = append(versions, release.Version)
+	}
+	if len(versions) == 0 {
+		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2022. url: %s, err: %w", al2022ReleasemdURI, err)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
+	return fmt.Sprintf("https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
 }
 
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *UpdateInfo, err error) {

@@ -92,11 +92,6 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s. Inserting to DB", len(root.Definitions), k))
-		for _, v := range root.Definitions {
-			if len(v.Advisory.Cves) == 0 {
-				fmt.Printf("NG: %+v", v)
-			}
-		}
 		if err := execute(driver, &root); err != nil {
 			return xerrors.Errorf("Failed to Insert Fedora %s. err: %w", k, err)
 		}

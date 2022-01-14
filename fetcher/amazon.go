@@ -125,7 +125,7 @@ func getAmazonLinux2022MirrorListURI() (uri string, err error) {
 	decoder := xml.NewDecoder(bytes.NewReader(results[0].Body))
 	decoder.CharsetReader = charset.NewReaderLabel
 	if err := decoder.Decode(&root); err != nil {
-		return "", err
+		return "", xerrors.Errorf("Failed to decode releasemd.xml for AL2022. err: %w", err)
 	}
 
 	versions := []string{}

@@ -113,14 +113,13 @@ func FetchUpdateInfoAmazonLinux2022() (*UpdateInfo, error) {
 }
 
 func getAmazonLinux2022MirrorListURI() (uri string, err error) {
-	results, err := fetchFeedFiles([]fetchRequest{{
-		url: al2022ReleasemdURI}})
+	results, err := fetchFeedFiles([]fetchRequest{{url: al2022ReleasemdURI}})
 	if err != nil || len(results) != 1 {
 		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2022. url: %s, err: %w", al2022ReleasemdURI, err)
 	}
 
 	var root Root
-	// Since the XML charset encoding is defined as `utf8`` instead of `utf-8``, the following error will occur if it do not define a CharsetReader.
+	// Since the XML charset encoding is defined as `utf8` instead of `utf-8`, the following error will occur if it do not set decoder.CharsetReader.
 	// `Failed to fetch updateinfo for Amazon Linux2022. err: xml: encoding "utf8" declared but Decoder.CharsetReader is nil`
 	decoder := xml.NewDecoder(bytes.NewReader(results[0].Body))
 	decoder.CharsetReader = charset.NewReaderLabel

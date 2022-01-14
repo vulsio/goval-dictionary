@@ -1,15 +1,12 @@
 package models
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/spf13/viper"
 	"github.com/ymomoi/goval-parser/oval"
 )
-
-var cveIDPattern = regexp.MustCompile(`(CVE-\d{4}-\d{4,})`)
 
 // ConvertRedHatToModel Convert OVAL to models
 func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {

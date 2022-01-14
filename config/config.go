@@ -84,4 +84,7 @@ const (
 
 	// Amazon is
 	Amazon = "amazon"
+
+	// Fedora is
+	Fedora = "fedora"
 )

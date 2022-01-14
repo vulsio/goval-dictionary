@@ -3,11 +3,14 @@ package util
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 
 	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
 )
+
+var CveIDPattern = regexp.MustCompile(`(CVE-\d{4}-\d{4,})`)
 
 // GenWorkers generate workers
 func GenWorkers(num int) chan<- func() {

@@ -230,6 +230,16 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
+				family: config.Fedora,
+				osVer:  "35",
+			},
+			expected: args{
+				family: config.Fedora,
+				osVer:  "35",
+			},
+		},
+		{
+			in: args{
 				family: "unknown",
 				osVer:  "unknown",
 			},

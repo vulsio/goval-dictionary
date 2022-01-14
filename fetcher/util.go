@@ -13,6 +13,7 @@ import (
 	"github.com/htcat/htcat"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"github.com/ulikunitz/xz"
 	"github.com/vulsio/goval-dictionary/util"
 	"golang.org/x/xerrors"
 )
@@ -21,6 +22,7 @@ type fetchRequest struct {
 	target       string
 	url          string
 	bzip2        bool
+	xz           bool
 	concurrently bool
 }
 
@@ -128,6 +130,16 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 			return body, err
 		}
 		bytesBody = b.Bytes()
+	} else if req.xz {
+		var b bytes.Buffer
+		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("can not open xz file: %w", err)
+		}
+		if _, err := b.ReadFrom(r); err != nil {
+			return body, err
+		}
+		bytesBody = b.Bytes()
 	} else {
 		bytesBody = buf.Bytes()
 	}
@@ -177,6 +189,16 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 		bz := bzip2.NewReader(buf)
 		var b bytes.Buffer
 		if _, err := b.ReadFrom(bz); err != nil {
+			return nil, err
+		}
+		bytesBody = b.Bytes()
+	} else if req.xz {
+		r, err := xz.NewReader(buf)
+		if err != nil {
+			return nil, xerrors.Errorf("can not open xz file: %w", err)
+		}
+		var b bytes.Buffer
+		if _, err = b.ReadFrom(r); err != nil {
 			return nil, err
 		}
 		bytesBody = b.Bytes()

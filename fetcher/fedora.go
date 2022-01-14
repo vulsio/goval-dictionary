@@ -8,33 +8,9 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/ulikunitz/xz"
 	"github.com/vulsio/goval-dictionary/util"
 	"golang.org/x/xerrors"
 )
-
-// FedoraUpdateInfo has a list of Update Info
-type FedoraUpdateInfo struct {
-	UpdateList []FedoraUpdate `xml:"update"`
-}
-
-// FedoraUpdate has detailed data of Update Info
-type FedoraUpdate struct {
-	ID          string      `xml:"id" json:"id,omitempty"`
-	Issued      Issued      `xml:"issued" json:"issued,omitempty"`
-	Updated     Updated     `xml:"updated" json:"updated,omitempty"`
-	Severity    string      `xml:"severity" json:"severity,omitempty"`
-	Description string      `xml:"description" json:"description,omitempty"`
-	Packages    []Package   `xml:"pkglist>collection>package" json:"packages,omitempty"`
-	References  []Reference `xml:"references>reference" json:"references,omitempty"`
-	CVEIDs      []string    `json:"cveiDs,omitempty"`
-	Type        string      `xml:"type,attr" json:"type,omitempty"`
-}
-
-// Issued has issued at
-type Issued struct {
-	Date string `xml:"date,attr" json:"date,omitempty"`
-}
 
 func newFedoraFetchRequests(target []string) (reqs []fetchRequest) {
 	const t = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/x86_64/repodata/repomd.xml"
@@ -43,6 +19,7 @@ func newFedoraFetchRequests(target []string) (reqs []fetchRequest) {
 			target:       v,
 			url:          fmt.Sprintf(t, v),
 			bzip2:        false,
+			xz:           false,
 			concurrently: false,
 		})
 	}
@@ -50,7 +27,7 @@ func newFedoraFetchRequests(target []string) (reqs []fetchRequest) {
 }
 
 // FetchFedora fetch OVAL from Fedora
-func FetchUpdateInfosFedora(versions []string) (map[string]FedoraUpdateInfo, error) {
+func FetchUpdateInfosFedora(versions []string) (map[string]FedoraUpdates, error) {
 	feeds, err := fetchFeedFilesFedora(versions)
 	if err != nil {
 		return nil, err
@@ -98,8 +75,11 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 				}
 				u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
 				req := fetchRequest{
-					url:    u.String(),
-					target: r.Target,
+					url:          u.String(),
+					target:       r.Target,
+					bzip2:        false,
+					xz:           true,
+					concurrently: false,
 				}
 				updateInfoReqs = append(updateInfoReqs, req)
 				break
@@ -118,18 +98,14 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 	return results, nil
 }
 
-func parseFetchResultsFedora(results []FetchResult) (map[string]FedoraUpdateInfo, error) {
-	updateInfos := make(map[string]FedoraUpdateInfo, len(results))
+func parseFetchResultsFedora(results []FetchResult) (map[string]FedoraUpdates, error) {
+	updateInfos := make(map[string]FedoraUpdates, len(results))
 	for _, r := range results {
-		reader, err := xz.NewReader(bytes.NewBuffer(r.Body))
-		if err != nil {
-			return nil, xerrors.Errorf("Failed to decompress updateInfo. err: %w", err)
-		}
-		var updateInfo FedoraUpdateInfo
-		if err := xml.NewDecoder(reader).Decode(&updateInfo); err != nil {
+		var updateInfo FedoraUpdates
+		if err := xml.NewDecoder(bytes.NewReader(r.Body)).Decode(&updateInfo); err != nil {
 			return nil, err
 		}
-		var securityUpdate []FedoraUpdate
+		var securityUpdate []FedoraUpdateInfo
 		for _, update := range updateInfo.UpdateList {
 			if update.Type == "security" {
 				cveIDs := []string{}

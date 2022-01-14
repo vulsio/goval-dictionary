@@ -10,7 +10,7 @@ import (
 )
 
 // ConvertFedoraToModel Convert OVAL to models
-func ConvertFedoraToModel(data *fetcher.FedoraUpdateInfo) (defs []Definition) {
+func ConvertFedoraToModel(data *fetcher.FedoraUpdates) (defs []Definition) {
 	for _, update := range data.UpdateList {
 		if strings.Contains(update.Description, "** REJECT **") {
 			continue

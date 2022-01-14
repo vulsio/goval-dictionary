@@ -10,8 +10,8 @@ import (
 )
 
 // ConvertAmazonToModel Convert OVAL to models
-func ConvertAmazonToModel(data *fetcher.UpdateInfo) (defs []Definition) {
-	for _, alas := range data.ALASList {
+func ConvertAmazonToModel(data *fetcher.AmazonUpdates) (defs []Definition) {
+	for _, alas := range data.UpdateList {
 		if strings.Contains(alas.Description, "** REJECT **") {
 			continue
 		}

@@ -24,7 +24,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 			target:       v,
 			url:          fmt.Sprintf(t, name),
 			concurrently: true,
-			bzip2:        true,
+			mimeType:     mimeTypeBzip2,
 		})
 	}
 	return

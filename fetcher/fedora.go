@@ -18,8 +18,7 @@ func newFedoraFetchRequests(target []string) (reqs []fetchRequest) {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
 			url:          fmt.Sprintf(t, v),
-			bzip2:        false,
-			xz:           false,
+			mimeType:     mimeTypeXml,
 			concurrently: false,
 		})
 	}
@@ -77,8 +76,7 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 				req := fetchRequest{
 					url:          u.String(),
 					target:       r.Target,
-					bzip2:        false,
-					xz:           true,
+					mimeType:     mimeTypeXz,
 					concurrently: false,
 				}
 				updateInfoReqs = append(updateInfoReqs, req)
@@ -110,12 +108,13 @@ func parseFetchResultsFedora(results []FetchResult) (map[string]FedoraUpdates, e
 			if update.Type == "security" {
 				cveIDs := []string{}
 				for _, ref := range update.References {
-					id := util.CveIDPattern.FindString(ref.Title)
-					if id != "" {
-						cveIDs = append(cveIDs, id)
+					id := util.CveIDPattern.FindAllString(ref.Title, -1)
+					if id != nil {
+						cveIDs = append(cveIDs, id...)
 					}
 				}
 				if len(cveIDs) != 0 {
+					cveIDs = util.UniqueStrings(cveIDs)
 					update.CVEIDs = cveIDs
 					securityUpdate = append(securityUpdate, update)
 				}

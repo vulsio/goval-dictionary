@@ -9,8 +9,8 @@ import (
 func newOracleFetchRequests() (reqs []fetchRequest) {
 	const t = "https://linux.oracle.com/security/oval/com.oracle.elsa-all.xml.bz2"
 	reqs = append(reqs, fetchRequest{
-		url:   t,
-		bzip2: true,
+		url:      t,
+		mimeType: mimeTypeBzip2,
 	})
 	return
 }

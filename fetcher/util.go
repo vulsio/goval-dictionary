@@ -18,11 +18,31 @@ import (
 	"golang.org/x/xerrors"
 )
 
+type mimeType int
+
+const (
+	mimeTypeXml mimeType = iota
+	mimeTypeBzip2
+	mimeTypeXz
+)
+
+func (m mimeType) String() string {
+	switch m {
+	case mimeTypeXml:
+		return "xml"
+	case mimeTypeBzip2:
+		return "bzip2"
+	case mimeTypeXz:
+		return "xz"
+	default:
+		return "Unknown"
+	}
+}
+
 type fetchRequest struct {
 	target       string
 	url          string
-	bzip2        bool
-	xz           bool
+	mimeType     mimeType
 	concurrently bool
 }
 
@@ -124,13 +144,16 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 	}
 
 	var bytesBody []byte
-	if req.bzip2 {
+	switch req.mimeType {
+	case mimeTypeXml:
+		bytesBody = buf.Bytes()
+	case mimeTypeBzip2:
 		var b bytes.Buffer
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
 			return body, err
 		}
 		bytesBody = b.Bytes()
-	} else if req.xz {
+	case mimeTypeXz:
 		var b bytes.Buffer
 		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
@@ -140,8 +163,6 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 			return body, err
 		}
 		bytesBody = b.Bytes()
-	} else {
-		bytesBody = buf.Bytes()
 	}
 
 	return bytesBody, nil
@@ -185,14 +206,17 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	}
 
 	var bytesBody []byte
-	if req.bzip2 {
+	switch req.mimeType {
+	case mimeTypeXml:
+		bytesBody = buf.Bytes()
+	case mimeTypeBzip2:
 		bz := bzip2.NewReader(buf)
 		var b bytes.Buffer
 		if _, err := b.ReadFrom(bz); err != nil {
 			return nil, err
 		}
 		bytesBody = b.Bytes()
-	} else if req.xz {
+	case mimeTypeXz:
 		r, err := xz.NewReader(buf)
 		if err != nil {
 			return nil, xerrors.Errorf("can not open xz file: %w", err)
@@ -202,8 +226,6 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 			return nil, err
 		}
 		bytesBody = b.Bytes()
-	} else {
-		bytesBody = buf.Bytes()
 	}
 
 	return bytesBody, nil

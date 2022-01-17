@@ -74,3 +74,15 @@ func SetLogger(logToFile bool, logDir string, debug, logJSON bool) error {
 	log15.Root().SetHandler(handler)
 	return nil
 }
+
+func UniqueStrings(s []string) []string {
+	m := make(map[string]struct{}, len(s))
+	for _, v := range s {
+		m[v] = struct{}{}
+	}
+	uniq := make([]string, 0, len(m))
+	for v := range m {
+		uniq = append(uniq, v)
+	}
+	return uniq
+}

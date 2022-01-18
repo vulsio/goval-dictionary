@@ -71,7 +71,7 @@ def diff_response(args: Tuple[str, str, str, str, str]):
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', choices=['cveid', 'package'],
                     help='Specify the mode to test.')
-parser.add_argument('ostype', choices=['alpine', 'amazon', 'debian', 'oracle', 'redhat', 'suse', 'ubuntu'],
+parser.add_argument('ostype', choices=['alpine', 'amazon', 'debian', 'oracle', 'redhat', 'suse', 'ubuntu', 'fedora'],
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('--arch', default="", choices=['x86_64', 'i386', 'ia64', 'i686', 'sparc64', 'aarch64', 'noarch'],
                     help='Specify the Architecture to be started in server mode when testing.')
@@ -181,6 +181,11 @@ elif args.ostype == "suse":
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError
+elif args.ostype == 'fedora':
+    if len(list(set(args.release) - set(['32', '33', '34', '35']))) > 0:
+        logger.error(
+            f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
 else:
     logger.error(
         f'Failed to diff_response..., err: This OS type({args[1]}) does not support test mode(cveid)')

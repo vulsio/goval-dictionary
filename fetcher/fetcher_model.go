@@ -1,6 +1,11 @@
 package fetcher
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"fmt"
+	"golang.org/x/xerrors"
+	"strings"
+)
 
 // RepoMd has repomd data
 type RepoMd struct {
@@ -81,11 +86,96 @@ type AmazonUpdates struct {
 // FedoraUpdate has detailed data of FedoraUpdates
 type FedoraUpdateInfo struct {
 	UpdateInfo
-	Issued Issued `xml:"issued" json:"issued,omitempty"`
-	Type   string `xml:"type,attr" json:"type,omitempty"`
+	Title           string `xml:"title" json:"title,omitempty"`
+	Issued          Issued `xml:"issued" json:"issued,omitempty"`
+	Type            string `xml:"type,attr" json:"type,omitempty"`
+	ModularityLabel string `json:"modularity_label,omitempty"`
 }
 
 // FedoraUpdates has a list of Update Info
 type FedoraUpdates struct {
 	UpdateList []FedoraUpdateInfo `xml:"update"`
+}
+
+// FedoraModuleInfo has a data of modules.yaml
+type FedoraModuleInfo struct {
+	Version int `yaml:"version"`
+	Data    struct {
+		Name      string `yaml:"name"`
+		Stream    string `yaml:"stream"`
+		Version   int64  `yaml:"version"`
+		Context   string `yaml:"context"`
+		Arch      string `yaml:"arch"`
+		Artifacts struct {
+			Rpms []Rpm `yaml:"rpms"`
+		} `yaml:"artifacts"`
+	} `yaml:"data"`
+}
+
+// ConvertToUpdateInfoTitle generates file name from data of modules.yaml
+func (f FedoraModuleInfo) ConvertToUpdateInfoTitle() string {
+	return fmt.Sprintf("%s-%s-%d.%s", f.Data.Name, f.Data.Stream, f.Data.Version, f.Data.Context)
+}
+
+// ConvertToModularityLabel generates modularity_label from data of modules.yaml
+func (f FedoraModuleInfo) ConvertToModularityLabel() string {
+	return fmt.Sprintf("%s:%s:%d:%s", f.Data.Name, f.Data.Stream, f.Data.Version, f.Data.Context)
+}
+
+// Rpm is a package name of data/artifacts/rpms in modules.yaml
+type Rpm string
+
+// NewPackageFromRpm generates Package{} by parsing package name
+func (r Rpm) NewPackageFromRpm() (Package, error) {
+	filename := strings.TrimSuffix(string(r), ".rpm")
+
+	archIndex := strings.LastIndex(filename, ".")
+	if archIndex == -1 {
+		return Package{}, xerrors.Errorf("failed to parse arch from filename: %s", filename)
+	}
+	arch := filename[archIndex+1:]
+
+	relIndex := strings.LastIndex(filename[:archIndex], "-")
+	if relIndex == -1 {
+		return Package{}, xerrors.Errorf("failed to parse release from filename: %s", filename)
+	}
+	rel := filename[relIndex+1 : archIndex]
+
+	verIndex := strings.LastIndex(filename[:relIndex], "-")
+	if verIndex == -1 {
+		return Package{}, xerrors.Errorf("failed to parse version from filename: %s", filename)
+	}
+	ver := filename[verIndex+1 : relIndex]
+
+	epochIndex := strings.Index(ver, ":")
+	var epoch string
+	if epochIndex == -1 {
+		epoch = "0"
+	} else {
+		epoch = ver[:epochIndex]
+		ver = ver[epochIndex+1:]
+	}
+
+	name := filename[:verIndex]
+	pkg := Package{
+		Name:     name,
+		Epoch:    epoch,
+		Version:  ver,
+		Release:  rel,
+		Arch:     arch,
+		Filename: filename,
+	}
+	return pkg, nil
+}
+
+type fedoraModuleInfosPerVersion map[string]fedoraModuleInfosPerPackage
+
+type fedoraModuleInfosPerPackage map[string]FedoraModuleInfo
+
+type fedoraUpdatesPerVersion map[string]*FedoraUpdates
+
+func (source *fedoraUpdatesPerVersion) merge(target *fedoraUpdatesPerVersion) {
+	for k, v := range *source {
+		(*source)[k].UpdateList = append(v.UpdateList, (*target)[k].UpdateList...)
+	}
 }

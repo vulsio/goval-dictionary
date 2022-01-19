@@ -88,7 +88,7 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 		root := models.Root{
 			Family:      c.Fedora,
 			OSVersion:   k,
-			Definitions: models.ConvertFedoraToModel(&v),
+			Definitions: models.ConvertFedoraToModel(v),
 			Timestamp:   time.Now(),
 		}
 		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s. Inserting to DB", len(root.Definitions), k))

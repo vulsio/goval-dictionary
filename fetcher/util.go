@@ -3,6 +3,7 @@ package fetcher
 import (
 	"bytes"
 	"compress/bzip2"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +25,7 @@ const (
 	mimeTypeXml mimeType = iota
 	mimeTypeBzip2
 	mimeTypeXz
+	mimeTypeGzip
 )
 
 func (m mimeType) String() string {
@@ -163,6 +165,16 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 			return body, err
 		}
 		bytesBody = b.Bytes()
+	case mimeTypeGzip:
+		var b bytes.Buffer
+		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("can not open gzip file: %w", err)
+		}
+		if _, err := b.ReadFrom(r); err != nil {
+			return body, err
+		}
+		bytesBody = b.Bytes()
 	}
 
 	return bytesBody, nil
@@ -220,6 +232,16 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 		r, err := xz.NewReader(buf)
 		if err != nil {
 			return nil, xerrors.Errorf("can not open xz file: %w", err)
+		}
+		var b bytes.Buffer
+		if _, err = b.ReadFrom(r); err != nil {
+			return nil, err
+		}
+		bytesBody = b.Bytes()
+	case mimeTypeGzip:
+		r, err := gzip.NewReader(buf)
+		if err != nil {
+			return nil, xerrors.Errorf("can not open gzip file: %w", err)
 		}
 		var b bytes.Buffer
 		if _, err = b.ReadFrom(r); err != nil {

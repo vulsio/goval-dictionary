@@ -27,9 +27,10 @@ func ConvertFedoraToModel(data *fetcher.FedoraUpdates) (defs []Definition) {
 		packs := []Package{}
 		for _, pack := range update.Packages {
 			packs = append(packs, Package{
-				Name:    pack.Name,
-				Version: fmt.Sprintf("%s:%s-%s", pack.Epoch, pack.Version, pack.Release),
-				Arch:    pack.Arch,
+				Name:            pack.Name,
+				Version:         fmt.Sprintf("%s:%s-%s", pack.Epoch, pack.Version, pack.Release),
+				Arch:            pack.Arch,
+				ModularityLabel: update.ModularityLabel,
 			})
 		}
 

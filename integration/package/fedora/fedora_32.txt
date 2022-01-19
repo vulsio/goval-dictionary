@@ -303,6 +303,9 @@ freetype-debugsource
 freetype-demos
 freetype-demos-debuginfo
 freetype-devel
+galera
+galera-debuginfo
+galera-debugsource
 geary
 geary-debuginfo
 geary-debugsource
@@ -656,6 +659,7 @@ lucene-suggest
 mariadb
 mariadb-backup
 mariadb-backup-debuginfo
+mariadb-bench
 mariadb-common
 mariadb-connect-engine
 mariadb-connect-engine-debuginfo

@@ -13,6 +13,7 @@ botan2-devel
 botan2-doc
 bpftool
 bpftool-debuginfo
+btrbk
 cacti
 cacti-spine
 cacti-spine-debuginfo
@@ -536,6 +537,7 @@ systemd-udev-debuginfo
 tang
 tang-debuginfo
 tang-debugsource
+thefuck
 toxcore
 toxcore-debuginfo
 toxcore-debugsource

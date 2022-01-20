@@ -205,7 +205,7 @@ func isFedoraUpdateInfoTitleReliable(title string) bool {
 		return false
 	}
 	// detect unreliable CVE-ID like CVE-01-0001, CVE-aaa-bbb
-	return len(util.CveIDPattern.FindAllString(title, -1)) == len(util.IncorrectCveIDPattern.FindAllString(title, -1))
+	return len(util.CveIDPattern.FindAllString(title, -1)) == strings.Count(title, "CVE-")
 }
 
 func fetchModuleFeedFilesFedora(reqs []fetchRequest) ([]FetchResult, error) {

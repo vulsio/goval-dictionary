@@ -13,9 +13,6 @@ import (
 // CveIDPattern is regexp matches to `CVE-\d{4}-\d{4,}`
 var CveIDPattern = regexp.MustCompile(`CVE-\d{4}-\d{4,}`)
 
-// IncorrectCveIDPattern is regexp matches regexp `CVE-\S+` to detects incorrect IDs by comparing the number of matches with CVEIDPattern. 
-var IncorrectCveIDPattern = regexp.MustCompile(`CVE-\S+`)
-
 // GenWorkers generate workers
 func GenWorkers(num int) chan<- func() {
 	tasks := make(chan func())

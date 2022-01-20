@@ -177,7 +177,9 @@ type FedoraUpdatesPerVersion map[string]*FedoraUpdates
 
 func (source *FedoraUpdatesPerVersion) merge(target *FedoraUpdatesPerVersion) {
 	for k, v := range *source {
-		(*source)[k].UpdateList = append(v.UpdateList, (*target)[k].UpdateList...)
+		if list, ok := (*target)[k]; ok {
+			(*source)[k].UpdateList = append(v.UpdateList, list.UpdateList...)
+		}
 	}
 }
 

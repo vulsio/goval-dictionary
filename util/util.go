@@ -10,6 +10,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// CveIDPattern is regexp matches to `(CVE-\d{4}-\d{4,})`
 var CveIDPattern = regexp.MustCompile(`(CVE-\d{4}-\d{4,})`)
 
 // GenWorkers generate workers
@@ -75,6 +76,7 @@ func SetLogger(logToFile bool, logDir string, debug, logJSON bool) error {
 	return nil
 }
 
+// UniqueStrings eliminates duplication from []string
 func UniqueStrings(s []string) []string {
 	m := make(map[string]struct{}, len(s))
 	for _, v := range s {

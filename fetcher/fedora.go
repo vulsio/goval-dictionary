@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/inconshreveable/log15"
@@ -15,44 +15,52 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// FetchFedora fetch OVAL from Fedora
-func FetchUpdateInfosFedora(versions []string) (fedoraUpdatesPerVersion, error) {
+// FetchUpdateInfosFedora fetch OVAL from Fedora
+func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) {
 	reqs, moduleReqs := newFedoraFetchRequests(versions)
 	results, err := fetchEverythingFedora(reqs)
 	if err != nil {
 		return nil, xerrors.Errorf("fetchEverythingFedora: %w", err)
 	}
 
-	moduleResults, err := fetchModulesFedora(moduleReqs)
-	if err != nil {
-		return nil, xerrors.Errorf("fetchModulesFedora: %w", err)
+	for _, reqs := range moduleReqs {
+		moduleResults, err := fetchModulesFedora(reqs)
+		if err != nil {
+			return nil, xerrors.Errorf("fetchModulesFedora: %w", err)
+		}
+		results.merge(&moduleResults)
 	}
-	results.merge(&moduleResults)
 
 	return results, nil
 }
 
-func newFedoraFetchRequests(target []string) (reqs, moduleReqs []fetchRequest) {
+func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs [][]fetchRequest) {
 	const href = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/x86_64/repodata/repomd.xml"
-	const moduleHref = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/x86_64/repodata/repomd.xml"
+	const moduleHref = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
+	moduleArches := []string{"x86_64", "aarch64"}
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
 			url:          fmt.Sprintf(href, v),
-			mimeType:     mimeTypeXml,
-			concurrently: false,
+			mimeType:     mimeTypeXML,
+			concurrently: true,
 		})
-		moduleReqs = append(moduleReqs, fetchRequest{
-			target:       v,
-			url:          fmt.Sprintf(moduleHref, v),
-			mimeType:     mimeTypeXml,
-			concurrently: false,
-		})
+	}
+	for i, arch := range moduleArches {
+		moduleReqs = append(moduleReqs, []fetchRequest{})
+		for _, v := range target {
+			moduleReqs[i] = append(moduleReqs[i], fetchRequest{
+				target:       v,
+				url:          fmt.Sprintf(moduleHref, v, arch),
+				mimeType:     mimeTypeXML,
+				concurrently: true,
+			})
+		}
 	}
 	return
 }
 
-func fetchEverythingFedora(reqs []fetchRequest) (fedoraUpdatesPerVersion, error) {
+func fetchEverythingFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 	log15.Info("start fetch data from Everything/x86_64/repodata/repomd.xml")
 	feeds, err := fetchFeedFilesFedora(reqs)
 	if err != nil {
@@ -76,8 +84,8 @@ func fetchEverythingFedora(reqs []fetchRequest) (fedoraUpdatesPerVersion, error)
 	return results, nil
 }
 
-func fetchModulesFedora(reqs []fetchRequest) (fedoraUpdatesPerVersion, error) {
-	log15.Info("start fetch data from Modular/x86_64/repodata/repomd.xml")
+func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
+	log15.Info("start fetch data from repomd.xml of modular")
 	feeds, err := fetchModuleFeedFilesFedora(reqs)
 	if err != nil {
 		return nil, err
@@ -136,8 +144,7 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 	for _, r := range results {
 		var repoMd RepoMd
 		if err := xml.NewDecoder(bytes.NewBuffer(r.Body)).Decode(&repoMd); err != nil {
-			log15.Warn(fmt.Sprintf("Failed to decode repomd. Skip to fetch version %s", r.Target), "err", err)
-			continue
+			return nil, xerrors.Errorf("Failed to decode repomd of version %s: %w", r.Target, err)
 		}
 
 		for _, repo := range repoMd.RepoList {
@@ -151,7 +158,7 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 					url:          u.String(),
 					target:       r.Target,
 					mimeType:     mimeTypeXz,
-					concurrently: false,
+					concurrently: true,
 				}
 				updateInfoReqs = append(updateInfoReqs, req)
 				break
@@ -170,8 +177,11 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 	return results, nil
 }
 
-func parseFetchResultsFedora(results []FetchResult) (fedoraUpdatesPerVersion, error) {
-	updateInfos := make(fedoraUpdatesPerVersion, len(results))
+// variousFlawsPattern is regexp to detect title that omit the part of CVE-IDs by finding both `...` and `various flaws`
+var variousFlawsPattern = regexp.MustCompile(`.*\.\.\..*various flaws.*`)
+
+func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, error) {
+	updateInfos := make(FedoraUpdatesPerVersion, len(results))
 	for _, r := range results {
 		var updateInfo FedoraUpdates
 		if err := xml.NewDecoder(bytes.NewReader(r.Body)).Decode(&updateInfo); err != nil {
@@ -182,9 +192,18 @@ func parseFetchResultsFedora(results []FetchResult) (fedoraUpdatesPerVersion, er
 			if update.Type == "security" {
 				cveIDs := []string{}
 				for _, ref := range update.References {
-					id := util.CveIDPattern.FindAllString(ref.Title, -1)
-					if id != nil {
-						cveIDs = append(cveIDs, id...)
+					var ids []string
+					var err error
+					if variousFlawsPattern.MatchString(ref.Title) {
+						ids, err = fetchCveIDsFromBugzilla(ref.ID)
+						if err != nil {
+							return nil, err
+						}
+					} else {
+						ids = util.CveIDPattern.FindAllString(ref.Title, -1)
+					}
+					if ids != nil {
+						cveIDs = append(cveIDs, ids...)
 					}
 				}
 				if len(cveIDs) != 0 {
@@ -217,8 +236,7 @@ func fetchModulesYamlFedora(results []FetchResult) (fedoraModuleInfosPerVersion,
 	for _, r := range results {
 		var repoMd RepoMd
 		if err := xml.NewDecoder(bytes.NewBuffer(r.Body)).Decode(&repoMd); err != nil {
-			log15.Warn(fmt.Sprintf("Failed to decode repomd. Skip to fetch version %s", r.Target), "err", err)
-			continue
+			return nil, xerrors.Errorf("Failed to decode repomd of version %s: %w", r.Target, err)
 		}
 
 		for _, repo := range repoMd.RepoList {
@@ -232,7 +250,7 @@ func fetchModulesYamlFedora(results []FetchResult) (fedoraModuleInfosPerVersion,
 					url:          u.String(),
 					target:       r.Target,
 					mimeType:     mimeTypeGzip,
-					concurrently: false,
+					concurrently: true,
 				}
 				updateInfoReqs = append(updateInfoReqs, req)
 				break
@@ -275,7 +293,7 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 			{
 				var module FedoraModuleInfo
 				err := yaml.NewDecoder(strings.NewReader(strings.Join(contents, "\n"))).Decode(&module)
-				if err != nil && !errors.As(err, &yaml.TypeError{}) {
+				if err != nil {
 					return nil, xerrors.Errorf("failed to decode module info: %w", err)
 				}
 				if module.Version == 2 {
@@ -290,4 +308,49 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 	}
 
 	return modules, nil
+}
+
+func fetchCveIDsFromBugzilla(id string) ([]string, error) {
+	req := fetchRequest{
+		url: fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", id),
+	}
+	log15.Info("The list of CVE-IDs is omitted, Fetch ID list from bugzilla.redhat.com", "URL", req.url)
+	body, err := fetchFileWithUA(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var b bugzillaXML
+	if err = xml.Unmarshal(body, &b); err != nil {
+		return nil, xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", req.url, err)
+	}
+
+	var reqs []fetchRequest
+	for _, v := range b.Blocked {
+		req := fetchRequest{
+			url:          fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", v),
+			concurrently: true,
+		}
+		reqs = append(reqs, req)
+	}
+
+	results, err := fetchFeedFiles(reqs)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, result := range results {
+		var b bugzillaXML
+		if err = xml.Unmarshal(result.Body, &b); err != nil {
+			return nil, xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", req.url, err)
+		}
+
+		if b.Alias != "" {
+			ids = append(ids, b.Alias)
+		}
+	}
+
+	log15.Info(fmt.Sprintf("%d CVE-IDs fetched", len(ids)))
+	return ids, nil
 }

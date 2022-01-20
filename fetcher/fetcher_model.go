@@ -78,12 +78,12 @@ type UpdateInfo struct {
 	CVEIDs      []string    `json:"cveiDs,omitempty"`
 }
 
-// UpdateInfo has a list of ALAS
+// AmazonUpdates has a list of ALAS
 type AmazonUpdates struct {
 	UpdateList []UpdateInfo `xml:"update"`
 }
 
-// FedoraUpdate has detailed data of FedoraUpdates
+// FedoraUpdateInfo has detailed data of FedoraUpdates
 type FedoraUpdateInfo struct {
 	UpdateInfo
 	Title           string `xml:"title" json:"title,omitempty"`
@@ -172,10 +172,16 @@ type fedoraModuleInfosPerVersion map[string]fedoraModuleInfosPerPackage
 
 type fedoraModuleInfosPerPackage map[string]FedoraModuleInfo
 
-type fedoraUpdatesPerVersion map[string]*FedoraUpdates
+// FedoraUpdatesPerVersion is list of update info per Fedora versions
+type FedoraUpdatesPerVersion map[string]*FedoraUpdates
 
-func (source *fedoraUpdatesPerVersion) merge(target *fedoraUpdatesPerVersion) {
+func (source *FedoraUpdatesPerVersion) merge(target *FedoraUpdatesPerVersion) {
 	for k, v := range *source {
 		(*source)[k].UpdateList = append(v.UpdateList, (*target)[k].UpdateList...)
 	}
+}
+
+type bugzillaXML struct {
+	Blocked []string `xml:"bug>blocked" json:"blocked,omitempty"`
+	Alias   string   `xml:"bug>alias" json:"alias,omitempty"`
 }

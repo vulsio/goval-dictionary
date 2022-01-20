@@ -22,7 +22,7 @@ import (
 type mimeType int
 
 const (
-	mimeTypeXml mimeType = iota
+	mimeTypeXML mimeType = iota
 	mimeTypeBzip2
 	mimeTypeXz
 	mimeTypeGzip
@@ -30,7 +30,7 @@ const (
 
 func (m mimeType) String() string {
 	switch m {
-	case mimeTypeXml:
+	case mimeTypeXML:
 		return "xml"
 	case mimeTypeBzip2:
 		return "bzip2"
@@ -147,7 +147,7 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 
 	var bytesBody []byte
 	switch req.mimeType {
-	case mimeTypeXml:
+	case mimeTypeXML:
 		bytesBody = buf.Bytes()
 	case mimeTypeBzip2:
 		var b bytes.Buffer
@@ -219,7 +219,7 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 
 	var bytesBody []byte
 	switch req.mimeType {
-	case mimeTypeXml:
+	case mimeTypeXML:
 		bytesBody = buf.Bytes()
 	case mimeTypeBzip2:
 		bz := bzip2.NewReader(buf)

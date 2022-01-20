@@ -140,37 +140,16 @@ func fetchFeedFilesFedora(reqs []fetchRequest) ([]FetchResult, error) {
 
 func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 	log15.Info("start fetch updateinfo in repomd.xml")
-	var updateInfoReqs []fetchRequest
-	for _, r := range results {
-		var repoMd RepoMd
-		if err := xml.NewDecoder(bytes.NewBuffer(r.Body)).Decode(&repoMd); err != nil {
-			return nil, xerrors.Errorf("Failed to decode repomd of version %s: %w", r.Target, err)
-		}
-
-		for _, repo := range repoMd.RepoList {
-			if repo.Type == "updateinfo" {
-				u, err := url.Parse(r.URL)
-				if err != nil {
-					return nil, err
-				}
-				u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
-				req := fetchRequest{
-					url:          u.String(),
-					target:       r.Target,
-					mimeType:     mimeTypeXz,
-					concurrently: true,
-				}
-				updateInfoReqs = append(updateInfoReqs, req)
-				break
-			}
-		}
+	updateInfoReqs, err := extractInfoFromRepoMd(results, "updateinfo", mimeTypeXz)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(updateInfoReqs) == 0 {
 		return nil, fmt.Errorf("No updateinfo field in the repomd")
 	}
 
-	results, err := fetchFeedFiles(updateInfoReqs)
+	results, err = fetchFeedFiles(updateInfoReqs)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
@@ -232,37 +211,16 @@ func fetchModuleFeedFilesFedora(reqs []fetchRequest) ([]FetchResult, error) {
 
 func fetchModulesYamlFedora(results []FetchResult) (fedoraModuleInfosPerVersion, error) {
 	log15.Info("start fetch modules.yaml in repomd.xml")
-	var updateInfoReqs []fetchRequest
-	for _, r := range results {
-		var repoMd RepoMd
-		if err := xml.NewDecoder(bytes.NewBuffer(r.Body)).Decode(&repoMd); err != nil {
-			return nil, xerrors.Errorf("Failed to decode repomd of version %s: %w", r.Target, err)
-		}
-
-		for _, repo := range repoMd.RepoList {
-			if repo.Type == "modules" {
-				u, err := url.Parse(r.URL)
-				if err != nil {
-					return nil, err
-				}
-				u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
-				req := fetchRequest{
-					url:          u.String(),
-					target:       r.Target,
-					mimeType:     mimeTypeGzip,
-					concurrently: true,
-				}
-				updateInfoReqs = append(updateInfoReqs, req)
-				break
-			}
-		}
+	updateInfoReqs, err := extractInfoFromRepoMd(results, "modules", mimeTypeGzip)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(updateInfoReqs) == 0 {
 		return nil, fmt.Errorf("No updateinfo field in the repomd")
 	}
 
-	results, err := fetchFeedFiles(updateInfoReqs)
+	results, err = fetchFeedFiles(updateInfoReqs)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
@@ -353,4 +311,33 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 
 	log15.Info(fmt.Sprintf("%d CVE-IDs fetched", len(ids)))
 	return ids, nil
+}
+
+func extractInfoFromRepoMd(results []FetchResult, rt string, mt mimeType) ([]fetchRequest, error) {
+	var updateInfoReqs []fetchRequest
+	for _, r := range results {
+		var repoMd RepoMd
+		if err := xml.NewDecoder(bytes.NewBuffer(r.Body)).Decode(&repoMd); err != nil {
+			return nil, xerrors.Errorf("Failed to decode repomd of version %s: %w", r.Target, err)
+		}
+
+		for _, repo := range repoMd.RepoList {
+			if repo.Type == rt {
+				u, err := url.Parse(r.URL)
+				if err != nil {
+					return nil, err
+				}
+				u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
+				req := fetchRequest{
+					url:          u.String(),
+					target:       r.Target,
+					mimeType:     mt,
+					concurrently: true,
+				}
+				updateInfoReqs = append(updateInfoReqs, req)
+				break
+			}
+		}
+	}
+	return updateInfoReqs, nil
 }

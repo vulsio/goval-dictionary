@@ -152,27 +152,27 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 	case mimeTypeBzip2:
 		var b bytes.Buffer
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
-			return body, err
+			return nil, xerrors.Errorf("Failed to open bzip2 file. err: %w", err)
 		}
 		bytesBody = b.Bytes()
 	case mimeTypeXz:
 		var b bytes.Buffer
 		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
-			return nil, xerrors.Errorf("can not open xz file: %w", err)
+			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
 		}
 		if _, err := b.ReadFrom(r); err != nil {
-			return body, err
+			return nil, xerrors.Errorf("Failed to read xz file. err: %w", err)
 		}
 		bytesBody = b.Bytes()
 	case mimeTypeGzip:
 		var b bytes.Buffer
 		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
-			return nil, xerrors.Errorf("can not open gzip file: %w", err)
+			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
 		}
 		if _, err := b.ReadFrom(r); err != nil {
-			return body, err
+			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
 		}
 		bytesBody = b.Bytes()
 	}
@@ -231,7 +231,7 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	case mimeTypeXz:
 		r, err := xz.NewReader(buf)
 		if err != nil {
-			return nil, xerrors.Errorf("can not open xz file: %w", err)
+			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
 		}
 		var b bytes.Buffer
 		if _, err = b.ReadFrom(r); err != nil {
@@ -241,7 +241,7 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 	case mimeTypeGzip:
 		r, err := gzip.NewReader(buf)
 		if err != nil {
-			return nil, xerrors.Errorf("can not open gzip file: %w", err)
+			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
 		}
 		var b bytes.Buffer
 		if _, err = b.ReadFrom(r); err != nil {

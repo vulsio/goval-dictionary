@@ -131,19 +131,19 @@ func (r Rpm) NewPackageFromRpm() (Package, error) {
 
 	archIndex := strings.LastIndex(filename, ".")
 	if archIndex == -1 {
-		return Package{}, xerrors.Errorf("failed to parse arch from filename: %s", filename)
+		return Package{}, xerrors.Errorf("Failed to parse arch from filename: %s", filename)
 	}
 	arch := filename[archIndex+1:]
 
 	relIndex := strings.LastIndex(filename[:archIndex], "-")
 	if relIndex == -1 {
-		return Package{}, xerrors.Errorf("failed to parse release from filename: %s", filename)
+		return Package{}, xerrors.Errorf("Failed to parse release from filename: %s", filename)
 	}
 	rel := filename[relIndex+1 : archIndex]
 
 	verIndex := strings.LastIndex(filename[:relIndex], "-")
 	if verIndex == -1 {
-		return Package{}, xerrors.Errorf("failed to parse version from filename: %s", filename)
+		return Package{}, xerrors.Errorf("Failed to parse version from filename: %s", filename)
 	}
 	ver := filename[verIndex+1 : relIndex]
 

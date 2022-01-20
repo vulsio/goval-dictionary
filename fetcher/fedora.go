@@ -20,13 +20,13 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 	reqs, moduleReqs := newFedoraFetchRequests(versions)
 	results, err := fetchEverythingFedora(reqs)
 	if err != nil {
-		return nil, xerrors.Errorf("fetchEverythingFedora: %w", err)
+		return nil, xerrors.Errorf("fetchEverythingFedora. err: %w", err)
 	}
 
 	for _, reqs := range moduleReqs {
 		moduleResults, err := fetchModulesFedora(reqs)
 		if err != nil {
-			return nil, xerrors.Errorf("fetchModulesFedora: %w", err)
+			return nil, xerrors.Errorf("fetchModulesFedora. err: %w", err)
 		}
 		results.merge(&moduleResults)
 	}
@@ -61,20 +61,20 @@ func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs []
 }
 
 func fetchEverythingFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
-	log15.Info("start fetch data from Everything/x86_64/repodata/repomd.xml")
+	log15.Info("start fetch data from repomd.xml of non-modular package")
 	feeds, err := fetchFeedFilesFedora(reqs)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch feed file, err: %w", err)
 	}
 
 	updates, err := fetchUpdateInfosFedora(feeds)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch updateinfo, err: %w", err)
 	}
 
 	results, err := parseFetchResultsFedora(updates)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to parse fetch results, err: %w", err)
 	}
 
 	for version, v := range results {
@@ -88,22 +88,22 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 	log15.Info("start fetch data from repomd.xml of modular")
 	feeds, err := fetchModuleFeedFilesFedora(reqs)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch feed file, err: %w", err)
 	}
 
 	updates, err := fetchUpdateInfosFedora(feeds)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch updateinfo, err: %w", err)
 	}
 
 	moduleYaml, err := fetchModulesYamlFedora(feeds)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch module info, err: %w", err)
 	}
 
 	results, err := parseFetchResultsFedora(updates)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to parse fetch results, err: %w", err)
 	}
 
 	for version, result := range results {
@@ -115,7 +115,7 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 				for _, rpm := range yml.Data.Artifacts.Rpms {
 					pkg, err := rpm.NewPackageFromRpm()
 					if err != nil {
-						return nil, err
+						return nil, xerrors.Errorf("Failed to build package info from rpm name, err: %w", err)
 					}
 					pkgs = append(pkgs, pkg)
 				}
@@ -129,7 +129,7 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 
 func fetchFeedFilesFedora(reqs []fetchRequest) ([]FetchResult, error) {
 	if len(reqs) == 0 {
-		return nil, fmt.Errorf("There are no versions to fetch")
+		return nil, xerrors.New("There are no versions to fetch")
 	}
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
@@ -142,7 +142,7 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 	log15.Info("start fetch updateinfo in repomd.xml")
 	updateInfoReqs, err := extractInfoFromRepoMd(results, "updateinfo", mimeTypeXz)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to extract updateinfo from xml, err: %w", err)
 	}
 
 	if len(updateInfoReqs) == 0 {
@@ -164,7 +164,7 @@ func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, er
 	for _, r := range results {
 		var updateInfo FedoraUpdates
 		if err := xml.NewDecoder(bytes.NewReader(r.Body)).Decode(&updateInfo); err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("Failed to decode XML, err: %w", err)
 		}
 		var securityUpdate []FedoraUpdateInfo
 		for _, update := range updateInfo.UpdateList {
@@ -176,7 +176,7 @@ func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, er
 					if variousFlawsPattern.MatchString(ref.Title) {
 						ids, err = fetchCveIDsFromBugzilla(ref.ID)
 						if err != nil {
-							return nil, err
+							return nil, xerrors.Errorf("Failed to fetch CVE-IDs from bugzilla, err: %w", err)
 						}
 					} else {
 						ids = util.CveIDPattern.FindAllString(ref.Title, -1)
@@ -200,7 +200,7 @@ func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, er
 
 func fetchModuleFeedFilesFedora(reqs []fetchRequest) ([]FetchResult, error) {
 	if len(reqs) == 0 {
-		return nil, fmt.Errorf("There are no versions to fetch")
+		return nil, xerrors.New("There are no versions to fetch")
 	}
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
@@ -213,7 +213,7 @@ func fetchModulesYamlFedora(results []FetchResult) (fedoraModuleInfosPerVersion,
 	log15.Info("start fetch modules.yaml in repomd.xml")
 	updateInfoReqs, err := extractInfoFromRepoMd(results, "modules", mimeTypeGzip)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to extract modules from xml, err: %w", err)
 	}
 
 	if len(updateInfoReqs) == 0 {
@@ -222,14 +222,14 @@ func fetchModulesYamlFedora(results []FetchResult) (fedoraModuleInfosPerVersion,
 
 	results, err = fetchFeedFiles(updateInfoReqs)
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to fetch. err: %w", err)
+		return nil, xerrors.Errorf("Failed to fetch modules.yaml, err: %w", err)
 	}
 
 	yamls := make(fedoraModuleInfosPerVersion, len(results))
 	for _, v := range results {
 		m, err := parseModulesYamlFedora(v.Body)
 		if err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("Failed to parse modules.yaml, err: %w", err)
 		}
 		yamls[v.Target] = m
 	}
@@ -252,7 +252,7 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 				var module FedoraModuleInfo
 				err := yaml.NewDecoder(strings.NewReader(strings.Join(contents, "\n"))).Decode(&module)
 				if err != nil {
-					return nil, xerrors.Errorf("failed to decode module info: %w", err)
+					return nil, xerrors.Errorf("failed to decode module info. err: %w", err)
 				}
 				if module.Version == 2 {
 					modules[module.ConvertToUpdateInfoTitle()] = module
@@ -275,7 +275,7 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	log15.Info("The list of CVE-IDs is omitted, Fetch ID list from bugzilla.redhat.com", "URL", req.url)
 	body, err := fetchFileWithUA(req)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch CVE-ID list, err: %w", err)
 	}
 
 	var b bugzillaXML
@@ -294,7 +294,7 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 
 	results, err := fetchFeedFiles(reqs)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("Failed to fetch CVE-IDs, err: %w", err)
 	}
 
 	var ids []string
@@ -318,14 +318,14 @@ func extractInfoFromRepoMd(results []FetchResult, rt string, mt mimeType) ([]fet
 	for _, r := range results {
 		var repoMd RepoMd
 		if err := xml.NewDecoder(bytes.NewBuffer(r.Body)).Decode(&repoMd); err != nil {
-			return nil, xerrors.Errorf("Failed to decode repomd of version %s: %w", r.Target, err)
+			return nil, xerrors.Errorf("Failed to decode repomd of version %s. err: %w", r.Target, err)
 		}
 
 		for _, repo := range repoMd.RepoList {
 			if repo.Type == rt {
 				u, err := url.Parse(r.URL)
 				if err != nil {
-					return nil, err
+					return nil, xerrors.Errorf("Failed to parse URL in XML. err: %w", err)
 				}
 				u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
 				req := fetchRequest{

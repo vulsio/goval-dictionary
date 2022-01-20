@@ -173,29 +173,39 @@ func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, er
 				for _, ref := range update.References {
 					var ids []string
 					var err error
-					if variousFlawsPattern.MatchString(ref.Title) {
+					if isFedoraUpdateInfoTitleReliable(ref.Title) {
+						ids = util.CveIDPattern.FindAllString(ref.Title, -1)
+						if ids == nil {
+							// tyr to correct CVE-ID from description, if title has no CVE-ID 
+							// NOTE: If this implementation causes the result of collecting a lot of incorrect information, fix to remove it
+							ids = util.CveIDPattern.FindAllString(update.Description, -1)
+						}
+					} else {
 						ids, err = fetchCveIDsFromBugzilla(ref.ID)
 						if err != nil {
 							return nil, xerrors.Errorf("Failed to fetch CVE-IDs from bugzilla, err: %w", err)
 						}
-					} else {
-						ids = util.CveIDPattern.FindAllString(ref.Title, -1)
 					}
 					if ids != nil {
 						cveIDs = append(cveIDs, ids...)
 					}
 				}
-				if len(cveIDs) != 0 {
-					cveIDs = util.UniqueStrings(cveIDs)
-					update.CVEIDs = cveIDs
-					securityUpdate = append(securityUpdate, update)
-				}
+				update.CVEIDs = util.UniqueStrings(cveIDs)
+				securityUpdate = append(securityUpdate, update)
 			}
 		}
 		updateInfo.UpdateList = securityUpdate
 		updateInfos[r.Target] = &updateInfo
 	}
 	return updateInfos, nil
+}
+
+func isFedoraUpdateInfoTitleReliable(title string) bool {
+	if variousFlawsPattern.MatchString(title) {
+		return false
+	}
+	// detect unreliable CVE-ID like CVE-01-0001, CVE-aaa-bbb
+	return len(util.CveIDPattern.FindAllString(title, -1)) == len(util.IncorrectCveIDPattern.FindAllString(title, -1))
 }
 
 func fetchModuleFeedFilesFedora(reqs []fetchRequest) ([]FetchResult, error) {
@@ -271,8 +281,9 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	req := fetchRequest{
 		url: fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", id),
+		logSuppressed: true,
 	}
-	log15.Info("The list of CVE-IDs is omitted, Fetch ID list from bugzilla.redhat.com", "URL", req.url)
+	log15.Info("Fetch CVE-ID list from bugzilla.redhat.com", "URL", req.url)
 	body, err := fetchFileWithUA(req)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to fetch CVE-ID list, err: %w", err)
@@ -288,6 +299,7 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 		req := fetchRequest{
 			url:          fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", v),
 			concurrently: true,
+			logSuppressed: true,
 		}
 		reqs = append(reqs, req)
 	}

@@ -71,6 +71,17 @@ fail2ban-shorewall
 fail2ban-shorewall-lite
 fail2ban-systemd
 fail2ban-tests
+flatpak
+flatpak-debuginfo
+flatpak-debugsource
+flatpak-devel
+flatpak-libs
+flatpak-libs-debuginfo
+flatpak-selinux
+flatpak-session-helper
+flatpak-session-helper-debuginfo
+flatpak-tests
+flatpak-tests-debuginfo
 freerdp
 freerdp-debuginfo
 freerdp-debugsource
@@ -300,6 +311,9 @@ libzapojit
 libzapojit-debuginfo
 libzapojit-debugsource
 libzapojit-devel
+log4j
+log4j-jcl
+log4j-slf4j
 mariadb
 mariadb-backup
 mariadb-backup-debuginfo

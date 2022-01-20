@@ -46,6 +46,7 @@ type fetchRequest struct {
 	url          string
 	mimeType     mimeType
 	concurrently bool
+	logSuppressed bool
 }
 
 // FetchResult has url and OVAL definitions
@@ -53,6 +54,7 @@ type FetchResult struct {
 	Target string
 	URL    string
 	Body   []byte
+	LogSuppressed bool
 }
 
 func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
@@ -64,7 +66,9 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 	defer close(errChan)
 
 	for _, r := range reqs {
-		log15.Info("Fetching... ", "URL", r.url)
+		if !r.logSuppressed {
+			log15.Info("Fetching... ", "URL", r.url)
+		}
 	}
 
 	go func() {
@@ -96,6 +100,7 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 					Target: req.target,
 					URL:    req.url,
 					Body:   body,
+					LogSuppressed: req.logSuppressed,
 				}
 			}
 			return
@@ -109,14 +114,15 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 		select {
 		case res := <-resChan:
 			results = append(results, res)
-			log15.Info("Fetched... ", "URL", res.URL)
+			if !res.LogSuppressed {
+				log15.Info("Fetched... ", "URL", res.URL)
+			}
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:
 			return results, fmt.Errorf("Timeout Fetching")
 		}
 	}
-	log15.Info("Finished fetching OVAL definitions")
 	if 0 < len(errs) {
 		return results, fmt.Errorf("%s", errs)
 	}

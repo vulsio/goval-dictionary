@@ -176,7 +176,7 @@ func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, er
 					if isFedoraUpdateInfoTitleReliable(ref.Title) {
 						ids = util.CveIDPattern.FindAllString(ref.Title, -1)
 						if ids == nil {
-							// tyr to correct CVE-ID from description, if title has no CVE-ID 
+							// tyr to correct CVE-ID from description, if title has no CVE-ID
 							// NOTE: If this implementation causes the result of collecting a lot of incorrect information, fix to remove it
 							ids = util.CveIDPattern.FindAllString(update.Description, -1)
 						}
@@ -280,7 +280,7 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 
 func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	req := fetchRequest{
-		url: fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", id),
+		url:           fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", id),
 		logSuppressed: true,
 	}
 	log15.Info("Fetch CVE-ID list from bugzilla.redhat.com", "URL", req.url)
@@ -297,8 +297,8 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	var reqs []fetchRequest
 	for _, v := range b.Blocked {
 		req := fetchRequest{
-			url:          fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", v),
-			concurrently: true,
+			url:           fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", v),
+			concurrently:  true,
 			logSuppressed: true,
 		}
 		reqs = append(reqs, req)

@@ -42,18 +42,18 @@ func (m mimeType) String() string {
 }
 
 type fetchRequest struct {
-	target       string
-	url          string
-	mimeType     mimeType
-	concurrently bool
+	target        string
+	url           string
+	mimeType      mimeType
+	concurrently  bool
 	logSuppressed bool
 }
 
 // FetchResult has url and OVAL definitions
 type FetchResult struct {
-	Target string
-	URL    string
-	Body   []byte
+	Target        string
+	URL           string
+	Body          []byte
 	LogSuppressed bool
 }
 
@@ -97,9 +97,9 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 					return
 				}
 				resChan <- FetchResult{
-					Target: req.target,
-					URL:    req.url,
-					Body:   body,
+					Target:        req.target,
+					URL:           req.url,
+					Body:          body,
 					LogSuppressed: req.logSuppressed,
 				}
 			}

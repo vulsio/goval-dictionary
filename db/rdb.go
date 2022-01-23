@@ -145,15 +145,15 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 
 	switch family {
 	case c.Debian:
-		q = q.Preload("Debian").Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+		q = q.Preload("Debian").Where("packages.name = ?", packName).Preload("AffectedPacks")
 	case c.Amazon, c.Oracle:
 		if arch == "" {
-			q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+			q = q.Where("packages.name = ?", packName).Preload("AffectedPacks")
 		} else {
-			q = q.Where("`packages`.`name` = ? AND `packages`.`arch` = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
+			q = q.Where("packages.name = ? AND packages.arch = ?", packName, arch).Preload("AffectedPacks", "arch = ?", arch)
 		}
 	default:
-		q = q.Where("`packages`.`name` = ?", packName).Preload("AffectedPacks")
+		q = q.Where("packages.name = ?", packName).Preload("AffectedPacks")
 	}
 
 	// Specify limit number to avoid `too many SQL variable`.

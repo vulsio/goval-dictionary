@@ -75,7 +75,7 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 	case c.Debian:
 		osVer = major(osVer)
 	case c.Ubuntu:
-		osVer = major(osVer)
+		osVer = majorDotMinor(osVer)
 	case c.Raspbian:
 		family = c.Debian
 		osVer = major(osVer)

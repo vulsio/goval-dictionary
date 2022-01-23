@@ -41,21 +41,21 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		{
 			in: args{
 				family: config.Ubuntu,
-				osVer:  "20",
+				osVer:  "20.04",
 			},
 			expected: args{
 				family: config.Ubuntu,
-				osVer:  "20",
+				osVer:  "20.04",
 			},
 		},
 		{
 			in: args{
 				family: config.Ubuntu,
-				osVer:  "20.04",
+				osVer:  "20.04.3",
 			},
 			expected: args{
 				family: config.Ubuntu,
-				osVer:  "20",
+				osVer:  "20.04",
 			},
 		},
 		{

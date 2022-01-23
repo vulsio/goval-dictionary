@@ -101,11 +101,11 @@ clean-integration:
 
 fetch-rdb:
 	integration/goval-dict.old fetch debian --dbpath=$(PWD)/integration/oval.old.sqlite3 7 8 9 10 11
-	integration/goval-dict.old fetch ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14 16 18 19 20 21 22
+	integration/goval-dict.old fetch ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14.04 16.04 18.04 19.10 20.04 20.10 21.04 21.10 22.04 22.10
 	integration/goval-dict.old fetch redhat --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8 9
 	integration/goval-dict.old fetch oracle --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8 9
 	integration/goval-dict.old fetch amazon --dbpath=$(PWD)/integration/oval.old.sqlite3 1 2 2022 2023
-	integration/goval-dict.old fetch alpine --dbpath=$(PWD)/integration/oval.old.sqlite3 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16
+	integration/goval-dict.old fetch alpine --dbpath=$(PWD)/integration/oval.old.sqlite3 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type suse-enterprise-server 9 10 11 12 15
@@ -113,11 +113,11 @@ fetch-rdb:
 	integration/goval-dict.old fetch fedora --dbpath=$(PWD)/integration/oval.old.sqlite3 32 33 34 35
 
 	integration/goval-dict.new fetch debian --dbpath=$(PWD)/integration/oval.new.sqlite3 7 8 9 10 11
-	integration/goval-dict.new fetch ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14 16 18 19 20 21 22
+	integration/goval-dict.new fetch ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14.04 16.04 18.04 19.10 20.04 20.10 21.04 21.10 22.04 22.10
 	integration/goval-dict.new fetch redhat --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8 9
 	integration/goval-dict.new fetch oracle --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8 9
 	integration/goval-dict.new fetch amazon --dbpath=$(PWD)/integration/oval.new.sqlite3 1 2 2022 2023
-	integration/goval-dict.new fetch alpine --dbpath=$(PWD)/integration/oval.new.sqlite3 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16
+	integration/goval-dict.new fetch alpine --dbpath=$(PWD)/integration/oval.new.sqlite3 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type suse-enterprise-server 9 10 11 12 15
@@ -129,11 +129,11 @@ fetch-redis:
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
 
 	integration/goval-dict.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10 11
-	integration/goval-dict.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20 21 22
+	integration/goval-dict.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14.04 16.04 18.04 19.10 20.04 20.10 21.04 21.10 22.04 22.10
 	integration/goval-dict.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8 9
 	integration/goval-dict.old fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8 9
 	integration/goval-dict.old fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 1 2 2022 2023
-	integration/goval-dict.old fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16
+	integration/goval-dict.old fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-server 9 10 11 12 15
@@ -141,11 +141,11 @@ fetch-redis:
 	integration/goval-dict.old fetch fedora --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 32 33 34 35
 
 	integration/goval-dict.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 7 8 9 10 11
-	integration/goval-dict.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14 16 18 19 20 21 22
+	integration/goval-dict.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14.04 16.04 18.04 19.10 20.04 20.10 21.04 21.10 22.04 22.10
 	integration/goval-dict.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8 9
 	integration/goval-dict.new fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8 9
 	integration/goval-dict.new fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 1 2 2022 2023
-	integration/goval-dict.new fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16
+	integration/goval-dict.new fetch alpine --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type suse-enterprise-server 9 10 11 12 15
@@ -154,14 +154,14 @@ fetch-redis:
 
 diff-cveid:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid debian 7 8 9 10 11
-	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid ubuntu 14 16 18 19 20 21 22
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid ubuntu 14.04 16.04 18.04 19.10 20.04 20.10 21.04 21.10 22.04 22.10
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid redhat 5 6 7 8 9
-	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid amazon 1 2 2022
-	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid amazon 1 2 2022
-	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch aarch64 cveid amazon 2 2022
-	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid oracle 5 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid oracle 5 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid amazon 1 2 2022 2023
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid amazon 1 2 2022 2023
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch aarch64 cveid amazon 2 2022 2023
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type opensuse.leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.linux.enterprise.server 9 10 11 12 15
@@ -171,14 +171,14 @@ diff-cveid:
 
 diff-package:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package debian 7 8 9 10 11
-	@ python integration/diff_server_mode.py --sample-rate 0.01 package ubuntu 14 16 18 19 20 21 22
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package ubuntu 14.04 16.04 18.04 19.10 20.04 20.10 21.04 21.10 22.04 22.10
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package redhat 5 6 7 8 9
-	@ python integration/diff_server_mode.py --sample-rate 0.01 package oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package oracle 5 6 7 8
-	@ python integration/diff_server_mode.py --sample-rate 0.01 package amazon 1 2 2022
-	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package amazon 1 2 2022
-	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch aarch64 package amazon 2 2022
-	@ python integration/diff_server_mode.py --sample-rate 0.01 package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package oracle 5 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package oracle 5 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package amazon 1 2 2022 2023
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package amazon 1 2 2022 2023
+	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch aarch64 package amazon 2 2022 2023
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type opensuse.leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.linux.enterprise.server 9 10 11 12 15

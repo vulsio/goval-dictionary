@@ -2,6 +2,7 @@ package ubuntu
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
@@ -30,29 +31,84 @@ func newFetchRequests(target []string) (reqs []util.FetchRequest) {
 	return
 }
 
-func getOVALURL(major string) string {
-	const main = "https://security-metadata.canonical.com/oval/com.ubuntu.%s.cve.oval.xml.bz2"
-	const sub = "https://people.canonical.com/~ubuntu-security/oval/com.ubuntu.%s.cve.oval.xml.bz2"
+func getOVALURL(version string) string {
+	major, minor, ok := strings.Cut(version, ".")
+	if !ok {
+		return "unknown"
+	}
 
+	const main = "https://security-metadata.canonical.com/oval/oci.com.ubuntu.%s.cve.oval.xml.bz2"
+	const sub = "https://people.canonical.com/~ubuntu-security/oval/oci.com.ubuntu.%s.cve.oval.xml.bz2"
 	switch major {
-	case "12":
+	case "4", "5", "6", "7", "8", "9", "10", "11", "12":
 		return "unsupported"
 	case "14":
-		return fmt.Sprintf(main, config.Ubuntu14)
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu1404)
+		case "10":
+			return "unsupported"
+		default:
+			return "unknown"
+		}
 	case "16":
-		return fmt.Sprintf(main, config.Ubuntu16)
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu1604)
+		case "10":
+			return "unsupported"
+		default:
+			return "unknown"
+		}
 	case "17":
 		return "unsupported"
 	case "18":
-		return fmt.Sprintf(main, config.Ubuntu18)
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu1804)
+		case "10":
+			return "unsupported"
+		default:
+			return "unknown"
+		}
 	case "19":
-		return fmt.Sprintf(sub, config.Ubuntu19)
+		switch minor {
+		case "04":
+			return "unsupported"
+		case "10":
+			return fmt.Sprintf(sub, config.Ubuntu1910)
+		default:
+			return "unknown"
+		}
 	case "20":
-		return fmt.Sprintf(main, config.Ubuntu20)
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu2004)
+		case "10":
+			return fmt.Sprintf(sub, config.Ubuntu2010)
+		default:
+			return "unknown"
+		}
 	case "21":
-		return fmt.Sprintf(main, config.Ubuntu21)
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu2104)
+		case "10":
+			return fmt.Sprintf(main, config.Ubuntu2110)
+		default:
+			return "unknown"
+		}
 	case "22":
-		return fmt.Sprintf(main, config.Ubuntu22)
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu2204)
+		case "10":
+			return fmt.Sprintf(main, config.Ubuntu2210)
+		default:
+			return "unknown"
+		}
+	case "23":
+		return "unsupported"
 	default:
 		return "unknown"
 	}

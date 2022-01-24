@@ -110,18 +110,19 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s modules Fetched", len(result.UpdateList), version))
 		for i, update := range result.UpdateList {
 			yml, ok := moduleYaml[version][update.Title]
-			if ok {
-				var pkgs []Package
-				for _, rpm := range yml.Data.Artifacts.Rpms {
-					pkg, err := rpm.NewPackageFromRpm()
-					if err != nil {
-						return nil, xerrors.Errorf("Failed to build package info from rpm name, err: %w", err)
-					}
-					pkgs = append(pkgs, pkg)
-				}
-				results[version].UpdateList[i].Packages = pkgs
-				results[version].UpdateList[i].ModularityLabel = yml.ConvertToModularityLabel()
+			if !ok {
+				continue
 			}
+			var pkgs []Package
+			for _, rpm := range yml.Data.Artifacts.Rpms {
+				pkg, err := rpm.NewPackageFromRpm()
+				if err != nil {
+					return nil, xerrors.Errorf("Failed to build package info from rpm name, err: %w", err)
+				}
+				pkgs = append(pkgs, pkg)
+			}
+			results[version].UpdateList[i].Packages = pkgs
+			results[version].UpdateList[i].ModularityLabel = yml.ConvertToModularityLabel()
 		}
 	}
 	return results, nil
@@ -168,31 +169,32 @@ func parseFetchResultsFedora(results []FetchResult) (FedoraUpdatesPerVersion, er
 		}
 		var securityUpdate []FedoraUpdateInfo
 		for _, update := range updateInfo.UpdateList {
-			if update.Type == "security" {
-				cveIDs := []string{}
-				for _, ref := range update.References {
-					var ids []string
-					var err error
-					if isFedoraUpdateInfoTitleReliable(ref.Title) {
-						ids = util.CveIDPattern.FindAllString(ref.Title, -1)
-						if ids == nil {
-							// tyr to correct CVE-ID from description, if title has no CVE-ID
-							// NOTE: If this implementation causes the result of collecting a lot of incorrect information, fix to remove it
-							ids = util.CveIDPattern.FindAllString(update.Description, -1)
-						}
-					} else {
-						ids, err = fetchCveIDsFromBugzilla(ref.ID)
-						if err != nil {
-							return nil, xerrors.Errorf("Failed to fetch CVE-IDs from bugzilla, err: %w", err)
-						}
+			if update.Type != "security" {
+				continue
+			}
+			cveIDs := []string{}
+			for _, ref := range update.References {
+				var ids []string
+				if isFedoraUpdateInfoTitleReliable(ref.Title) {
+					ids = util.CveIDPattern.FindAllString(ref.Title, -1)
+					if ids == nil {
+						// try to correct CVE-ID from description, if title has no CVE-ID
+						// NOTE: If this implementation causes the result of collecting a lot of incorrect information, fix to remove it
+						ids = util.CveIDPattern.FindAllString(update.Description, -1)
 					}
-					if ids != nil {
-						cveIDs = append(cveIDs, ids...)
+				} else {
+					var err error
+					ids, err = fetchCveIDsFromBugzilla(ref.ID)
+					if err != nil {
+						return nil, xerrors.Errorf("Failed to fetch CVE-IDs from bugzilla, err: %w", err)
 					}
 				}
-				update.CVEIDs = util.UniqueStrings(cveIDs)
-				securityUpdate = append(securityUpdate, update)
+				if ids != nil {
+					cveIDs = append(cveIDs, ids...)
+				}
 			}
+			update.CVEIDs = util.UniqueStrings(cveIDs)
+			securityUpdate = append(securityUpdate, update)
 		}
 		updateInfo.UpdateList = securityUpdate
 		updateInfos[r.Target] = &updateInfo
@@ -260,8 +262,7 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 		case "...":
 			{
 				var module FedoraModuleInfo
-				err := yaml.NewDecoder(strings.NewReader(strings.Join(contents, "\n"))).Decode(&module)
-				if err != nil {
+				if err := yaml.NewDecoder(strings.NewReader(strings.Join(contents, "\n"))).Decode(&module); err != nil {
 					return nil, xerrors.Errorf("failed to decode module info. err: %w", err)
 				}
 				if module.Version == 2 {
@@ -334,21 +335,22 @@ func extractInfoFromRepoMd(results []FetchResult, rt string, mt mimeType) ([]fet
 		}
 
 		for _, repo := range repoMd.RepoList {
-			if repo.Type == rt {
-				u, err := url.Parse(r.URL)
-				if err != nil {
-					return nil, xerrors.Errorf("Failed to parse URL in XML. err: %w", err)
-				}
-				u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
-				req := fetchRequest{
-					url:          u.String(),
-					target:       r.Target,
-					mimeType:     mt,
-					concurrently: true,
-				}
-				updateInfoReqs = append(updateInfoReqs, req)
-				break
+			if repo.Type != rt {
+				continue
 			}
+			u, err := url.Parse(r.URL)
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to parse URL in XML. err: %w", err)
+			}
+			u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
+			req := fetchRequest{
+				url:          u.String(),
+				target:       r.Target,
+				mimeType:     mt,
+				concurrently: true,
+			}
+			updateInfoReqs = append(updateInfoReqs, req)
+			break
 		}
 	}
 	return updateInfoReqs, nil

@@ -24,6 +24,7 @@ type mimeType int
 const (
 	mimeTypeXML mimeType = iota
 	mimeTypeTxt
+	mimeTypeYml
 	mimeTypeBzip2
 	mimeTypeXz
 	mimeTypeGzip
@@ -35,6 +36,8 @@ func (m mimeType) String() string {
 		return "xml"
 	case mimeTypeTxt:
 		return "txt"
+	case mimeTypeYml:
+		return "yml"
 	case mimeTypeBzip2:
 		return "bzip2"
 	case mimeTypeXz:
@@ -154,18 +157,15 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 		return nil, xerrors.Errorf("Failed to write to output stream: %w", err)
 	}
 
-	var bytesBody []byte
+	var b bytes.Buffer
 	switch req.mimeType {
-	case mimeTypeXML, mimeTypeTxt:
-		bytesBody = buf.Bytes()
+	case mimeTypeXML, mimeTypeTxt, mimeTypeYml:
+		b = buf
 	case mimeTypeBzip2:
-		var b bytes.Buffer
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
 			return nil, xerrors.Errorf("Failed to open bzip2 file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
 	case mimeTypeXz:
-		var b bytes.Buffer
 		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
@@ -173,9 +173,7 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 		if _, err := b.ReadFrom(r); err != nil {
 			return nil, xerrors.Errorf("Failed to read xz file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
 	case mimeTypeGzip:
-		var b bytes.Buffer
 		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
@@ -183,10 +181,9 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 		if _, err := b.ReadFrom(r); err != nil {
 			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
 	}
 
-	return bytesBody, nil
+	return b.Bytes(), nil
 }
 
 func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
@@ -221,43 +218,36 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 		return nil, fmt.Errorf("Failed to HTTP GET. url: %s, response: %+v", req.url, resp)
 	}
 
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, resp.Body); err != nil {
+	buf := bytes.Buffer{}
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
 		return nil, err
 	}
 
-	var bytesBody []byte
+	var b bytes.Buffer
 	switch req.mimeType {
-	case mimeTypeXML, mimeTypeTxt:
-		bytesBody = buf.Bytes()
+	case mimeTypeXML, mimeTypeTxt, mimeTypeYml:
+		b = buf
 	case mimeTypeBzip2:
-		bz := bzip2.NewReader(buf)
-		var b bytes.Buffer
-		if _, err := b.ReadFrom(bz); err != nil {
-			return nil, err
+		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
+			return nil, xerrors.Errorf("Failed to open bzip2 file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
 	case mimeTypeXz:
-		r, err := xz.NewReader(buf)
+		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
 		}
-		var b bytes.Buffer
 		if _, err = b.ReadFrom(r); err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("Failed to read xz file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
 	case mimeTypeGzip:
-		r, err := gzip.NewReader(buf)
+		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
 		}
-		var b bytes.Buffer
 		if _, err = b.ReadFrom(r); err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
 	}
 
-	return bytesBody, nil
+	return b.Bytes(), nil
 }

@@ -12,14 +12,16 @@ const main = "https://secdb.alpinelinux.org/v%s/main.yaml"
 func newAlpineFetchRequests(target []string) (reqs []fetchRequest) {
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
-			target: v,
-			url:    fmt.Sprintf(main, v),
+			target:   v,
+			url:      fmt.Sprintf(main, v),
+			mimeType: mimeTypeYml,
 		})
 
 		if v != "3.2" {
 			reqs = append(reqs, fetchRequest{
-				target: v,
-				url:    fmt.Sprintf(community, v),
+				target:   v,
+				url:      fmt.Sprintf(community, v),
+				mimeType: mimeTypeYml,
 			})
 		}
 	}

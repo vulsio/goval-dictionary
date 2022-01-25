@@ -18,6 +18,7 @@ func newSUSEFetchRequests(suseType string, target []string) (reqs []fetchRequest
 			target:       v,
 			url:          fmt.Sprintf(t, suseType, v),
 			concurrently: true,
+			mimeType:     mimeTypeXML,
 		})
 	}
 	return

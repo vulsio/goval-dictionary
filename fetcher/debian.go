@@ -21,6 +21,7 @@ func newDebianFetchRequests(target []string) (reqs []fetchRequest) {
 			target:       v,
 			url:          fmt.Sprintf(t, name),
 			concurrently: true,
+			mimeType:     mimeTypeXML,
 		})
 	}
 	return

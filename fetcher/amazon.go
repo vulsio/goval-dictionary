@@ -42,7 +42,7 @@ func FetchUpdateInfoAmazonLinux2022() (*AmazonUpdates, error) {
 }
 
 func getAmazonLinux2022MirrorListURI() (uri string, err error) {
-	results, err := fetchFeedFiles([]fetchRequest{{url: al2022ReleasemdURI}})
+	results, err := fetchFeedFiles([]fetchRequest{{url: al2022ReleasemdURI, mimeType: mimeTypeXML}})
 	if err != nil || len(results) != 1 {
 		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2022. url: %s, err: %w", al2022ReleasemdURI, err)
 	}
@@ -68,7 +68,7 @@ func getAmazonLinux2022MirrorListURI() (uri string, err error) {
 }
 
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *AmazonUpdates, err error) {
-	results, err := fetchFeedFiles([]fetchRequest{{url: mirrorListURL}})
+	results, err := fetchFeedFiles([]fetchRequest{{url: mirrorListURL, mimeType: mimeTypeXML}})
 	if err != nil || len(results) != 1 {
 		return nil, xerrors.Errorf("Failed to fetch mirror list files. err: %w", err)
 	}
@@ -109,6 +109,7 @@ func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 			target:       mirror, // base URL of the mirror site
 			url:          u.String(),
 			concurrently: true,
+			mimeType:     mimeTypeXML,
 		})
 	}
 
@@ -147,7 +148,7 @@ func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 }
 
 func fetchUpdateInfo(url string) (*AmazonUpdates, error) {
-	results, err := fetchFeedFiles([]fetchRequest{{url: url}})
+	results, err := fetchFeedFiles([]fetchRequest{{url: url, mimeType: mimeTypeXML}})
 	if err != nil || len(results) != 1 {
 		return nil, xerrors.Errorf("Failed to fetch updateInfo. err: %w", err)
 	}

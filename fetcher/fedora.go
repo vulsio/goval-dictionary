@@ -18,6 +18,11 @@ import (
 const (
 	archX8664   = "x86_64"
 	archAarch64 = "aarch64"
+
+	fedoraUpdateURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/x86_64/repodata/repomd.xml"
+	fedoraModuleURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
+	bugZillaURL     = "https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s"
+	kojiPkgURL      = "https://kojipkgs.fedoraproject.org/packages/%s/%s/%s/files/module/modulemd.%s.txt"
 )
 
 // FetchUpdateInfosFedora fetch OVAL from Fedora
@@ -40,13 +45,11 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 }
 
 func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs [][]fetchRequest) {
-	const href = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/x86_64/repodata/repomd.xml"
-	const moduleHref = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
 	moduleArches := []string{archX8664, archAarch64}
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
-			url:          fmt.Sprintf(href, v),
+			url:          fmt.Sprintf(fedoraUpdateURL, v),
 			mimeType:     mimeTypeXML,
 			concurrently: true,
 		})
@@ -56,7 +59,7 @@ func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs []
 		for _, v := range target {
 			moduleReqs[i] = append(moduleReqs[i], fetchRequest{
 				target:       v,
-				url:          fmt.Sprintf(moduleHref, v, arch),
+				url:          fmt.Sprintf(fedoraModuleURL, v, arch),
 				mimeType:     mimeTypeXML,
 				concurrently: true,
 			})
@@ -116,8 +119,8 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 		for i, update := range result.UpdateList {
 			yml, ok := moduleYaml[version][update.Title]
 			if !ok {
-				var err error
-				yml, err = fetchModuleInfoFromKojiPkgs(reqs[0].url, update.Title)
+				arch, err := findArchFromURL(reqs[0].url)
+				yml, err = fetchModuleInfoFromKojiPkgs(arch, update.Title)
 				if err != nil {
 					return nil, xerrors.Errorf("Failed to fetch module info from kojipkgs.fedoraproject.org, err: %w", err)
 				}
@@ -290,8 +293,9 @@ func parseModulesYamlFedora(b []byte) (fedoraModuleInfosPerPackage, error) {
 
 func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	req := fetchRequest{
-		url:           fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", id),
+		url:           fmt.Sprintf(bugZillaURL, id),
 		logSuppressed: true,
+		mimeType:      mimeTypeXML,
 	}
 	log15.Info("Fetch CVE-ID list from bugzilla.redhat.com", "URL", req.url)
 	body, err := fetchFileWithUA(req)
@@ -307,9 +311,10 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	var reqs []fetchRequest
 	for _, v := range b.Blocked {
 		req := fetchRequest{
-			url:           fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s", v),
+			url:           fmt.Sprintf(bugZillaURL, v),
 			concurrently:  true,
 			logSuppressed: true,
+			mimeType:      mimeTypeXML,
 		}
 		reqs = append(reqs, req)
 	}
@@ -365,8 +370,9 @@ func extractInfoFromRepoMd(results []FetchResult, rt string, mt mimeType) ([]fet
 	return updateInfoReqs, nil
 }
 
-func fetchModuleInfoFromKojiPkgs(url, fileName string) (FedoraModuleInfo, error) {
-	req, err := newKojiPkgsRequest(url, fileName)
+// moduleInfo is expected title of xml format as ${name}-${stream}-${version}.${context}
+func fetchModuleInfoFromKojiPkgs(arch, moduleInfo string) (FedoraModuleInfo, error) {
+	req, err := newKojiPkgsRequest(arch, moduleInfo)
 	if err != nil {
 		return FedoraModuleInfo{}, xerrors.Errorf("Failed to generate request to kojipkgs.fedoraproject.org, err: %w", err)
 	}
@@ -378,40 +384,39 @@ func fetchModuleInfoFromKojiPkgs(url, fileName string) (FedoraModuleInfo, error)
 	if err != nil {
 		return FedoraModuleInfo{}, xerrors.Errorf("Failed to parse module text, err: %w", err)
 	}
-	if yml, ok := moduleYaml[fileName]; ok {
+	if yml, ok := moduleYaml[moduleInfo]; !ok {
 		return yml, nil
-	} else {
-		return FedoraModuleInfo{}, xerrors.New("Module not found in kojipkgs.fedoraproject.org")
 	}
+	return FedoraModuleInfo{}, xerrors.New("Module not found in kojipkgs.fedoraproject.org")
 }
 
-func newKojiPkgsRequest(url, fileName string) (fetchRequest, error) {
-	relIndex := strings.LastIndex(fileName, "-")
+func newKojiPkgsRequest(arch, moduleInfo string) (fetchRequest, error) {
+	relIndex := strings.LastIndex(moduleInfo, "-")
 	if relIndex == -1 {
-		return fetchRequest{}, xerrors.Errorf("Failed to parse release from filename: %s", fileName)
+		return fetchRequest{}, xerrors.Errorf("Failed to parse release from moduleInfo: %s", moduleInfo)
 	}
-	rel := fileName[relIndex+1:]
+	rel := moduleInfo[relIndex+1:]
 
-	verIndex := strings.LastIndex(fileName[:relIndex], "-")
+	verIndex := strings.LastIndex(moduleInfo[:relIndex], "-")
 	if verIndex == -1 {
-		return fetchRequest{}, xerrors.Errorf("Failed to parse version from filename: %s", fileName)
+		return fetchRequest{}, xerrors.Errorf("Failed to parse version from moduleInfo: %s", moduleInfo)
 	}
-	ver := fileName[verIndex+1 : relIndex]
-	name := fileName[:verIndex]
+	ver := moduleInfo[verIndex+1 : relIndex]
+	name := moduleInfo[:verIndex]
 
-	var arch string
-	if strings.Contains(url, archX8664) {
-		arch = archX8664
-	} else if strings.Contains(url, archAarch64) {
-		arch = archAarch64
-	} else {
-		return fetchRequest{}, xerrors.Errorf("Failed to parse supported arch from url: %s", url)
-	}
-
-	format := "https://kojipkgs.fedoraproject.org/packages/%v/%v/%v/files/module/modulemd.%v.txt"
 	req := fetchRequest{
-		url:      fmt.Sprintf(format, name, ver, rel, arch),
+		url:      fmt.Sprintf(kojiPkgURL, name, ver, rel, arch),
 		mimeType: mimeTypeTxt,
 	}
 	return req, nil
+}
+
+func findArchFromURL(url string) (string, error) {
+	if strings.Contains(url, archX8664) {
+		return archX8664, nil
+	} else if strings.Contains(url, archAarch64) {
+		return archAarch64, nil
+	} else {
+		return "", xerrors.Errorf("Failed to parse supported arch from url: %s", url)
+	}
 }

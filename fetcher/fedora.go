@@ -120,6 +120,9 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 			yml, ok := moduleYaml[version][update.Title]
 			if !ok {
 				arch, err := findArchFromURL(reqs[0].url)
+				if err != nil {
+					return nil, xerrors.Errorf("Failed to find arch from URL, err: %w", err)
+				}
 				yml, err = fetchModuleInfoFromKojiPkgs(arch, update.Title)
 				if err != nil {
 					return nil, xerrors.Errorf("Failed to fetch module info from kojipkgs.fedoraproject.org, err: %w", err)

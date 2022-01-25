@@ -15,6 +15,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	archX8664   = "x86_64"
+	archAarch64 = "aarch64"
+)
+
 // FetchUpdateInfosFedora fetch OVAL from Fedora
 func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) {
 	reqs, moduleReqs := newFedoraFetchRequests(versions)
@@ -37,7 +42,7 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs [][]fetchRequest) {
 	const href = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/x86_64/repodata/repomd.xml"
 	const moduleHref = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
-	moduleArches := []string{"x86_64", "aarch64"}
+	moduleArches := []string{archX8664, archAarch64}
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
@@ -111,7 +116,11 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 		for i, update := range result.UpdateList {
 			yml, ok := moduleYaml[version][update.Title]
 			if !ok {
-				continue
+				var err error
+				yml, err = fetchModuleInfoFromKojiPkgs(reqs[0].url, update.Title)
+				if err != nil {
+					return nil, xerrors.Errorf("Failed to fetch module info from kojipkgs.fedoraproject.org, err: %w", err)
+				}
 			}
 			var pkgs []Package
 			for _, rpm := range yml.Data.Artifacts.Rpms {
@@ -354,4 +363,55 @@ func extractInfoFromRepoMd(results []FetchResult, rt string, mt mimeType) ([]fet
 		}
 	}
 	return updateInfoReqs, nil
+}
+
+func fetchModuleInfoFromKojiPkgs(url, fileName string) (FedoraModuleInfo, error) {
+	req, err := newKojiPkgsRequest(url, fileName)
+	if err != nil {
+		return FedoraModuleInfo{}, xerrors.Errorf("Failed to generate request to kojipkgs.fedoraproject.org, err: %w", err)
+	}
+	result, err := fetchFileWithUA(req)
+	if err != nil {
+		return FedoraModuleInfo{}, xerrors.Errorf("Failed to fetch from kojipkgs.fedoraproject.org, err: %w", err)
+	}
+	moduleYaml, err := parseModulesYamlFedora(result)
+	if err != nil {
+		return FedoraModuleInfo{}, xerrors.Errorf("Failed to parse module text, err: %w", err)
+	}
+	if yml, ok := moduleYaml[fileName]; ok {
+		return yml, nil
+	} else {
+		return FedoraModuleInfo{}, xerrors.New("Module not found in kojipkgs.fedoraproject.org")
+	}
+}
+
+func newKojiPkgsRequest(url, fileName string) (fetchRequest, error) {
+	relIndex := strings.LastIndex(fileName, "-")
+	if relIndex == -1 {
+		return fetchRequest{}, xerrors.Errorf("Failed to parse release from filename: %s", fileName)
+	}
+	rel := fileName[relIndex+1:]
+
+	verIndex := strings.LastIndex(fileName[:relIndex], "-")
+	if verIndex == -1 {
+		return fetchRequest{}, xerrors.Errorf("Failed to parse version from filename: %s", fileName)
+	}
+	ver := fileName[verIndex+1 : relIndex]
+	name := fileName[:verIndex]
+
+	var arch string
+	if strings.Contains(url, archX8664) {
+		arch = archX8664
+	} else if strings.Contains(url, archAarch64) {
+		arch = archAarch64
+	} else {
+		return fetchRequest{}, xerrors.Errorf("Failed to parse supported arch from url: %s", url)
+	}
+
+	format := "https://kojipkgs.fedoraproject.org/packages/%v/%v/%v/files/module/modulemd.%v.txt"
+	req := fetchRequest{
+		url:      fmt.Sprintf(format, name, ver, rel, arch),
+		mimeType: mimeTypeTxt,
+	}
+	return req, nil
 }

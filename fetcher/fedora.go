@@ -41,6 +41,10 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 		results.merge(&moduleResults)
 	}
 
+	for version, v := range results {
+		log15.Info(fmt.Sprintf("%d Advisories for Fedora %s Fetched", len(v.UpdateList), version))
+	}
+
 	return results, nil
 }
 
@@ -85,10 +89,6 @@ func fetchEverythingFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error)
 		return nil, xerrors.Errorf("Failed to parse fetch results, err: %w", err)
 	}
 
-	for version, v := range results {
-		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s Fetched", len(v.UpdateList), version))
-	}
-
 	return results, nil
 }
 
@@ -115,7 +115,6 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 	}
 
 	for version, result := range results {
-		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s modules Fetched", len(result.UpdateList), version))
 		for i, update := range result.UpdateList {
 			yml, ok := moduleYaml[version][update.Title]
 			if !ok {
@@ -373,9 +372,9 @@ func extractInfoFromRepoMd(results []FetchResult, rt string, mt mimeType) ([]fet
 	return updateInfoReqs, nil
 }
 
-// moduleInfo is expected title of xml format as ${name}-${stream}-${version}.${context}
-func fetchModuleInfoFromKojiPkgs(arch, moduleInfo string) (FedoraModuleInfo, error) {
-	req, err := newKojiPkgsRequest(arch, moduleInfo)
+// uinfoTitle is expected title of xml format as ${name}-${stream}-${version}.${context}
+func fetchModuleInfoFromKojiPkgs(arch, uinfoTitle string) (FedoraModuleInfo, error) {
+	req, err := newKojiPkgsRequest(arch, uinfoTitle)
 	if err != nil {
 		return FedoraModuleInfo{}, xerrors.Errorf("Failed to generate request to kojipkgs.fedoraproject.org, err: %w", err)
 	}
@@ -387,25 +386,25 @@ func fetchModuleInfoFromKojiPkgs(arch, moduleInfo string) (FedoraModuleInfo, err
 	if err != nil {
 		return FedoraModuleInfo{}, xerrors.Errorf("Failed to parse module text, err: %w", err)
 	}
-	if yml, ok := moduleYaml[moduleInfo]; !ok {
+	if yml, ok := moduleYaml[uinfoTitle]; !ok {
 		return yml, nil
 	}
 	return FedoraModuleInfo{}, xerrors.New("Module not found in kojipkgs.fedoraproject.org")
 }
 
-func newKojiPkgsRequest(arch, moduleInfo string) (fetchRequest, error) {
-	relIndex := strings.LastIndex(moduleInfo, "-")
+func newKojiPkgsRequest(arch, uinfoTitle string) (fetchRequest, error) {
+	relIndex := strings.LastIndex(uinfoTitle, "-")
 	if relIndex == -1 {
-		return fetchRequest{}, xerrors.Errorf("Failed to parse release from moduleInfo: %s", moduleInfo)
+		return fetchRequest{}, xerrors.Errorf("Failed to parse release from title of updateinfo: %s", uinfoTitle)
 	}
-	rel := moduleInfo[relIndex+1:]
+	rel := uinfoTitle[relIndex+1:]
 
-	verIndex := strings.LastIndex(moduleInfo[:relIndex], "-")
+	verIndex := strings.LastIndex(uinfoTitle[:relIndex], "-")
 	if verIndex == -1 {
-		return fetchRequest{}, xerrors.Errorf("Failed to parse version from moduleInfo: %s", moduleInfo)
+		return fetchRequest{}, xerrors.Errorf("Failed to parse version from title of updateinfo: %s", uinfoTitle)
 	}
-	ver := moduleInfo[verIndex+1 : relIndex]
-	name := moduleInfo[:verIndex]
+	ver := uinfoTitle[verIndex+1 : relIndex]
+	name := uinfoTitle[:verIndex]
 
 	req := fetchRequest{
 		url:      fmt.Sprintf(kojiPkgURL, name, ver, rel, arch),

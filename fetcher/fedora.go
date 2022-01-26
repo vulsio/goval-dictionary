@@ -33,8 +33,8 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 		return nil, xerrors.Errorf("fetchEverythingFedora. err: %w", err)
 	}
 
-	for _, reqs := range moduleReqs {
-		moduleResults, err := fetchModulesFedora(reqs)
+	for arch, reqs := range moduleReqs {
+		moduleResults, err := fetchModulesFedora(reqs, arch)
 		if err != nil {
 			return nil, xerrors.Errorf("fetchModulesFedora. err: %w", err)
 		}
@@ -48,8 +48,7 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 	return results, nil
 }
 
-func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs [][]fetchRequest) {
-	moduleArches := []string{archX8664, archAarch64}
+func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs map[string][]fetchRequest) {
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
@@ -58,10 +57,11 @@ func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs []
 			concurrently: true,
 		})
 	}
-	for i, arch := range moduleArches {
-		moduleReqs = append(moduleReqs, []fetchRequest{})
+	moduleArches := []string{archX8664, archAarch64}
+	moduleReqs = make(map[string][]fetchRequest, len(moduleArches))
+	for _, arch := range moduleArches {
 		for _, v := range target {
-			moduleReqs[i] = append(moduleReqs[i], fetchRequest{
+			moduleReqs[arch] = append(moduleReqs[arch], fetchRequest{
 				target:       v,
 				url:          fmt.Sprintf(fedoraModuleURL, v, arch),
 				mimeType:     mimeTypeXML,
@@ -92,7 +92,7 @@ func fetchEverythingFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error)
 	return results, nil
 }
 
-func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
+func fetchModulesFedora(reqs []fetchRequest, arch string) (FedoraUpdatesPerVersion, error) {
 	log15.Info("start fetch data from repomd.xml of modular")
 	feeds, err := fetchModuleFeedFilesFedora(reqs)
 	if err != nil {
@@ -118,10 +118,6 @@ func fetchModulesFedora(reqs []fetchRequest) (FedoraUpdatesPerVersion, error) {
 		for i, update := range result.UpdateList {
 			yml, ok := moduleYaml[version][update.Title]
 			if !ok {
-				arch, err := findArchFromURL(reqs[0].url)
-				if err != nil {
-					return nil, xerrors.Errorf("Failed to find arch from URL, err: %w", err)
-				}
 				yml, err = fetchModuleInfoFromKojiPkgs(arch, update.Title)
 				if err != nil {
 					return nil, xerrors.Errorf("Failed to fetch module info from kojipkgs.fedoraproject.org, err: %w", err)
@@ -161,7 +157,7 @@ func fetchUpdateInfosFedora(results []FetchResult) ([]FetchResult, error) {
 	}
 
 	if len(updateInfoReqs) == 0 {
-		return nil, fmt.Errorf("No updateinfo field in the repomd")
+		return nil, xerrors.New("No updateinfo field in the repomd")
 	}
 
 	results, err = fetchFeedFiles(updateInfoReqs)
@@ -243,7 +239,7 @@ func fetchModulesYamlFedora(results []FetchResult) (fedoraModuleInfosPerVersion,
 	}
 
 	if len(updateInfoReqs) == 0 {
-		return nil, fmt.Errorf("No updateinfo field in the repomd")
+		return nil, xerrors.New("No updateinfo field in the repomd")
 	}
 
 	results, err = fetchFeedFiles(updateInfoReqs)
@@ -411,14 +407,4 @@ func newKojiPkgsRequest(arch, uinfoTitle string) (fetchRequest, error) {
 		mimeType: mimeTypeTxt,
 	}
 	return req, nil
-}
-
-func findArchFromURL(url string) (string, error) {
-	if strings.Contains(url, archX8664) {
-		return archX8664, nil
-	} else if strings.Contains(url, archAarch64) {
-		return archAarch64, nil
-	} else {
-		return "", xerrors.Errorf("Failed to parse supported arch from url: %s", url)
-	}
 }

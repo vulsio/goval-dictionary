@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"time"
 
 	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
@@ -90,4 +91,14 @@ func UniqueStrings(s []string) []string {
 		uniq = append(uniq, v)
 	}
 	return uniq
+}
+
+// ParsedOrDefaultTime returns time.Parse(layout, value), or time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC) if it failed to parse
+func ParsedOrDefaultTime(layout, value string) time.Time {
+	t, err := time.Parse(layout, value)
+	if err != nil {
+		log15.Warn("Failed to parse string", "timeformat", layout, "target string", value, "err", err)
+		t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	}
+	return t
 }

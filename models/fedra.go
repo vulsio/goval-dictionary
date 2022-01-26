@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/vulsio/goval-dictionary/fetcher"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // ConvertFedoraToModel Convert OVAL to models
@@ -51,8 +52,8 @@ func ConvertFedoraToModel(data *fetcher.FedoraUpdates) (defs []Definition) {
 			}
 		}
 
-		issuedAt, _ := time.Parse("2006-01-02 15:04", update.Issued.Date)
-		updatedAt, _ := time.Parse("2006-01-02 15:04", update.Updated.Date)
+		issuedAt := util.ParsedOrDefaultTime("2006-01-02 15:04:05", update.Issued.Date)
+		updatedAt := util.ParsedOrDefaultTime("2006-01-02 15:04:05", update.Updated.Date)
 		def := Definition{
 			DefinitionID: "def-" + update.ID,
 			Title:        update.ID,

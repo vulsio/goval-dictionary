@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/vulsio/goval-dictionary/fetcher"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // ConvertAmazonToModel Convert OVAL to models
@@ -32,7 +33,7 @@ func ConvertAmazonToModel(data *fetcher.AmazonUpdates) (defs []Definition) {
 				Arch:    pack.Arch,
 			})
 		}
-		updatedAt, _ := time.Parse("2006-01-02 15:04", alas.Updated.Date)
+		updatedAt := util.ParsedOrDefaultTime("2006-01-02 15:04", alas.Updated.Date)
 
 		refs := []Reference{}
 		for _, ref := range alas.References {

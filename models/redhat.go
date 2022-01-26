@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -54,8 +55,8 @@ func ConvertRedHatToModel(root *oval.Root) (defs []Definition) {
 		}
 
 		const timeformat = "2006-01-02"
-		issued, _ := time.Parse(timeformat, d.Advisory.Issued.Date)
-		updated, _ := time.Parse(timeformat, d.Advisory.Updated.Date)
+		issued := util.ParsedOrDefaultTime(timeformat, d.Advisory.Issued.Date)
+		updated := util.ParsedOrDefaultTime(timeformat, d.Advisory.Updated.Date)
 
 		def := Definition{
 			DefinitionID: d.ID,

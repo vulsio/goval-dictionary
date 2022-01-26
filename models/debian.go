@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -41,8 +42,7 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 		if ovaldef.Debian.Date == "" {
 			t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
 		} else {
-			const timeformat = "2006-01-02"
-			t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
+			t = util.ParsedOrDefaultTime("2006-01-02", ovaldef.Debian.Date)
 		}
 
 		packs := []Package{}

@@ -56,7 +56,7 @@ func TestParsedOrDefaultTime(t *testing.T) {
 		want   time.Time
 	}{
 		{
-			name:   "succes to parse",
+			name:   "success to parse",
 			in:     "2021-01-02",
 			layout: "2006-01-02",
 			want:   time.Date(2021, time.January, 2, 0, 0, 0, 0, time.UTC),

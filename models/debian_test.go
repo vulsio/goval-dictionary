@@ -12,7 +12,7 @@ import (
 func TestWalkDebian(t *testing.T) {
 	var tests = []struct {
 		oval     string
-		expected []distroPackage
+		expected []Package
 	}{
 		{
 			oval: `
@@ -85,34 +85,22 @@ Critical Patch Update advisory for further details:
 	</definitions>
 </oval_definitions>
 			`,
-			expected: []distroPackage{
+			expected: []Package{
 				{
-					osVer: "7.0",
-					pack: Package{
-						Name:    "mysql-5.5",
-						Version: "5.5.37-0+wheezy1",
-					},
+					Name:    "mysql-5.5",
+					Version: "5.5.37-0+wheezy1",
 				},
 				{
-					osVer: "8.2",
-					pack: Package{
-						Name:    "mysql-5.5",
-						Version: "5.5.37-1",
-					},
+					Name:    "mysql-5.5",
+					Version: "5.5.37-1",
 				},
 				{
-					osVer: "9.0",
-					pack: Package{
-						Name:    "mysql-5.5",
-						Version: "5.5.37-1",
-					},
+					Name:    "mysql-5.5",
+					Version: "5.5.37-1",
 				},
 				{
-					osVer: "9.0",
-					pack: Package{
-						Name:    "mysql-5.6",
-						Version: "5.6.37-1",
-					},
+					Name:    "mysql-5.6",
+					Version: "5.6.37-1",
 				},
 			},
 		},

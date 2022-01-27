@@ -38,18 +38,6 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			})
 		}
 
-		var t time.Time
-		if ovaldef.Debian.Date == "" {
-			t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-		} else {
-			t = util.ParsedOrDefaultTime("2006-01-02", ovaldef.Debian.Date)
-		}
-
-		packs := []Package{}
-		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
-			packs = append(packs, distPack.pack)
-		}
-
 		def := Definition{
 			DefinitionID: ovaldef.ID,
 			Title:        ovaldef.Title,
@@ -64,9 +52,9 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			},
 			Debian: &Debian{
 				MoreInfo: ovaldef.Debian.MoreInfo,
-				Date:     t,
+				Date:     util.ParsedOrDefaultTime("2006-01-02", ovaldef.Debian.Date),
 			},
-			AffectedPacks: packs,
+			AffectedPacks: collectDebianPacks(ovaldef.Criteria),
 			References:    rs,
 		}
 
@@ -87,8 +75,11 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 	return
 }
 
-func collectDebianPacks(cri oval.Criteria) []distroPackage {
-	return walkDebian(cri, "", []distroPackage{})
+func collectDebianPacks(cri oval.Criteria) (packs []Package) {
+	for _, distPack := range walkDebian(cri, "", []distroPackage{}) {
+		packs = append(packs, distPack.pack)
+	}
+	return
 }
 
 func walkDebian(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {

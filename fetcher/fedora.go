@@ -19,7 +19,7 @@ const (
 	archX8664   = "x86_64"
 	archAarch64 = "aarch64"
 
-	fedoraUpdateURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/x86_64/repodata/repomd.xml"
+	fedoraUpdateURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/%s/repodata/repomd.xml"
 	fedoraModuleURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
 	bugZillaURL     = "https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s"
 	kojiPkgURL      = "https://kojipkgs.fedoraproject.org/packages/%s/%s/%s/files/module/modulemd.%s.txt"
@@ -27,18 +27,41 @@ const (
 
 // FetchUpdateInfosFedora fetch OVAL from Fedora
 func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) {
-	reqs, moduleReqs := newFedoraFetchRequests(versions)
-	results, err := fetchEverythingFedora(reqs)
-	if err != nil {
-		return nil, xerrors.Errorf("fetchEverythingFedora. err: %w", err)
-	}
+	// map[osVer][updateInfoID]FedoraUpdateInfo
+	uinfos := make(map[string]map[string]FedoraUpdateInfo, len(versions))
+	for _, arch := range []string{archX8664, archAarch64} {
+		reqs, moduleReqs := newFedoraFetchRequests(versions, arch)
+		results, err := fetchEverythingFedora(reqs)
+		if err != nil {
+			return nil, xerrors.Errorf("fetchEverythingFedora. err: %w", err)
+		}
 
-	for arch, reqs := range moduleReqs {
-		moduleResults, err := fetchModulesFedora(reqs, arch)
+		moduleResults, err := fetchModulesFedora(moduleReqs, arch)
 		if err != nil {
 			return nil, xerrors.Errorf("fetchModulesFedora. err: %w", err)
 		}
 		results.merge(&moduleResults)
+
+		for osVer, result := range results {
+			if _, ok := uinfos[osVer]; !ok {
+				uinfos[osVer] = make(map[string]FedoraUpdateInfo, len(result.UpdateList))
+			}
+			for _, uinfo := range result.UpdateList {
+				if tmp, ok := uinfos[osVer][uinfo.ID]; ok {
+					uinfo.Packages = append(uinfo.Packages, tmp.Packages...)
+				}
+				uinfos[osVer][uinfo.ID] = uinfo
+			}
+		}
+	}
+
+	results := map[string]*FedoraUpdates{}
+	for osver, uinfoIDs := range uinfos {
+		uinfos := &FedoraUpdates{}
+		for _, uinfo := range uinfoIDs {
+			uinfos.UpdateList = append(uinfos.UpdateList, uinfo)
+		}
+		results[osver] = uinfos
 	}
 
 	for version, v := range results {
@@ -48,26 +71,20 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 	return results, nil
 }
 
-func newFedoraFetchRequests(target []string) (reqs []fetchRequest, moduleReqs map[string][]fetchRequest) {
+func newFedoraFetchRequests(target []string, arch string) (reqs []fetchRequest, moduleReqs []fetchRequest) {
 	for _, v := range target {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
-			url:          fmt.Sprintf(fedoraUpdateURL, v),
+			url:          fmt.Sprintf(fedoraUpdateURL, v, arch),
 			mimeType:     mimeTypeXML,
 			concurrently: true,
 		})
-	}
-	moduleArches := []string{archX8664, archAarch64}
-	moduleReqs = make(map[string][]fetchRequest, len(moduleArches))
-	for _, arch := range moduleArches {
-		for _, v := range target {
-			moduleReqs[arch] = append(moduleReqs[arch], fetchRequest{
-				target:       v,
-				url:          fmt.Sprintf(fedoraModuleURL, v, arch),
-				mimeType:     mimeTypeXML,
-				concurrently: true,
-			})
-		}
+		moduleReqs = append(moduleReqs, fetchRequest{
+			target:       v,
+			url:          fmt.Sprintf(fedoraModuleURL, v, arch),
+			mimeType:     mimeTypeXML,
+			concurrently: true,
+		})
 	}
 	return
 }

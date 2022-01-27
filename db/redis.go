@@ -270,7 +270,7 @@ func restoreDefinition(defstr, family, version, arch string) (models.Definition,
 	}
 
 	switch family {
-	case c.Amazon, c.Oracle:
+	case c.Amazon, c.Oracle, c.Fedora:
 		def.AffectedPacks = fileterPacksByArch(def.AffectedPacks, arch)
 	case c.RedHat:
 		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, major(version))

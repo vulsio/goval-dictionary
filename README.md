@@ -109,7 +109,8 @@ $ goval-dictionary fetch debian 7 8 9 10 11
 
 #### Usage: Fetch OVAL data from Ubuntu
 
-- [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
+- [Ubuntu(main)](https://security-metadata.canonical.com/oval/)
+- [Ubuntu(sub)](https://people.canonical.com/~ubuntu-security/oval/)
 
 ```bash
 $ goval-dictionary fetch ubuntu 14 16 18 19 20 21
@@ -723,7 +724,8 @@ see [#7](https://github.com/vulsio/goval-dictionary/pull/7)
 
 - [RedHat](https://www.redhat.com/security/data/oval/)
 - [Debian](https://www.debian.org/security/oval/)
-- [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
+- [Ubuntu(main)](https://security-metadata.canonical.com/oval/)
+- [Ubuntu(sub)](https://people.canonical.com/~ubuntu-security/oval/)
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
 - [Alpine-secdb](https://secdb.alpinelinux.org/)

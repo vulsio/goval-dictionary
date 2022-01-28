@@ -85,14 +85,12 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 		select {
 		case res := <-resChan:
 			results = append(results, res)
-			log15.Info("Fetched... ", "URL", res.URL)
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:
 			return results, fmt.Errorf("Timeout Fetching")
 		}
 	}
-	log15.Info("Finished fetching OVAL definitions")
 	if 0 < len(errs) {
 		return results, fmt.Errorf("%s", errs)
 	}

@@ -90,7 +90,7 @@ func fetchDebian(_ *cobra.Command, args []string) (err error) {
 		log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
 		ts, err := time.Parse("2006-01-02T15:04:05.999-07:00", ovalroot.Generator.Timestamp)
 		if err != nil {
-			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, err, ovalroot.Generator.Timestamp)
+			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
 		}
 		if ts.Before(time.Now().AddDate(0, 0, -3)) {
 			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)

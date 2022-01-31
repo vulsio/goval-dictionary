@@ -16,7 +16,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// fetchFedraCmd is Subcommand for fetch Fedra OVAL
+// fetchFedoraCmd is Subcommand for fetch Fedora OVAL
 var fetchFedoraCmd = &cobra.Command{
 	Use:   "fedora",
 	Short: "Fetch Vulnerability dictionary from Fedora",

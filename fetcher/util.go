@@ -120,9 +120,6 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 		select {
 		case res := <-resChan:
 			results = append(results, res)
-			if !res.LogSuppressed {
-				log15.Info("Fetched... ", "URL", res.URL)
-			}
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:

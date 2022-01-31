@@ -44,11 +44,11 @@ type Package struct {
 
 // uniquePackages returns deduplicated []Package by Filename
 // If Filename is the same, all other information is considered to be the same
-func uniquePackages(p []Package) []Package {
+func uniquePackages(pkgs []Package) []Package {
 	tmp := make(map[string]Package)
 	ret := []Package{}
-	for _, pac := range p {
-		tmp[pac.Filename] = pac
+	for _, pkg := range pkgs {
+		tmp[pkg.Filename] = pkg
 	}
 	for _, v := range tmp {
 		ret = append(ret, v)

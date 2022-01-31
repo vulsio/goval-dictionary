@@ -75,10 +75,11 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 	return
 }
 
-func collectDebianPacks(cri oval.Criteria) ([]Package) {
-	packs := []Package{}
-	for _, distPack := range walkDebian(cri, "", []distroPackage{}) {
-		packs = append(packs, distPack.pack)
+func collectDebianPacks(cri oval.Criteria) []Package {
+	distPacks := walkDebian(cri, "", []distroPackage{})
+	packs := make([]Package, len(distPacks))
+	for i, distPack := range distPacks {
+		packs[i] = distPack.pack
 	}
 	return packs
 }

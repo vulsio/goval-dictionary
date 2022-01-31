@@ -323,15 +323,14 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 		return nil, xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", req.url, err)
 	}
 
-	var reqs []fetchRequest
-	for _, v := range b.Blocked {
-		req := fetchRequest{
+	reqs := make([]fetchRequest, len(b.Blocked))
+	for i, v := range b.Blocked {
+		reqs[i] = fetchRequest{
 			url:           fmt.Sprintf(bugZillaURL, v),
 			concurrently:  true,
 			logSuppressed: true,
 			mimeType:      mimeTypeXML,
 		}
-		reqs = append(reqs, req)
 	}
 
 	results, err := fetchFeedFiles(reqs)

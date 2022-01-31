@@ -3,8 +3,9 @@ package fetcher
 import (
 	"encoding/xml"
 	"fmt"
-	"golang.org/x/xerrors"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 // RepoMd has repomd data
@@ -39,6 +40,20 @@ type Package struct {
 	Release  string `xml:"release,attr" json:"release,omitempty"`
 	Arch     string `xml:"arch,attr" json:"arch,omitempty"`
 	Filename string `xml:"filename" json:"filename,omitempty"`
+}
+
+// uniquePackages returns deduplicated []Package by Filename
+// If Filename is the same, all other information is considered to be the same
+func uniquePackages(p []Package) []Package {
+	tmp := make(map[string]Package)
+	ret := []Package{}
+	for _, pac := range p {
+		tmp[pac.Filename] = pac
+	}
+	for _, v := range tmp {
+		ret = append(ret, v)
+	}
+	return ret
 }
 
 // Root is a struct of releasemd.xml for AL2022

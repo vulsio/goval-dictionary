@@ -49,6 +49,7 @@ func FetchUpdateInfosFedora(versions []string) (FedoraUpdatesPerVersion, error) 
 			for _, uinfo := range result.UpdateList {
 				if tmp, ok := uinfos[osVer][uinfo.ID]; ok {
 					uinfo.Packages = append(uinfo.Packages, tmp.Packages...)
+					uinfo.Packages = uniquePackages(uinfo.Packages)
 				}
 				uinfos[osVer][uinfo.ID] = uinfo
 			}

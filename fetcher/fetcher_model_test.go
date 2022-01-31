@@ -1,8 +1,11 @@
 package fetcher
 
 import (
-	"github.com/google/go-cmp/cmp"
+	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestRpmNewPackageFromRpm(t *testing.T) {
@@ -219,6 +222,45 @@ func TestFedoraUpdatesPerVersionMerge(t *testing.T) {
 			got := tt.source
 			got.merge(&tt.target)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("(-got +want):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestUniquePackages(t *testing.T) {
+	opt := cmpopts.SortSlices((func(x, y Package) bool { return strings.Compare(x.Filename, y.Filename) > 0 }))
+	tests := []struct {
+		name string
+		in   []Package
+		want []Package
+	}{
+		{
+			name: "normal",
+			in: []Package{
+				{Filename: "package1"},
+				{Filename: "package2"},
+				{Filename: "package2"},
+				{Filename: "package3"},
+				{Filename: "package3"},
+				{Filename: "package3"},
+			},
+			want: []Package{
+				{Filename: "package1"},
+				{Filename: "package2"},
+				{Filename: "package3"},
+			},
+		},
+		{
+			name: "no panic when it is blank",
+			in:   []Package{},
+			want: []Package{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := uniquePackages(tt.in)
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("(-got +want):\n%s", diff)
 			}
 		})

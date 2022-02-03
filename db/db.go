@@ -90,6 +90,8 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 		osVer = getAmazonLinuxVer(osVer)
 	case c.Alpine:
 		osVer = majorDotMinor(osVer)
+	case c.Fedora:
+		osVer = major(osVer)
 	default:
 		if !strings.Contains(family, "suse") {
 			return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)

@@ -10,15 +10,15 @@ import (
 	"github.com/vulsio/goval-dictionary/util"
 )
 
-// ConvertAmazonToModel Convert OVAL to models
-func ConvertAmazonToModel(data *fetcher.AmazonUpdates) (defs []Definition) {
-	for _, alas := range data.UpdateList {
-		if strings.Contains(alas.Description, "** REJECT **") {
+// ConvertFedoraToModel Convert OVAL to models
+func ConvertFedoraToModel(data *fetcher.FedoraUpdates) (defs []Definition) {
+	for _, update := range data.UpdateList {
+		if strings.Contains(update.Description, "** REJECT **") {
 			continue
 		}
 
 		cves := []Cve{}
-		for _, cveID := range alas.CVEIDs {
+		for _, cveID := range update.CVEIDs {
 			cves = append(cves, Cve{
 				CveID: cveID,
 				Href:  fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", cveID),
@@ -26,34 +26,44 @@ func ConvertAmazonToModel(data *fetcher.AmazonUpdates) (defs []Definition) {
 		}
 
 		packs := []Package{}
-		for _, pack := range alas.Packages {
+		for _, pack := range update.Packages {
 			packs = append(packs, Package{
-				Name:    pack.Name,
-				Version: fmt.Sprintf("%s:%s-%s", pack.Epoch, pack.Version, pack.Release),
-				Arch:    pack.Arch,
+				Name:            pack.Name,
+				Version:         fmt.Sprintf("%s:%s-%s", pack.Epoch, pack.Version, pack.Release),
+				Arch:            pack.Arch,
+				ModularityLabel: update.ModularityLabel,
 			})
 		}
-		updatedAt := util.ParsedOrDefaultTime("2006-01-02 15:04", alas.Updated.Date)
 
 		refs := []Reference{}
-		for _, ref := range alas.References {
+		bs := []Bugzilla{}
+		for _, ref := range update.References {
 			refs = append(refs, Reference{
 				Source: ref.Type,
 				RefID:  ref.ID,
 				RefURL: ref.Href,
 			})
+			if ref.Type == "bugzilla" {
+				bs = append(bs, Bugzilla{
+					BugzillaID: ref.ID,
+					URL:        ref.Href,
+					Title:      ref.Title,
+				})
+			}
 		}
 
+		issuedAt := util.ParsedOrDefaultTime("2006-01-02 15:04:05", update.Issued.Date)
+		updatedAt := util.ParsedOrDefaultTime("2006-01-02 15:04:05", update.Updated.Date)
 		def := Definition{
-			DefinitionID: "def-" + alas.ID,
-			Title:        alas.ID,
-			Description:  alas.Description,
+			DefinitionID: "def-" + update.ID,
+			Title:        update.ID,
+			Description:  update.Description,
 			Advisory: Advisory{
-				Severity:        alas.Severity,
+				Severity:        update.Severity,
 				Cves:            cves,
-				Bugzillas:       []Bugzilla{},
+				Bugzillas:       bs,
 				AffectedCPEList: []Cpe{},
-				Issued:          time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Issued:          issuedAt,
 				Updated:         updatedAt,
 			},
 			Debian:        nil,

@@ -1187,7 +1187,7 @@ func TestGetOSNameVersion(t *testing.T) {
 	for i, tt := range tests {
 		osName, osVer, err := getOSNameVersion(tt.s)
 		if err != nil {
-			t.Errorf("[%d] getAccurateOSNameVersion err: %w", i, err)
+			t.Errorf("[%d] getAccurateOSNameVersion err: %v", i, err)
 		}
 
 		actual := expected{

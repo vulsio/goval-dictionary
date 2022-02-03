@@ -81,7 +81,7 @@ func executeSelect(_ *cobra.Command, args []string) error {
 	arch := ""
 	if len(args) == 4 {
 		switch family {
-		case config.Amazon, config.Oracle:
+		case config.Amazon, config.Oracle, config.Fedora:
 			arch = args[3]
 		default:
 			return xerrors.Errorf("Family: %s cannot use the Architecture argument.", family)

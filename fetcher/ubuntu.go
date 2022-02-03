@@ -21,7 +21,7 @@ func newUbuntuFetchRequests(target []string) (reqs []fetchRequest) {
 				target:       v,
 				url:          url,
 				concurrently: true,
-				bzip2:        true,
+				mimeType:     mimeTypeBzip2,
 			})
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/vulsio/goval-dictionary/util"
 	"github.com/ymomoi/goval-parser/oval"
 )
 
@@ -37,19 +38,6 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			})
 		}
 
-		var t time.Time
-		if ovaldef.Debian.Date == "" {
-			t = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-		} else {
-			const timeformat = "2006-01-02"
-			t, _ = time.Parse(timeformat, ovaldef.Debian.Date)
-		}
-
-		packs := []Package{}
-		for _, distPack := range collectDebianPacks(ovaldef.Criteria) {
-			packs = append(packs, distPack.pack)
-		}
-
 		def := Definition{
 			DefinitionID: ovaldef.ID,
 			Title:        ovaldef.Title,
@@ -64,9 +52,9 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 			},
 			Debian: &Debian{
 				MoreInfo: ovaldef.Debian.MoreInfo,
-				Date:     t,
+				Date:     util.ParsedOrDefaultTime("2006-01-02", ovaldef.Debian.Date),
 			},
-			AffectedPacks: packs,
+			AffectedPacks: collectDebianPacks(ovaldef.Criteria),
 			References:    rs,
 		}
 
@@ -87,8 +75,13 @@ func ConvertDebianToModel(root *oval.Root) (defs []Definition) {
 	return
 }
 
-func collectDebianPacks(cri oval.Criteria) []distroPackage {
-	return walkDebian(cri, "", []distroPackage{})
+func collectDebianPacks(cri oval.Criteria) []Package {
+	distPacks := walkDebian(cri, "", []distroPackage{})
+	packs := make([]Package, len(distPacks))
+	for i, distPack := range distPacks {
+		packs[i] = distPack.pack
+	}
+	return packs
 }
 
 func walkDebian(cri oval.Criteria, osVer string, acc []distroPackage) []distroPackage {

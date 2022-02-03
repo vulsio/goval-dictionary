@@ -106,6 +106,7 @@ fetch-rdb:
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type suse-enterprise-desktop 10 11 12 15
 	integration/goval-dict.old fetch suse --dbpath=$(PWD)/integration/oval.old.sqlite3 --suse-type suse-openstack-cloud 6 7 8 9
+	integration/goval-dict.old fetch fedora --dbpath=$(PWD)/integration/oval.old.sqlite3 32 33 34 35
 
 	integration/goval-dict.new fetch debian --dbpath=$(PWD)/integration/oval.new.sqlite3 7 8 9 10 11
 	integration/goval-dict.new fetch ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14 16 18 19 20
@@ -118,11 +119,12 @@ fetch-rdb:
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type suse-enterprise-desktop 10 11 12 15
 	integration/goval-dict.new fetch suse --dbpath=$(PWD)/integration/oval.new.sqlite3 --suse-type suse-openstack-cloud 6 7 8 9
+	integration/goval-dict.new fetch fedora --dbpath=$(PWD)/integration/oval.new.sqlite3 32 33 34 35
 
 fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
-	
+
 	integration/goval-dict.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10 11
 	integration/goval-dict.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14 16 18 19 20
 	integration/goval-dict.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8
@@ -134,6 +136,7 @@ fetch-redis:
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-enterprise-desktop 10 11 12 15
 	integration/goval-dict.old fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --suse-type suse-openstack-cloud 6 7 8 9
+	integration/goval-dict.old fetch fedora --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 32 33 34 35
 
 	integration/goval-dict.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 7 8 9 10 11
 	integration/goval-dict.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14 16 18 19 20
@@ -146,6 +149,7 @@ fetch-redis:
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type suse-enterprise-server 9 10 11 12 15
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type suse-enterprise-desktop 10 11 12 15
 	integration/goval-dict.new fetch suse --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --suse-type suse-openstack-cloud 6 7 8 9
+	integration/goval-dict.new fetch fedora --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 32 33 34 35
 
 diff-cveid:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid debian 7 8 9 10 11
@@ -163,6 +167,7 @@ diff-cveid:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.linux.enterprise.desktop 10 11 12
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.linux.enterprise.module.basesystem 15
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid suse --suse-type suse.openstack.cloud 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid fedora 32 33 34 35
 
 
 diff-package:
@@ -181,6 +186,7 @@ diff-package:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.linux.enterprise.desktop 10 11 12
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.linux.enterprise.module.basesystem 15
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package suse --suse-type suse.openstack.cloud 6 7 8 9
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package fedora 32 33 34 35
 
 diff-server-rdb:
 	integration/goval-dict.old server --dbpath=$(PWD)/integration/oval.old.sqlite3 --port 1325 > /dev/null 2>&1 &
@@ -191,7 +197,7 @@ diff-server-rdb:
 	pkill goval-dict.new
 
 diff-server-redis:
-	integration/goval-dict.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null 2>&1 & 
+	integration/goval-dict.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null 2>&1 &
 	integration/goval-dict.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package

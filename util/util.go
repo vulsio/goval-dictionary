@@ -3,11 +3,16 @@ package util
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"time"
 
 	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
 )
+
+// CveIDPattern is regexp matches to `CVE-\d{4}-\d{4,}`
+var CveIDPattern = regexp.MustCompile(`CVE-\d{4}-\d{4,}`)
 
 // GenWorkers generate workers
 func GenWorkers(num int) chan<- func() {
@@ -70,4 +75,34 @@ func SetLogger(logToFile bool, logDir string, debug, logJSON bool) error {
 	}
 	log15.Root().SetHandler(handler)
 	return nil
+}
+
+// UniqueStrings eliminates duplication from []string
+func UniqueStrings(s []string) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	m := make(map[string]struct{}, len(s))
+	for _, v := range s {
+		m[v] = struct{}{}
+	}
+	uniq := make([]string, 0, len(m))
+	for v := range m {
+		uniq = append(uniq, v)
+	}
+	return uniq
+}
+
+// ParsedOrDefaultTime returns time.Parse(layout, value), or time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC) if it failed to parse
+func ParsedOrDefaultTime(layout, value string) time.Time {
+	defaultTime := time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if value == "" {
+		return defaultTime
+	}
+	t, err := time.Parse(layout, value)
+	if err != nil {
+		log15.Warn("Failed to parse string", "timeformat", layout, "target string", value, "err", err)
+		return defaultTime
+	}
+	return t
 }

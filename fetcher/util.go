@@ -3,6 +3,7 @@ package fetcher
 import (
 	"bytes"
 	"compress/bzip2"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,22 +14,53 @@ import (
 	"github.com/htcat/htcat"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"github.com/ulikunitz/xz"
 	"github.com/vulsio/goval-dictionary/util"
 	"golang.org/x/xerrors"
 )
 
+type mimeType int
+
+const (
+	mimeTypeXML mimeType = iota
+	mimeTypeTxt
+	mimeTypeYml
+	mimeTypeBzip2
+	mimeTypeXz
+	mimeTypeGzip
+)
+
+func (m mimeType) String() string {
+	switch m {
+	case mimeTypeXML:
+		return "xml"
+	case mimeTypeTxt:
+		return "txt"
+	case mimeTypeYml:
+		return "yml"
+	case mimeTypeBzip2:
+		return "bzip2"
+	case mimeTypeXz:
+		return "xz"
+	default:
+		return "Unknown"
+	}
+}
+
 type fetchRequest struct {
-	target       string
-	url          string
-	bzip2        bool
-	concurrently bool
+	target        string
+	url           string
+	mimeType      mimeType
+	concurrently  bool
+	logSuppressed bool
 }
 
 // FetchResult has url and OVAL definitions
 type FetchResult struct {
-	Target string
-	URL    string
-	Body   []byte
+	Target        string
+	URL           string
+	Body          []byte
+	LogSuppressed bool
 }
 
 func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
@@ -40,7 +72,9 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 	defer close(errChan)
 
 	for _, r := range reqs {
-		log15.Info("Fetching... ", "URL", r.url)
+		if !r.logSuppressed {
+			log15.Info("Fetching... ", "URL", r.url)
+		}
 	}
 
 	go func() {
@@ -69,9 +103,10 @@ func fetchFeedFiles(reqs []fetchRequest) (results []FetchResult, err error) {
 					return
 				}
 				resChan <- FetchResult{
-					Target: req.target,
-					URL:    req.url,
-					Body:   body,
+					Target:        req.target,
+					URL:           req.url,
+					Body:          body,
+					LogSuppressed: req.logSuppressed,
 				}
 			}
 			return
@@ -119,18 +154,33 @@ func fetchFileConcurrently(req fetchRequest, concurrency int) (body []byte, err 
 		return nil, xerrors.Errorf("Failed to write to output stream: %w", err)
 	}
 
-	var bytesBody []byte
-	if req.bzip2 {
-		var b bytes.Buffer
+	var b bytes.Buffer
+	switch req.mimeType {
+	case mimeTypeXML, mimeTypeTxt, mimeTypeYml:
+		b = buf
+	case mimeTypeBzip2:
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
-			return body, err
+			return nil, xerrors.Errorf("Failed to open bzip2 file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
-	} else {
-		bytesBody = buf.Bytes()
+	case mimeTypeXz:
+		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
+		}
+		if _, err := b.ReadFrom(r); err != nil {
+			return nil, xerrors.Errorf("Failed to read xz file. err: %w", err)
+		}
+	case mimeTypeGzip:
+		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
+		}
+		if _, err := b.ReadFrom(r); err != nil {
+			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
+		}
 	}
 
-	return bytesBody, nil
+	return b.Bytes(), nil
 }
 
 func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
@@ -165,22 +215,36 @@ func fetchFileWithUA(req fetchRequest) (body []byte, err error) {
 		return nil, fmt.Errorf("Failed to HTTP GET. url: %s, response: %+v", req.url, resp)
 	}
 
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, resp.Body); err != nil {
+	buf := bytes.Buffer{}
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
 		return nil, err
 	}
 
-	var bytesBody []byte
-	if req.bzip2 {
-		bz := bzip2.NewReader(buf)
-		var b bytes.Buffer
-		if _, err := b.ReadFrom(bz); err != nil {
-			return nil, err
+	var b bytes.Buffer
+	switch req.mimeType {
+	case mimeTypeXML, mimeTypeTxt, mimeTypeYml:
+		b = buf
+	case mimeTypeBzip2:
+		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
+			return nil, xerrors.Errorf("Failed to open bzip2 file. err: %w", err)
 		}
-		bytesBody = b.Bytes()
-	} else {
-		bytesBody = buf.Bytes()
+	case mimeTypeXz:
+		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
+		}
+		if _, err = b.ReadFrom(r); err != nil {
+			return nil, xerrors.Errorf("Failed to read xz file. err: %w", err)
+		}
+	case mimeTypeGzip:
+		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
+		}
+		if _, err = b.ReadFrom(r); err != nil {
+			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
+		}
 	}
 
-	return bytesBody, nil
+	return b.Bytes(), nil
 }

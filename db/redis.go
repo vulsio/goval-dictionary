@@ -34,13 +34,13 @@ import (
   ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
   │NO │ KEY                                            │     MEMBER    │ PURPOSE                                  │
   └───┴────────────────────────────────────────────────┴───────────────┴──────────────────────────────────────────┘
-  ┌───┬────────────────────────────────────────────────┬───────────────┬──────────────────────────────────────────┐
-  │ 1 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ $DEFINITIONID │ TO GET []$DEFINITIONID                   │
-  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
-  │ 2 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME#$ARCH │ $DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle │
-  ├───┼────────────────────────────────────────────────┼───────────────┼──────────────────────────────────────────┤
-  │ 3 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ $DEFINITIONID │ TO GET []$DEFINITIONID                   │
-  └───┴────────────────────────────────────────────────┴───────────────┴──────────────────────────────────────────┘
+  ┌───┬────────────────────────────────────────────────┬───────────────┬─────────────────────────────────────────────────┐
+  │ 1 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME       │ $DEFINITIONID │ TO GET []$DEFINITIONID                          │
+  ├───┼────────────────────────────────────────────────┼───────────────┼─────────────────────────────────────────────────┤
+  │ 2 │ OVAL#$OSFAMILY#$VERSION#PKG#$PACKAGENAME#$ARCH │ $DEFINITIONID │ TO GET []$DEFINITIONID for Amazon/Oracle/Fedora │
+  ├───┼────────────────────────────────────────────────┼───────────────┼─────────────────────────────────────────────────┤
+  │ 3 │ OVAL#$OSFAMILY#$VERSION#CVE#$CVEID             │ $DEFINITIONID │ TO GET []$DEFINITIONID                          │
+  └───┴────────────────────────────────────────────────┴───────────────┴─────────────────────────────────────────────────┘
 
 - Hash
   ┌───┬─────────────────────────────┬───────────────┬───────────┬───────────────────────────────────────────┐
@@ -129,8 +129,8 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	key := fmt.Sprintf(pkgKeyFormat, family, osVer, packName)
 	pkgKeys := []string{}
 	switch family {
-	case c.Amazon, c.Oracle:
-		// affected packages for Amazon and Oracle OVAL needs to consider arch
+	case c.Amazon, c.Oracle, c.Fedora:
+		// affected packages for Amazon/Oracle/Fedora OVAL needs to consider arch
 		if arch != "" {
 			pkgKeys = append(pkgKeys, fmt.Sprintf("%s#%s", key, arch))
 		} else {
@@ -270,7 +270,7 @@ func restoreDefinition(defstr, family, version, arch string) (models.Definition,
 	}
 
 	switch family {
-	case c.Amazon, c.Oracle:
+	case c.Amazon, c.Oracle, c.Fedora:
 		def.AffectedPacks = fileterPacksByArch(def.AffectedPacks, arch)
 	case c.RedHat:
 		def.AffectedPacks = filterByRedHatMajor(def.AffectedPacks, major(version))
@@ -350,8 +350,8 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 			for _, pack := range def.AffectedPacks {
 				pkgName := pack.Name
 				switch family {
-				case c.Amazon, c.Oracle:
-					// affected packages for Amazon OVAL needs to consider arch
+				case c.Amazon, c.Oracle, c.Fedora:
+					// affected packages for Amazon/Oracle/Fedora OVAL needs to consider arch
 					pkgName = fmt.Sprintf("%s#%s", pkgName, pack.Arch)
 				}
 

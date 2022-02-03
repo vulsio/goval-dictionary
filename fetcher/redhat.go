@@ -12,7 +12,7 @@ func newRedHatFetchRequests(target []string) (reqs []fetchRequest) {
 		reqs = append(reqs, fetchRequest{
 			target:       v,
 			url:          fmt.Sprintf(t, v),
-			bzip2:        true,
+			mimeType:     mimeTypeBzip2,
 			concurrently: false,
 		})
 	}

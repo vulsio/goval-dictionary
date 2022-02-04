@@ -161,6 +161,16 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		{
 			in: args{
 				family: config.Alpine,
+				osVer:  "3.15",
+			},
+			expected: args{
+				family: config.Alpine,
+				osVer:  "3.15",
+			},
+		},
+		{
+			in: args{
+				family: config.Alpine,
 				osVer:  "3.14",
 			},
 			expected: args{

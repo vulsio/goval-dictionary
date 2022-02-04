@@ -94,7 +94,7 @@ Use "goval-dictionary fetch [command] --help" for more information about a comma
 #### Usage: Fetch OVAL data from RedHat
 
 - [Redhat OVAL](https://www.redhat.com/security/data/oval/)
-- 
+-
 ```bash
 $ goval-dictionary fetch redhat 5 6 7 8
 ```
@@ -166,7 +166,7 @@ alpine-secdb is provided in YAML format and not OVAL, but it is supported by gov
 See [here](https://secdb.alpinelinux.org/) for a list of supported alpines.
 
 ```bash
- $ goval-dictionary fetch alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
+ $ goval-dictionary fetch alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15
 ```
 
 #### Usage: Fetch Amazon ALAS as OVAL data type

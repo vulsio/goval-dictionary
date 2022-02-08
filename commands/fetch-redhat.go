@@ -9,13 +9,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/redhat"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/redhat"
 )
 
 // fetchRedHatCmd is Subcommand for fetch RedHat OVAL
@@ -31,7 +32,7 @@ func init() {
 }
 
 func fetchRedHat(_ *cobra.Command, args []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -73,13 +74,13 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchRedHatFiles(vers)
+	results, err := fetcher.FetchFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := redhat.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
@@ -96,7 +97,7 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		root := models.Root{
 			Family:      c.RedHat,
 			OSVersion:   r.Target,
-			Definitions: models.ConvertRedHatToModel(&ovalroot),
+			Definitions: redhat.ConvertToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 

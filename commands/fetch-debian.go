@@ -9,14 +9,15 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	c "github.com/vulsio/goval-dictionary/config"
-	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
-	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/debian"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/debian"
 )
 
 // fetchDebianCmd is Subcommand for fetch Debian OVAL
@@ -32,7 +33,7 @@ func init() {
 }
 
 func fetchDebian(_ *cobra.Command, args []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -73,13 +74,13 @@ func fetchDebian(_ *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchDebianFiles(vers)
+	results, err := fetcher.FetchFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := debian.Root{}
 
 		decoder := xml.NewDecoder(bytes.NewReader(r.Body))
 		decoder.CharsetReader = charset.NewReaderLabel
@@ -99,7 +100,7 @@ func fetchDebian(_ *cobra.Command, args []string) (err error) {
 		root := models.Root{
 			Family:      c.Debian,
 			OSVersion:   r.Target,
-			Definitions: models.ConvertDebianToModel(&ovalroot),
+			Definitions: debian.ConvertToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 

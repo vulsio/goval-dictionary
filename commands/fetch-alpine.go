@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"golang.org/x/xerrors"
@@ -11,11 +9,13 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/alpine"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
+	"github.com/vulsio/goval-dictionary/models/alpine"
 )
 
 // fetchAlpineCmd is Subcommand for fetch Alpine secdb
@@ -32,7 +32,7 @@ func init() {
 }
 
 func fetchAlpine(_ *cobra.Command, args []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -70,45 +70,25 @@ func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchAlpineFiles(vers)
+	results, err := fetcher.FetchFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
-	// Join community.yaml, main.yaml
-	type T struct {
-		url  string
-		defs []models.Definition
-	}
-	m := map[string]T{}
 	for _, r := range results {
-		secdb, err := unmarshalYml(r.Body)
+		var secdb alpine.SecDB
+		err := yaml.Unmarshal(r.Body, &secdb)
 		if err != nil {
-			return xerrors.Errorf("Failed to unmarshal yml. err: %w", err)
+			return xerrors.Errorf("Failed to unmarshal. err: %w", err)
 		}
 
-		defs := models.ConvertAlpineToModel(secdb)
-		if t, ok := m[r.Target]; ok {
-			t.defs = append(t.defs, defs...)
-			m[r.Target] = t
-		} else {
-			ss := strings.Split(r.URL, "/")
-			m[r.Target] = T{
-				url:  strings.Join(ss[len(ss)-3:len(ss)-1], "/"),
-				defs: defs,
-			}
-		}
-	}
-
-	for target, t := range m {
 		root := models.Root{
 			Family:      c.Alpine,
-			OSVersion:   target,
-			Definitions: t.defs,
+			OSVersion:   r.Target,
+			Definitions: alpine.ConvertToModel(&secdb),
 			Timestamp:   time.Now(),
 		}
 
-		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
 		if err := driver.InsertOval(&root); err != nil {
 			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
@@ -121,13 +101,4 @@ func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 	}
 
 	return nil
-}
-
-func unmarshalYml(data []byte) (*models.AlpineSecDB, error) {
-	t := models.AlpineSecDB{}
-	err := yaml.Unmarshal([]byte(data), &t)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to unmarshal: %w", err)
-	}
-	return &t, nil
 }

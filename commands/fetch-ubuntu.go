@@ -8,13 +8,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/ubuntu"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/ubuntu"
 )
 
 // fetchUbuntuCmd is Subcommand for fetch Ubuntu OVAL
@@ -30,7 +31,7 @@ func init() {
 }
 
 func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -68,13 +69,13 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchUbuntuFiles(vers)
+	results, err := fetcher.FetchFiles(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := ubuntu.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
@@ -91,7 +92,7 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 		root := models.Root{
 			Family:      c.Ubuntu,
 			OSVersion:   r.Target,
-			Definitions: models.ConvertUbuntuToModel(&ovalroot),
+			Definitions: ubuntu.ConvertToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 

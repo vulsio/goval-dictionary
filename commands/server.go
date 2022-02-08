@@ -4,11 +4,12 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/models"
-	server "github.com/vulsio/goval-dictionary/server"
-	"github.com/vulsio/goval-dictionary/util"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/goval-dictionary/db"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/server"
 )
 
 // ServerCmd is Subcommand for OVAL dictionary HTTP Server
@@ -30,7 +31,7 @@ func init() {
 }
 
 func executeServer(_ *cobra.Command, _ []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 

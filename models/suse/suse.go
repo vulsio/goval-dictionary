@@ -370,10 +370,13 @@ func getOSVersion(platformName string) (string, error) {
 			}
 			return ss[2], nil
 		}
-		// openSUSE 13.2
+		// openSUSE 13.2, openSUSE Tumbleweed
 		ss := strings.Fields(platformName)
 		if len(ss) < 2 {
 			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: invalid version", platformName)
+		}
+		if ss[1] == "Tumbleweed" {
+			return "tumbleweed", nil
 		}
 		if _, err := version.NewVersion(ss[1]); err != nil {
 			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: %w", platformName, err)

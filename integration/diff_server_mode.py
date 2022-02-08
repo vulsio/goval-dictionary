@@ -152,7 +152,7 @@ elif args.ostype == 'alpine':
         raise NotImplementedError
 elif args.ostype == "suse":
     if args.suse_type == 'opensuse':
-        if len(list(set(args.release) - set(['10.2', '10.3', '11.0', '11.1', '11.2', '11.3', '11.4', '12.1', '12.2', '12.3', '13.1', '13.2']))) > 0:
+        if len(list(set(args.release) - set(['10.2', '10.3', '11.0', '11.1', '11.2', '11.3', '11.4', '12.1', '12.2', '12.3', '13.1', '13.2', 'tumbleweed']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError

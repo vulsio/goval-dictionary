@@ -1236,6 +1236,10 @@ func TestGetOSNameVersion(t *testing.T) {
 			expected: "13.2",
 		},
 		{
+			s:        "openSUSE Tumbleweed",
+			expected: "tumbleweed",
+		},
+		{
 			s:        "openSUSE Leap 42.2",
 			expected: "42.2",
 		},

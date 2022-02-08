@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/go-redis/redis/v8 v8.11.3
+	github.com/google/go-cmp v0.5.7
 	github.com/htcat/htcat v1.0.2
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
@@ -15,7 +16,6 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/ulikunitz/xz v0.5.10
-	github.com/ymomoi/goval-parser v0.0.0-20170813122243-0a0be1dd9d08
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
 	golang.org/x/net v0.0.0-20211206223403-eba003a116a9
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
@@ -25,7 +25,6 @@ require (
 	gorm.io/driver/postgres v1.1.0
 	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.21.10
-	github.com/google/go-cmp v0.5.7 // indirect
 )
 
 require (

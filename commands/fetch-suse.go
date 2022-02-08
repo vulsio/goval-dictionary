@@ -28,7 +28,6 @@ $ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3
 $ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 $ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
 $ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
-$ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 `,
 	RunE: fetchSUSE,
 }
@@ -36,7 +35,7 @@ $ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 func init() {
 	fetchCmd.AddCommand(fetchSUSECmd)
 
-	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type(choices: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud)")
+	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type(choices: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop)")
 	_ = viper.BindPFlag("suse-type", fetchSUSECmd.PersistentFlags().Lookup("suse-type"))
 }
 
@@ -69,10 +68,8 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 		suseType = c.SUSEEnterpriseServer
 	case "suse-enterprise-desktop":
 		suseType = c.SUSEEnterpriseDesktop
-	case "suse-openstack-cloud":
-		suseType = c.SUSEOpenstackCloud
 	default:
-		return xerrors.Errorf("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud")
+		return xerrors.Errorf("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -105,7 +102,8 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
-		log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
+		filename := r.URL[strings.LastIndex(r.URL, "/")+1:]
+		log15.Info("Fetched", "File", filename, "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
 		ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
 		if err != nil {
 			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
@@ -114,10 +112,17 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
 		}
 
-		ss := strings.Split(r.URL, "/")
-		roots := suse.ConvertToModel(ss[len(ss)-1], &ovalroot)
-		for _, root := range roots {
-			root.Timestamp = time.Now()
+		osVerDefs, err := suse.ConvertToModel(filename, &ovalroot)
+		if err != nil {
+			return xerrors.Errorf("Failed to convert from OVAL to goval-dictionary model. err: %w", err)
+		}
+		for osVer, defs := range osVerDefs {
+			root := models.Root{
+				Family:      suseType,
+				OSVersion:   osVer,
+				Definitions: defs,
+				Timestamp:   time.Now(),
+			}
 			if err := driver.InsertOval(&root); err != nil {
 				return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 			}

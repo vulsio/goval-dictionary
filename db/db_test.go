@@ -230,16 +230,6 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
-				family: config.SUSEOpenstackCloud,
-				osVer:  "9",
-			},
-			expected: args{
-				family: config.SUSEOpenstackCloud,
-				osVer:  "9",
-			},
-		},
-		{
-			in: args{
 				family: config.Fedora,
 				osVer:  "35",
 			},

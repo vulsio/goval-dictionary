@@ -8,12 +8,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/fedora"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/fedora"
 )
 
 // fetchFedoraCmd is Subcommand for fetch Fedora OVAL
@@ -29,7 +31,7 @@ func init() {
 }
 
 func fetchFedora(_ *cobra.Command, args []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -88,7 +90,7 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 		root := models.Root{
 			Family:      c.Fedora,
 			OSVersion:   k,
-			Definitions: models.ConvertFedoraToModel(v),
+			Definitions: fedora.ConvertToModel(v),
 			Timestamp:   time.Now(),
 		}
 		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s. Inserting to DB", len(root.Definitions), k))

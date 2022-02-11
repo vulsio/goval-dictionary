@@ -9,7 +9,8 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/vulsio/goval-dictionary/util"
+
+	"github.com/vulsio/goval-dictionary/log"
 )
 
 var cfgFile string
@@ -28,7 +29,7 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.oval.yaml)")
 
-	RootCmd.PersistentFlags().String("log-dir", util.GetDefaultLogDir(), "/path/to/log")
+	RootCmd.PersistentFlags().String("log-dir", log.GetDefaultLogDir(), "/path/to/log")
 	_ = viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
 
 	RootCmd.PersistentFlags().Bool("log-json", false, "output log as JSON")

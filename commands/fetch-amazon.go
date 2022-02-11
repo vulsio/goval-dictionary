@@ -7,12 +7,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/amazon"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/amazon"
 )
 
 // fetchAmazonCmd is Subcommand for fetch Amazon ALAS RSS
@@ -29,7 +31,7 @@ func init() {
 }
 
 func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -66,7 +68,7 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	root := models.Root{
 		Family:      c.Amazon,
 		OSVersion:   "1",
-		Definitions: models.ConvertAmazonToModel(uinfo),
+		Definitions: amazon.ConvertToModel(uinfo),
 		Timestamp:   time.Now(),
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
@@ -81,7 +83,7 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	root = models.Root{
 		Family:      c.Amazon,
 		OSVersion:   "2",
-		Definitions: models.ConvertAmazonToModel(uinfo),
+		Definitions: amazon.ConvertToModel(uinfo),
 		Timestamp:   time.Now(),
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
@@ -96,7 +98,7 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 	root = models.Root{
 		Family:      c.Amazon,
 		OSVersion:   "2022",
-		Definitions: models.ConvertAmazonToModel(uinfo),
+		Definitions: amazon.ConvertToModel(uinfo),
 		Timestamp:   time.Now(),
 	}
 	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2022. Inserting to DB", len(root.Definitions)))

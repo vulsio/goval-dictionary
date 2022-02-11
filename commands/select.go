@@ -6,11 +6,12 @@ import (
 	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"golang.org/x/xerrors"
 )
 
 // SelectCmd is Subcommand for fetch RedHat OVAL
@@ -32,7 +33,7 @@ func init() {
 }
 
 func executeSelect(_ *cobra.Command, args []string) error {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 

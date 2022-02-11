@@ -8,13 +8,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/suse"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/suse"
 )
 
 // fetchSUSECmd is Subcommand for fetch SUSE OVAL
@@ -40,7 +41,7 @@ func init() {
 }
 
 func fetchSUSE(_ *cobra.Command, args []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -94,14 +95,13 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	var results []fetcher.FetchResult
-	results, err = fetcher.FetchSUSEFiles(suseType, vers)
+	results, err := fetcher.FetchFiles(suseType, vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := suse.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
@@ -115,7 +115,7 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 		}
 
 		ss := strings.Split(r.URL, "/")
-		roots := models.ConvertSUSEToModel(ss[len(ss)-1], &ovalroot)
+		roots := suse.ConvertToModel(ss[len(ss)-1], &ovalroot)
 		for _, root := range roots {
 			root.Timestamp = time.Now()
 			if err := driver.InsertOval(&root); err != nil {

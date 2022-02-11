@@ -8,13 +8,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/fetcher"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/oracle"
+	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/util"
-	"github.com/ymomoi/goval-parser/oval"
-	"golang.org/x/xerrors"
+	"github.com/vulsio/goval-dictionary/models/oracle"
 )
 
 // fetchOracleCmd is Subcommand for fetch Oracle OVAL
@@ -30,7 +31,7 @@ func init() {
 }
 
 func fetchOracle(_ *cobra.Command, _ []string) (err error) {
-	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
@@ -54,14 +55,14 @@ func fetchOracle(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchOracleFiles()
+	results, err := fetcher.FetchFiles()
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	osVerDefs := map[string][]models.Definition{}
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := oracle.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
 			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
@@ -74,7 +75,7 @@ func fetchOracle(_ *cobra.Command, _ []string) (err error) {
 			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
 		}
 
-		for osVer, defs := range models.ConvertOracleToModel(&ovalroot) {
+		for osVer, defs := range oracle.ConvertToModel(&ovalroot) {
 			osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
 		}
 	}

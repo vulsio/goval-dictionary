@@ -23,7 +23,7 @@
 	diff-server-rdb-redis
 
 SRCS = $(shell git ls-files '*.go')
-PKGS =  ./commands ./config ./db ./fetcher ./models ./util
+PKGS = $(shell go list ./...)
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'github.com/vulsio/goval-dictionary/config.Version=$(VERSION)' \

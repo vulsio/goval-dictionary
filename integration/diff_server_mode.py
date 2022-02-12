@@ -77,7 +77,7 @@ parser.add_argument('--arch', default="", choices=['x86_64', 'i386', 'ia64', 'i6
                     help='Specify the Architecture to be started in server mode when testing.')
 parser.add_argument('release', nargs='+',
                     help='Specify the Release Version to be started in server mode when testing.')
-parser.add_argument('--suse-type', default="", choices=['opensuse', 'opensuse.leap', 'suse.linux.enterprise.server', 'suse.linux.enterprise.desktop', 'suse.linux.enterprise.module.basesystem', 'suse.openstack.cloud'],
+parser.add_argument('--suse-type', default="", choices=['opensuse', 'opensuse.leap', 'suse.linux.enterprise.server', 'suse.linux.enterprise.desktop'],
                     help='Specify the SUSE type to be started in server mode when testing.')
 parser.add_argument("--sample-rate", type=float, default=0.01,
                     help="Adjust the rate of data used for testing (len(test_data) * sample_rate)")
@@ -152,7 +152,7 @@ elif args.ostype == 'alpine':
         raise NotImplementedError
 elif args.ostype == "suse":
     if args.suse_type == 'opensuse':
-        if len(list(set(args.release) - set(['10.2', '10.3', '11.0', '11.1', '11.2', '11.3', '11.4', '12.1', '12.2', '12.3', '13.1', '13.2']))) > 0:
+        if len(list(set(args.release) - set(['10.2', '10.3', '11.0', '11.1', '11.2', '11.3', '11.4', '12.1', '12.2', '12.3', '13.1', '13.2', 'tumbleweed']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError
@@ -162,22 +162,12 @@ elif args.ostype == "suse":
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError
     elif args.suse_type == 'suse.linux.enterprise.server':
-        if len(list(set(args.release) - set(['9', '10', '11', '12']))) > 0:
+        if len(list(set(args.release) - set(['9', '10', '11', '12', '15']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError
     elif args.suse_type == 'suse.linux.enterprise.desktop':
-        if len(list(set(args.release) - set(['10', '11', '12']))) > 0:
-            logger.error(
-                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-            raise NotImplementedError
-    elif args.suse_type == 'suse.linux.enterprise.module.basesystem':
-        if len(list(set(args.release) - set(['15']))) > 0:
-            logger.error(
-                f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
-            raise NotImplementedError
-    elif args.suse_type == 'suse.openstack.cloud':
-        if len(list(set(args.release) - set(['6', '7', '8', '9']))) > 0:
+        if len(list(set(args.release) - set(['10', '11', '12', '15']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError

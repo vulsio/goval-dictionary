@@ -297,10 +297,23 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 	}
 
 	for idx := range chunkSlice(len(root.Definitions), batchSize) {
-		if err := tx.Create(root.Definitions[idx.From:idx.To]).Error; err != nil {
+		if err := tx.Omit("AffectedPacks").Create(root.Definitions[idx.From:idx.To]).Error; err != nil {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to insert Definitions. err: %w", err)
 		}
+
+		for _, d := range root.Definitions[idx.From:idx.To] {
+			for idx2 := range chunkSlice(len(d.AffectedPacks), batchSize) {
+				for i := range d.AffectedPacks[idx2.From:idx2.To] {
+					d.AffectedPacks[i].DefinitionID = d.ID
+				}
+				if err := tx.Create(d.AffectedPacks[idx2.From:idx2.To]).Error; err != nil {
+					tx.Rollback()
+					return xerrors.Errorf("Failed to insert AffectedPacks. err: %w", err)
+				}
+			}
+		}
+
 		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()

@@ -144,11 +144,10 @@ Global Flags:
 ```
 
 ```bash
-$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 $ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 $ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
 $ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
-$ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 ```
 
 #### Usage: Fetch OVAL data from Oracle

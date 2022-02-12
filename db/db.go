@@ -1,13 +1,13 @@
 package db
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
+	"golang.org/x/xerrors"
+
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
-	"golang.org/x/xerrors"
 )
 
 // DB is interface for a database driver
@@ -67,7 +67,7 @@ func newDB(dbType string) (DB, error) {
 	case dialectRedis:
 		return &RedisDriver{name: dbType}, nil
 	}
-	return nil, fmt.Errorf("Invalid database dialect. dbType: %s", dbType)
+	return nil, xerrors.Errorf("Invalid database dialect. dbType: %s", dbType)
 }
 
 func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
@@ -92,10 +92,14 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 		osVer = majorDotMinor(osVer)
 	case c.Fedora:
 		osVer = major(osVer)
-	default:
-		if !strings.Contains(family, "suse") {
-			return "", "", fmt.Errorf("Failed to detect family. err: unknown os family(%s)", family)
+	case c.OpenSUSE:
+		if osVer != "tumbleweed" {
+			osVer = majorDotMinor(osVer)
 		}
+	case c.OpenSUSELeap, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseServer:
+		osVer = majorDotMinor(osVer)
+	default:
+		return "", "", xerrors.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 	}
 
 	return family, osVer, nil

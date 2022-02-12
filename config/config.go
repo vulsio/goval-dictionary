@@ -64,17 +64,8 @@ const (
 	// SUSEEnterpriseServer is
 	SUSEEnterpriseServer = "suse.linux.enterprise.server"
 
-	// SUSEEnterpriseModule is
-	SUSEEnterpriseModule = "suse.linux.enterprise.module"
-
-	// SUSEEnterpriseWorkstation is SUSE Linux Enterprise Workstation Extension
-	SUSEEnterpriseWorkstation = "suse.linux.enterprise.workstation.extension"
-
 	// SUSEEnterpriseDesktop is
 	SUSEEnterpriseDesktop = "suse.linux.enterprise.desktop"
-
-	// SUSEOpenstackCloud is
-	SUSEOpenstackCloud = "suse.openstack.cloud"
 
 	// Oracle is
 	Oracle = "oracle"

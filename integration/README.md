@@ -13,7 +13,7 @@ If you have prepared the two addresses yourself, you can use the following Pytho
 ```terminal
 $ python diff_server_mode.py debian --help
 usage: diff_server_mode.py [-h] [--arch {x86_64,i386,ia64,i686,sparc64,aarch64,noarch}]
-                           [--suse-type {opensuse,opensuse.leap,suse.linux.enterprise.server,suse.linux.enterprise.desktop,suse.linux.enterprise.module.basesystem,suse.openstack.cloud}]
+                           [--suse-type {opensuse,opensuse.leap,suse.linux.enterprise.server,suse.linux.enterprise.desktop}]
                            [--sample-rate SAMPLE_RATE] [--debug | --no-debug]
                            {cveid,package} {alpine,amazon,debian,oracle,redhat,suse,ubuntu} release [release ...]
 
@@ -27,7 +27,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --arch {x86_64,i386,ia64,i686,sparc64,aarch64,noarch}
                         Specify the Architecture to be started in server mode when testing.
-  --suse-type {opensuse,opensuse.leap,suse.linux.enterprise.server,suse.linux.enterprise.desktop,suse.linux.enterprise.module.basesystem,suse.openstack.cloud}
+  --suse-type {opensuse,opensuse.leap,suse.linux.enterprise.server,suse.linux.enterprise.desktop}
                         Specify the SUSE type to be started in server mode when testing.
   --sample-rate SAMPLE_RATE
                         Adjust the rate of data used for testing (len(test_data) * sample_rate)

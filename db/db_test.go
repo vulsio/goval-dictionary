@@ -200,6 +200,16 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
+				family: config.OpenSUSE,
+				osVer:  "tumbleweed",
+			},
+			expected: args{
+				family: config.OpenSUSE,
+				osVer:  "tumbleweed",
+			},
+		},
+		{
+			in: args{
 				family: config.OpenSUSELeap,
 				osVer:  "15.3",
 			},
@@ -226,16 +236,6 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 			expected: args{
 				family: config.SUSEEnterpriseDesktop,
 				osVer:  "15",
-			},
-		},
-		{
-			in: args{
-				family: config.SUSEOpenstackCloud,
-				osVer:  "9",
-			},
-			expected: args{
-				family: config.SUSEOpenstackCloud,
-				osVer:  "9",
 			},
 		},
 		{

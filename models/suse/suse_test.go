@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/k0kubun/pp"
-
 	"github.com/vulsio/goval-dictionary/models"
 )
 
@@ -16,1167 +15,158 @@ func TestWalkSUSE(t *testing.T) {
 		tests    map[string]rpmInfoTest
 		expected []distroPackage
 	}{
-		// no OS Package for WalkSUSEFirst
 		{
-			xmlName: "opensuse.10.2",
 			cri: Criteria{
+				Operator: "AND",
 				Criterions: []Criterion{
-					{Comment: "apache2-mod_jk less than 4.1.30-13.4"},
-				},
-			},
-			expected: []distroPackage{},
-		},
-		// no OS Package for WalkSUSESecond
-		{
-			xmlName: "opensuse.13.1",
-			cri: Criteria{
-				Criterions: []Criterion{
-					{Comment: "mailx-12.5-20.4.1 is installed"},
-					{Comment: "kernel-default is not affected"},
-				},
-			},
-			expected: []distroPackage{},
-		},
-		// OS and Package in the same hierarchy
-		{
-			xmlName: "opensuse.10.2",
-			cri: Criteria{
-				Criterions: []Criterion{
-					{Comment: "suse102 is installed"},
-					{TestRef: "oval:org.opensuse.security:tst:99999999999"},
+					{
+						Comment: "suse102 is installed",
+					},
+					{
+						TestRef: "oval:org.opensuse.security:tst:99999999999",
+						Comment: "mysql less than 5.0.26-16",
+					},
 				},
 			},
 			tests: map[string]rpmInfoTest{
 				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "memcached",
-					FixedVersion: "0:1.4.39-3.3.2",
+					Name:         "mysql",
+					FixedVersion: "0:5.0.26-16",
 				},
 			},
 			expected: []distroPackage{
 				{
 					osVer: "10.2",
 					pack: models.Package{
-						Name:    "memcached",
-						Version: "0:1.4.39-3.3.2",
+						Name:    "mysql",
+						Version: "0:5.0.26-16",
 					},
 				},
 			},
 		},
-		// WalkSUSEFirst
-		// openSUSE
 		{
-			xmlName: "opensuse.10.2",
 			cri: Criteria{
-				Criterias: []Criteria{
+				Operator: "AND",
+				Criterions: []Criterion{
 					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
+						Comment: "suse102 is installed",
 					},
 				},
-				Criterions: []Criterion{
-					{Comment: "suse102 is installed"},
+				Criterias: []Criteria{
+					{
+						Operator: "OR",
+						Criterions: []Criterion{
+							{
+								TestRef: "oval:org.opensuse.security:tst:99999999999",
+								Comment: "mysql less than 5.0.26-16",
+							},
+						},
+					},
 				},
 			},
 			tests: map[string]rpmInfoTest{
 				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
+					Name:         "mysql",
+					FixedVersion: "0:5.0.26-16",
 				},
 			},
 			expected: []distroPackage{
 				{
 					osVer: "10.2",
 					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
+						Name:    "mysql",
+						Version: "0:5.0.26-16",
 					},
 				},
 			},
 		},
-		// SUSE Linux Enterprise Desktop 10
 		{
-			xmlName: "suse.linux.enterprise.desktop.10",
+			xmlName: "opensuse.12.1.xml",
 			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
+				Operator: "OR",
 				Criterions: []Criterion{
-					{Comment: "sled10 is installed"},
+					{
+						TestRef: "oval:org.opensuse.security:tst:99999999999",
+						Comment: "flash-player-11.2.202.243-30.1 is installed",
+					},
 				},
 			},
 			tests: map[string]rpmInfoTest{
 				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
+					Name:         "flash-player",
+					FixedVersion: "0:11.2.202.243-30.1",
 				},
 			},
 			expected: []distroPackage{
 				{
-					osVer: "10",
+					osVer: "12.1",
 					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
+						Name:    "flash-player",
+						Version: "0:11.2.202.243-30.1",
 					},
 				},
 			},
 		},
-		// SUSE Linux Enterprise Desktop 10 SP1
 		{
-			xmlName: "suse.linux.enterprise.desktop.10",
 			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
+				Operator: "AND",
 				Criterions: []Criterion{
-					{Comment: "sled10-sp1 is installed"},
+					{
+						Comment: "core9 is installed",
+					},
+					{
+						TestRef: "oval:org.opensuse.security:tst:99999999999",
+						Comment: "tar less than 1.13.25-325.10",
+					},
 				},
 			},
 			tests: map[string]rpmInfoTest{
 				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "10.1",
-					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Desktop 10 SP1-ONLINE
-		{
-			xmlName: "suse.linux.enterprise.desktop.10",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "sled10-sp1-online is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "10.1",
-					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 9
-		{
-			xmlName: "suse.linux.enterprise.server.9",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-							{TestRef: "oval:org.opensuse.security:tst:99999999998", Comment: "kernel-default is not affected"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "core9 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "mailx",
-					FixedVersion: "0:12.5-20.4.1",
+					Name:         "tar",
+					FixedVersion: "0:1.13.25-325.10",
 				},
 			},
 			expected: []distroPackage{
 				{
 					osVer: "9",
 					pack: models.Package{
-						Name:    "mailx",
-						Version: "0:12.5-20.4.1",
+						Name:    "tar",
+						Version: "0:1.13.25-325.10",
 					},
 				},
 			},
 		},
-		// SUSE Linux Enterprise Server 10
 		{
-			xmlName: "suse.linux.enterprise.server.10",
 			cri: Criteria{
+				Operator: "OR",
 				Criterias: []Criteria{
 					{
+						Operator: "AND",
 						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "sles10 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "10",
-					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 10-LTSS
-		{
-			xmlName: "suse.linux.enterprise.server.10",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "sles10-ltss is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "10",
-					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 10 SP1
-		{
-			xmlName: "suse.linux.enterprise.server.10",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "sles10-sp1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "10.1",
-					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 10 SP1-ONLINE
-		{
-			xmlName: "suse.linux.enterprise.server.10",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "sles10-sp1-online is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "cron",
-					FixedVersion: "0:4.1-70",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "10.1",
-					pack: models.Package{
-						Name:    "cron",
-						Version: "0:4.1-70",
-					},
-				},
-			},
-		},
-		// WalkSUSESecond
-		// openSUSE 12
-		{
-			xmlName: "opensuse.12.1",
-			cri: Criteria{
-				Criterions: []Criterion{
-					{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "mailx-12.5-20.4.1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "mailx",
-					FixedVersion: "0:12.5-20.4.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "mailx",
-						Version: "0:12.5-20.4.1",
-					},
-				},
-			},
-		},
-		// openSUSE
-		{
-			xmlName: "opensuse.13.2",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "mailx-12.5-20.4.1 is installed"},
-							{TestRef: "oval:org.opensuse.security:tst:99999999998", Comment: "kernel-default is not affected"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "openSUSE 13.2 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "mailx",
-					FixedVersion: "0:12.5-20.4.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "13.2",
-					pack: models.Package{
-						Name:    "mailx",
-						Version: "0:12.5-20.4.1",
-					},
-				},
-			},
-		},
-		// openSUSE NonFree
-		{
-			xmlName: "opensuse.13.2",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "mailx-12.5-20.4.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "openSUSE 13.2 NonFree is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "mailx",
-					FixedVersion: "0:12.5-20.4.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "13.2",
-					pack: models.Package{
-						Name:    "mailx",
-						Version: "0:12.5-20.4.1",
-					},
-				},
-			},
-		},
-		// openSUSE Leap
-		{
-			xmlName: "opensuse.leap.42.2",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.5-5.13 is installed"},
-							{TestRef: "oval:org.opensuse.security:tst:99999999998", Comment: "krb5 is signed with openSUSE key"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "openSUSE Leap 42.2 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.5-5.13",
-				},
-				"oval:org.opensuse.security:tst:99999999998": {
-					Name:           "krb5",
-					FixedVersion:   "",
-					SignatureKeyID: SignatureKeyid{Text: "text"},
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "42.2",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.5-5.13",
-					},
-				},
-			},
-		},
-		// openSUSE Leap NonFree
-		{
-			xmlName: "opensuse.leap.42.2",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "libunrar-devel-5.5.5-3.1 is installed"},
-							{TestRef: "oval:org.opensuse.security:tst:99999999998", Comment: "libunrar-devel is signed with openSUSE key"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "openSUSE Leap 42.2 NonFree is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "libunrar-devel",
-					FixedVersion: "0:5.5.5-3.1",
-				},
-				"oval:org.opensuse.security:tst:99999999998": {
-					Name:           "libunrar-devel",
-					FixedVersion:   "",
-					SignatureKeyID: SignatureKeyid{Text: "text"},
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "42.2",
-					pack: models.Package{
-						Name:    "libunrar-devel",
-						Version: "0:5.5.5-3.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Desktop 12
-		{
-			xmlName: "suse.linux.enterprise.desktop.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.5-39.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Desktop 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.5-39.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.5-39.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Desktop 12 SP1
-		{
-			xmlName: "suse.linux.enterprise.desktop.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.1-19.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Desktop 12 SP1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.1-19.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.1-19.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 12
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.1-19.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.1-6.3",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.1-6.3",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 12 SP1
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12 SP1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.1-19.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.1-19.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 12-LTSS
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12-LTSS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 12 SP1-LTSS
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12 SP1-LTSS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server 11 SP1-CLIENT-TOOLS
-		{
-			xmlName: "suse.linux.enterprise.server.11",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server 11 SP1-CLIENT-TOOLS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "11.1",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for Raspberry Pi 12
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.5-39.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for Raspberry Pi 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.5-39.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.5-39.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for Raspberry Pi 12 SP2
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.5-39.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for Raspberry Pi 12 SP2 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.5-39.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.2",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.5-39.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for SAP Applications 12
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "krb5-1.12.5-39.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for SAP Applications 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "krb5",
-					FixedVersion: "0:1.12.5-39.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "krb5",
-						Version: "0:1.12.5-39.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for SAP Applications 12-LTSS
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for SAP Applications 12-LTSS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for SAP Applications 12 SP1
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "libecpg6-9.4.6-7.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for SAP Applications 12 SP1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "libecpg6",
-					FixedVersion: "0:9.4.6-7.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "libecpg6",
-						Version: "0:9.4.6-7.1",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for SAP Applications 12 SP1-LTSS
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for SAP Applications 12 SP1-LTSS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS
-		{
-			xmlName: "suse.linux.enterprise.server.11",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server for SAP Applications 11 SP1-CLIENT-TOOLS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "11.1",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Workstation Extension 12
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "libmysqlclient_r18-32bit-10.0.11-6.4 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Workstation Extension 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "libmysqlclient_r18-32bit",
-					FixedVersion: "0:10.0.11-6.4",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "libmysqlclient_r18-32bit",
-						Version: "0:10.0.11-6.4",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Workstation Extension 12 SP1
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "libmysqlclient_r18-10.0.21-1.17 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Workstation Extension 12 SP1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "libmysqlclient_r18",
-					FixedVersion: "0:10.0.21-1.17",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "libmysqlclient_r18",
-						Version: "0:10.0.21-1.17",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Advanced Systems Management 12
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "puppet-server-3.6.2-3.62 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Advanced Systems Management 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "puppet-server",
-					FixedVersion: "0:3.6.2-3.62",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "puppet-server",
-						Version: "0:3.6.2-3.62",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Containers 12
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "sles12-docker-image-1.1.4-20171002 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Containers 12 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "sles12-docker-image",
-					FixedVersion: "0:1.1.4-20171002",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "sles12-docker-image",
-						Version: "0:1.1.4-20171002",
-					},
-				},
-			},
-		},
-		// SUSE Linux Enterprise Module for Python 2 15 SP1
-		{
-			xmlName: "suse.linux.enterprise.server.15",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "python-curses-2.7.17-7.32.2 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Module for Python 2 15 SP1 is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "python-curses",
-					FixedVersion: "0:2.7.17-7.32.2",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "15.1",
-					pack: models.Package{
-						Name:    "python-curses",
-						Version: "0:2.7.17-7.32.2",
-					},
-				},
-			},
-		},
-		// Multi Version and Multi Package
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-							{TestRef: "oval:org.opensuse.security:tst:99999999998", Comment: "openssh-askpass-gnome-6.6p1-54.15.1 is installed"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "SUSE Linux Enterprise Server 12-LTSS is installed"},
-					{Comment: "SUSE Linux Enterprise Server 12 SP1-LTSS is installed"},
-				},
-			},
-			tests: map[string]rpmInfoTest{
-				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
-				},
-				"oval:org.opensuse.security:tst:99999999998": {
-					Name:         "openssh-askpass-gnome",
-					FixedVersion: "0:6.6p1-54.15.1",
-				},
-			},
-			expected: []distroPackage{
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-				{
-					osVer: "12",
-					pack: models.Package{
-						Name:    "openssh-askpass-gnome",
-						Version: "0:6.6p1-54.15.1",
-					},
-				},
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "openssh-askpass-gnome",
-						Version: "0:6.6p1-54.15.1",
-					},
-				},
-			},
-		},
-		// Multi Version and Multi Package2
-		{
-			xmlName: "suse.linux.enterprise.server.12",
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{Comment: "SUSE Linux Enterprise Server 12 is installed"},
-						},
-						Criterias: []Criteria{
 							{
-								Criterions: []Criterion{
-									{TestRef: "oval:org.opensuse.security:tst:99999999999", Comment: "openssh-6.6p1-54.15.2 is installed"},
-								},
+								Comment: "sles10-sp1 is installed",
+							},
+							{
+								TestRef: "oval:org.opensuse.security:tst:99999999999",
+								Comment: "openssl less than 0.9.8a-18.40.1",
 							},
 						},
 					},
 					{
+						Operator: "AND",
 						Criterions: []Criterion{
-							{Comment: "SUSE Linux Enterprise Server 12 SP1 is installed"},
+							{
+								Comment: "sles10 is installed",
+							},
 						},
 						Criterias: []Criteria{
 							{
+								Operator: "OR",
 								Criterions: []Criterion{
-									{TestRef: "oval:org.opensuse.security:tst:99999999998", Comment: "openssh-6.6p1-54.15.1 is installed"},
+									{
+										TestRef: "oval:org.opensuse.security:tst:99999999998",
+										Comment: "openssl less than 0.9.8a-18.39.3",
+									},
 								},
 							},
 						},
@@ -1185,30 +175,175 @@ func TestWalkSUSE(t *testing.T) {
 			},
 			tests: map[string]rpmInfoTest{
 				"oval:org.opensuse.security:tst:99999999999": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.2",
+					Name:         "openssl",
+					FixedVersion: "0:0.9.8a-18.40.1",
 				},
 				"oval:org.opensuse.security:tst:99999999998": {
-					Name:         "openssh",
-					FixedVersion: "0:6.6p1-54.15.1",
+					Name:         "openssl",
+					FixedVersion: "0:0.9.8a-18.39.3",
+				},
+			},
+			expected: []distroPackage{
+				{
+					osVer: "10.1",
+					pack: models.Package{
+						Name:    "openssl",
+						Version: "0:0.9.8a-18.40.1",
+					},
+				},
+				{
+					osVer: "10",
+					pack: models.Package{
+						Name:    "openssl",
+						Version: "0:0.9.8a-18.39.3",
+					},
+				},
+			},
+		},
+		{
+			cri: Criteria{
+				Operator: "AND",
+				Criterions: []Criterion{
+					{
+						Comment: "openSUSE Leap 42.1 is installed",
+					},
+				},
+				Criterias: []Criteria{
+					{
+						Operator: "OR",
+						Criterias: []Criteria{
+							{
+								Operator: "AND",
+								Criterions: []Criterion{
+									{
+										TestRef: "oval:org.opensuse.security:tst:99999999999",
+										Comment: "bsdtar-3.1.2-13.2 is installed",
+									},
+									{
+										TestRef: "oval:org.opensuse.security:tst:99999999998",
+										Comment: "bsdtar is signed with openSUSE key",
+									},
+								},
+							},
+							{
+								Operator: "AND",
+								Criterions: []Criterion{
+									{
+										TestRef: "oval:org.opensuse.security:tst:99999999997",
+										Comment: "libarchive-3.1.2-13.2 is installed",
+									},
+									{
+										TestRef: "oval:org.opensuse.security:tst:99999999996",
+										Comment: "libarchive is signed with openSUSE key",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			tests: map[string]rpmInfoTest{
+				"oval:org.opensuse.security:tst:99999999999": {
+					Name:         "bsdtar",
+					FixedVersion: "0:3.1.2-13.2",
+				},
+				"oval:org.opensuse.security:tst:99999999998": {
+					Name: "bsdtar",
+					SignatureKeyID: SignatureKeyid{
+						Text: "b88b2fd43dbdc284",
+					},
+				},
+				"oval:org.opensuse.security:tst:99999999997": {
+					Name:         "libarchive",
+					FixedVersion: "0:3.1.2-13.2",
+				},
+				"oval:org.opensuse.security:tst:99999999996": {
+					Name: "libarchive",
+					SignatureKeyID: SignatureKeyid{
+						Text: "b88b2fd43dbdc284",
+					},
+				},
+			},
+			expected: []distroPackage{
+				{
+					osVer: "42.1",
+					pack: models.Package{
+						Name:    "bsdtar",
+						Version: "0:3.1.2-13.2",
+					},
+				},
+				{
+					osVer: "42.1",
+					pack: models.Package{
+						Name:    "libarchive",
+						Version: "0:3.1.2-13.2",
+					},
+				},
+			},
+		},
+		{
+			cri: Criteria{
+				Operator: "OR",
+				Criterias: []Criteria{
+					{
+						Operator: "AND",
+						Criterias: []Criteria{
+							{
+								Operator: "OR",
+								Criterions: []Criterion{
+									{
+										Comment: "SUSE Linux Enterprise Server 12 is installed",
+									},
+								},
+							},
+							{
+								Operator: "OR",
+								Criterions: []Criterion{
+									{
+										TestRef: "oval:org.opensuse.security:tst:99999999999",
+										Comment: "bind-9.9.9P1-63.12.1 is installed",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			tests: map[string]rpmInfoTest{
+				"oval:org.opensuse.security:tst:99999999999": {
+					Name:         "bind",
+					FixedVersion: "0:9.9.9P1-63.12.1",
 				},
 			},
 			expected: []distroPackage{
 				{
 					osVer: "12",
 					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.2",
-					},
-				},
-				{
-					osVer: "12.1",
-					pack: models.Package{
-						Name:    "openssh",
-						Version: "0:6.6p1-54.15.1",
+						Name:    "bind",
+						Version: "0:9.9.9P1-63.12.1",
 					},
 				},
 			},
+		},
+		{
+			cri: Criteria{
+				Operator: "OR",
+				Criterions: []Criterion{
+					{
+						Comment: "SUSE Linux Enterprise Server 12 is installed",
+					},
+					{
+						TestRef: "oval:org.opensuse.security:tst:99999999999",
+						Comment: "kernel-default is not affected",
+					},
+				},
+			},
+			tests: map[string]rpmInfoTest{
+				"oval:org.opensuse.security:tst:99999999999": {
+					Name: "kernel-default",
+				},
+			},
+			expected: []distroPackage{},
 		},
 	}
 
@@ -1222,11 +357,55 @@ func TestWalkSUSE(t *testing.T) {
 	}
 }
 
-func TestGetOSNameVersion(t *testing.T) {
+func TestGetOSVersion(t *testing.T) {
 	var tests = []struct {
 		s        string
 		expected string
 	}{
+		{
+			s:        "suse102",
+			expected: "10.2",
+		},
+		{
+			s:        "suse111-debug",
+			expected: "11.1",
+		},
+		{
+			s:        "core9",
+			expected: "9",
+		},
+		{
+			s:        "sles10",
+			expected: "10",
+		},
+		{
+			s:        "sles10-sp1",
+			expected: "10.1",
+		},
+		{
+			s:        "sles10-sp1-ltss",
+			expected: "10.1",
+		},
+		{
+			s:        "sles10-slepos",
+			expected: "10",
+		},
+		{
+			s:        "sled10",
+			expected: "10",
+		},
+		{
+			s:        "sled10-sp1",
+			expected: "10.1",
+		},
+		{
+			s:        "sled10-sp1-ltss",
+			expected: "10.1",
+		},
+		{
+			s:        "sled10-slepos",
+			expected: "10",
+		},
 		{
 			s:        "openSUSE 13.2",
 			expected: "13.2",

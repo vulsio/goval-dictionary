@@ -56,10 +56,6 @@ func parseTests(root Root) (map[string]rpmInfoTest, error) {
 	states := parseStates(root.States)
 	tests := map[string]rpmInfoTest{}
 	for _, test := range root.Tests.RpminfoTest {
-		if test.Check != "at least one" {
-			continue
-		}
-
 		t, err := followTestRefs(test, objs, states)
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to follow test refs. err: %w", err)

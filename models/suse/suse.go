@@ -56,10 +56,6 @@ func parseTests(root Root) (map[string]rpmInfoTest, error) {
 	states := parseStates(root.States)
 	tests := map[string]rpmInfoTest{}
 	for _, test := range root.Tests.RpminfoTest {
-		if test.Check != "at least one" {
-			continue
-		}
-
 		t, err := followTestRefs(test, objs, states)
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to follow test refs. err: %w", err)
@@ -200,126 +196,54 @@ func parseDefinitions(xmlName string, ovalDefs Definitions, tests map[string]rpm
 }
 
 func collectSUSEPacks(xmlName string, cri Criteria, tests map[string]rpmInfoTest) []distroPackage {
-	xmlName = strings.TrimSuffix(xmlName, ".xml")
-
-	switch {
-	case strings.Contains(xmlName, "opensuse.10") || strings.Contains(xmlName, "opensuse.11") || strings.Contains(xmlName, "suse.linux.enterprise.desktop.10") || strings.Contains(xmlName, "suse.linux.enterprise.server.9") || strings.Contains(xmlName, "suse.linux.enterprise.server.10"):
-		return walkSUSEFirst(cri, []distroPackage{}, []distroPackage{}, tests)
-	case strings.Contains(xmlName, "opensuse.12"):
-		return walkSUSESecond(cri, []distroPackage{{osVer: strings.TrimPrefix(xmlName, "opensuse.")}}, []distroPackage{}, tests)
-	default:
-		return walkSUSESecond(cri, []distroPackage{}, []distroPackage{}, tests)
+	if strings.Contains(xmlName, "opensuse.12") {
+		verPkgs := []distroPackage{}
+		v := strings.TrimSuffix(strings.TrimPrefix(xmlName, "opensuse."), ".xml")
+		_, pkgs := walkCriterion(cri, []string{}, []models.Package{}, tests)
+		for _, pkg := range pkgs {
+			verPkgs = append(verPkgs, distroPackage{
+				osVer: v,
+				pack:  pkg,
+			})
+		}
+		return verPkgs
 	}
+	return walkCriteria(cri, []distroPackage{}, tests)
 }
 
-// comment="(os) is installed"
-// comment="(package) less then (ver)"
-func walkSUSEFirst(cri Criteria, osVerPackages, acc []distroPackage, tests map[string]rpmInfoTest) []distroPackage {
-	for _, c := range cri.Criterions {
-		if strings.HasSuffix(c.Comment, " is installed") {
-			comment := strings.TrimSuffix(c.Comment, " is installed")
-			var version string
-			switch {
-			case strings.HasPrefix(comment, "suse"):
-				comment = strings.TrimPrefix(comment, "suse")
-				version = fmt.Sprintf("%s.%s", comment[:2], comment[2:])
-			case strings.HasPrefix(comment, "sled"):
-				comment = strings.TrimPrefix(comment, "sled")
-				ss := strings.Split(comment, "-")
-				switch len(ss) {
-				case 0:
-					log15.Warn(fmt.Sprintf("Failed to parse. err: unexpected string: %s", comment))
-					continue
-				case 1:
-					version = ss[0]
-				case 2:
-					if strings.HasPrefix(ss[1], "sp") {
-						version = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
-					} else {
-						version = ss[0]
-					}
-				default:
-					version = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
-				}
-			case strings.HasPrefix(comment, "sles"):
-				comment = strings.TrimPrefix(comment, "sles")
-				ss := strings.Split(comment, "-")
-				switch len(ss) {
-				case 0:
-					log15.Warn(fmt.Sprintf("Failed to parse. err: unexpected string: %s", comment))
-					continue
-				case 1:
-					version = ss[0]
-				case 2:
-					if strings.HasPrefix(ss[1], "sp") {
-						version = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
-					} else {
-						version = ss[0]
-					}
-				default:
-					version = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
-				}
-			case strings.HasPrefix(comment, "core9"):
-				version = "9"
+func walkCriteria(cri Criteria, acc []distroPackage, tests map[string]rpmInfoTest) []distroPackage {
+	if cri.Operator == "AND" {
+		vs, pkgs := walkCriterion(cri, []string{}, []models.Package{}, tests)
+		for _, v := range vs {
+			for _, pkg := range pkgs {
+				acc = append(acc, distroPackage{
+					osVer: v,
+					pack:  pkg,
+				})
 			}
-
-			osVerPackages = append(osVerPackages, distroPackage{
-				osVer: version,
-			})
-
-			continue
 		}
-
-		t, ok := tests[c.TestRef]
-		if !ok {
-			continue
-		}
-
-		// Skip red-def:signature_keyid
-		if t.SignatureKeyID.Text != "" {
-			continue
-		}
-
-		for _, p := range osVerPackages {
-			log15.Debug("append acc package", "osVer", p.osVer, "pack.Name", t.Name, "pack.Version", t.FixedVersion)
-			acc = append(acc, distroPackage{
-				osVer: p.osVer,
-				pack: models.Package{
-					Name:    t.Name,
-					Version: t.FixedVersion,
-				},
-			})
-		}
-	}
-
-	if len(cri.Criterias) == 0 {
 		return acc
 	}
-	for _, c := range cri.Criterias {
-		acc = walkSUSEFirst(c, osVerPackages, acc, tests)
+	for _, criteria := range cri.Criterias {
+		acc = walkCriteria(criteria, acc, tests)
 	}
 	return acc
 }
 
-// opensuse13, opensuse.leap, SLED 11 >, SLES 11 >
-func walkSUSESecond(cri Criteria, osVerPackages, acc []distroPackage, tests map[string]rpmInfoTest) []distroPackage {
+func walkCriterion(cri Criteria, versions []string, packages []models.Package, tests map[string]rpmInfoTest) ([]string, []models.Package) {
 	for _, c := range cri.Criterions {
-		comment := ""
-		if strings.HasSuffix(c.Comment, " is installed") {
-			comment = strings.TrimSuffix(c.Comment, " is installed")
-		} else {
-			continue
-		}
-
-		if strings.HasPrefix(comment, "openSUSE") || strings.HasPrefix(comment, "SUSE Linux Enterprise") {
-			version, err := getOSVersion(comment)
+		if isOSComment(c.Comment) {
+			comment := strings.TrimSuffix(c.Comment, " is installed")
+			v, err := getOSVersion(comment)
 			if err != nil {
 				log15.Warn("Failed to getOSVersion", "comment", comment, "err", err)
 				continue
 			}
-			osVerPackages = append(osVerPackages, distroPackage{
-				osVer: version,
-			})
+			versions = append(versions, v)
+			continue
+		}
+
+		if strings.HasSuffix(c.Comment, "is not affected") {
 			continue
 		}
 
@@ -333,31 +257,104 @@ func walkSUSESecond(cri Criteria, osVerPackages, acc []distroPackage, tests map[
 			continue
 		}
 
-		for _, p := range osVerPackages {
-			log15.Debug("append acc package", "osVer", p.osVer, "pack.Name", t.Name, "pack.Version", t.FixedVersion)
-			acc = append(acc, distroPackage{
-				osVer: p.osVer,
-				pack: models.Package{
-					Name:    t.Name,
-					Version: t.FixedVersion,
-				},
-			})
-		}
+		packages = append(packages, models.Package{
+			Name:    t.Name,
+			Version: t.FixedVersion,
+		})
 	}
 
 	if len(cri.Criterias) == 0 {
-		return acc
+		return versions, packages
 	}
 	for _, c := range cri.Criterias {
-		acc = walkSUSESecond(c, osVerPackages, acc, tests)
+		versions, packages = walkCriterion(c, versions, packages, tests)
 	}
-	return acc
+	return versions, packages
+}
+
+func isOSComment(comment string) bool {
+	if !strings.HasSuffix(comment, "is installed") {
+		return false
+	}
+	if strings.HasPrefix(comment, "suse1") || // os: suse102 is installed, pkg: suseRegister less than
+		comment == "core9 is installed" ||
+		(strings.HasPrefix(comment, "sles10") && !strings.Contains(comment, "-docker-image-")) || // os: sles10-sp1 is installed, pkg: sles12-docker-image-1.1.4-20171002 is installed
+		strings.HasPrefix(comment, "sled10") || // os: sled10-sp1 is installed
+		strings.HasPrefix(comment, "openSUSE") || strings.HasPrefix(comment, "SUSE Linux Enterprise") {
+		return true
+	}
+	return false
 }
 
 // base: https://github.com/aquasecurity/trivy-db/blob/main/pkg/vulnsrc/suse-cvrf/suse-cvrf.go
 var versionReplacer = strings.NewReplacer("-SECURITY", "", "-LTSS", "", "-TERADATA", "", "-CLIENT-TOOLS", "", "-PUBCLOUD", "")
 
 func getOSVersion(platformName string) (string, error) {
+	if strings.HasPrefix(platformName, "suse") {
+		s := strings.TrimPrefix(platformName, "suse")
+		if len(s) < 3 {
+			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: invalid version", platformName)
+		}
+		ss := strings.Split(s, "-")
+		v := fmt.Sprintf("%s.%s", ss[0][:2], ss[0][2:])
+		if _, err := version.NewVersion(v); err != nil {
+			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: %w", platformName, err)
+		}
+		return v, nil
+	}
+
+	if strings.HasPrefix(platformName, "sled") {
+		s := strings.TrimPrefix(platformName, "sled")
+		ss := strings.Split(s, "-")
+		var v string
+		switch len(ss) {
+		case 0:
+			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: invalid version string", platformName)
+		case 1:
+			v = ss[0]
+		case 2:
+			if strings.HasPrefix(ss[1], "sp") {
+				v = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
+			} else {
+				v = ss[0]
+			}
+		default:
+			v = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
+		}
+		if _, err := version.NewVersion(v); err != nil {
+			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: %w", platformName, err)
+		}
+		return v, nil
+	}
+
+	if strings.HasPrefix(platformName, "sles") {
+		s := strings.TrimPrefix(platformName, "sles")
+		ss := strings.Split(s, "-")
+		var v string
+		switch len(ss) {
+		case 0:
+			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: invalid version string", platformName)
+		case 1:
+			v = ss[0]
+		case 2:
+			if strings.HasPrefix(ss[1], "sp") {
+				v = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
+			} else {
+				v = ss[0]
+			}
+		default:
+			v = fmt.Sprintf("%s.%s", ss[0], strings.TrimPrefix(ss[1], "sp"))
+		}
+		if _, err := version.NewVersion(v); err != nil {
+			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: %w", platformName, err)
+		}
+		return v, nil
+	}
+
+	if strings.HasPrefix(platformName, "core9") {
+		return "9", nil
+	}
+
 	if strings.HasPrefix(platformName, "openSUSE") {
 		if strings.HasPrefix(platformName, "openSUSE Leap") {
 			// openSUSE Leap 15.0
@@ -383,7 +380,8 @@ func getOSVersion(platformName string) (string, error) {
 		}
 		return ss[1], nil
 	}
-	if strings.Contains(platformName, "SUSE Linux Enterprise") {
+
+	if strings.HasPrefix(platformName, "SUSE Linux Enterprise") {
 		// e.g. SUSE Linux Enterprise Server 12 SP1-LTSS
 		ss := strings.Fields(platformName)
 		if strings.HasPrefix(ss[len(ss)-1], "SP") || isInt(ss[len(ss)-2]) {

@@ -176,6 +176,11 @@ elif args.ostype == 'fedora':
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
+elif args.ostype == 'epel':
+    if len(list(set(args.release) - set(['7', '8']))) > 0:
+        logger.error(
+            f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
+        raise NotImplementedError
 else:
     logger.error(
         f'Failed to diff_response..., err: This OS type({args[1]}) does not support test mode(cveid)')

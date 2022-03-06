@@ -146,7 +146,7 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 	switch family {
 	case c.Debian:
 		q = q.Preload("Debian").Where("packages.name = ?", packName).Preload("AffectedPacks")
-	case c.Amazon, c.Oracle, c.Fedora:
+	case c.Amazon, c.Oracle, c.Fedora, c.EPEL:
 		if arch == "" {
 			q = q.Where("packages.name = ?", packName).Preload("AffectedPacks")
 		} else {
@@ -203,7 +203,7 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 	switch family {
 	case c.Debian:
 		q = q.Preload("Debian").Preload("AffectedPacks")
-	case c.Amazon, c.Oracle, c.Fedora:
+	case c.Amazon, c.Oracle, c.Fedora, c.EPEL:
 		if arch == "" {
 			q = q.Preload("AffectedPacks")
 		} else {

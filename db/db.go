@@ -98,6 +98,8 @@ func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 		}
 	case c.OpenSUSELeap, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseServer:
 		osVer = majorDotMinor(osVer)
+	case c.EPEL:
+		osVer = major(osVer)
 	default:
 		return "", "", xerrors.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 	}

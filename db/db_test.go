@@ -250,6 +250,16 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
+				family: config.EPEL,
+				osVer:  "8.1",
+			},
+			expected: args{
+				family: config.EPEL,
+				osVer:  "8",
+			},
+		},
+		{
+			in: args{
 				family: "unknown",
 				osVer:  "unknown",
 			},

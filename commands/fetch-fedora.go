@@ -81,7 +81,7 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	uinfos, err := fetcher.FetchUpdateInfosFedora(vers)
+	uinfos, err := fetcher.FetchUpdateInfos(vers)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}

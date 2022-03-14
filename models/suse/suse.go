@@ -239,7 +239,9 @@ func walkCriterion(cri Criteria, versions []string, packages []models.Package, t
 				log15.Warn("Failed to getOSVersion", "comment", comment, "err", err)
 				continue
 			}
-			versions = append(versions, v)
+			if v != "" {
+				versions = append(versions, v)
+			}
 			continue
 		}
 
@@ -280,7 +282,7 @@ func isOSComment(comment string) bool {
 		comment == "core9 is installed" ||
 		(strings.HasPrefix(comment, "sles10") && !strings.Contains(comment, "-docker-image-")) || // os: sles10-sp1 is installed, pkg: sles12-docker-image-1.1.4-20171002 is installed
 		strings.HasPrefix(comment, "sled10") || // os: sled10-sp1 is installed
-		strings.HasPrefix(comment, "openSUSE") || strings.HasPrefix(comment, "SUSE Linux Enterprise") {
+		strings.HasPrefix(comment, "openSUSE") || strings.HasPrefix(comment, "SUSE Linux Enterprise") || strings.HasPrefix(comment, "SUSE Manager") {
 		return true
 	}
 	return false
@@ -382,6 +384,11 @@ func getOSVersion(platformName string) (string, error) {
 	}
 
 	if strings.HasPrefix(platformName, "SUSE Linux Enterprise") {
+		// e.g. SUSE Linux Enterprise Storage 7, SUSE Linux Enterprise Micro 5.1
+		if strings.HasPrefix(platformName, "SUSE Linux Enterprise Storage") || strings.HasPrefix(platformName, "SUSE Linux Enterprise Micro") {
+			return "", nil
+		}
+
 		// e.g. SUSE Linux Enterprise Server 12 SP1-LTSS
 		ss := strings.Fields(platformName)
 		if strings.HasPrefix(ss[len(ss)-1], "SP") || isInt(ss[len(ss)-2]) {
@@ -402,6 +409,11 @@ func getOSVersion(platformName string) (string, error) {
 			return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: %w", platformName, err)
 		}
 		return ver, nil
+	}
+
+	if strings.HasPrefix(platformName, "SUSE Manager") {
+		// e.g. SUSE Manager Proxy 4.0, SUSE Manager Server 4.0
+		return "", nil
 	}
 
 	return "", xerrors.Errorf("Failed to detect os version. platformName: %s, err: not support platform", platformName)

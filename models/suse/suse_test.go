@@ -327,7 +327,41 @@ func TestWalkSUSE(t *testing.T) {
 		},
 		{
 			cri: Criteria{
-				Operator: "OR",
+				Operator: "AND",
+				Criterias: []Criteria{
+					{
+						Operator: "OR",
+						Criterions: []Criterion{
+							{
+								Comment: "SUSE Manager Proxy 4.0 is installed",
+							},
+							{
+								Comment: "SUSE Linux Enterprise Micro 5.1 is installed",
+							},
+							{
+								Comment: "SUSE Linux Enterprise Storage 7 is installed",
+							},
+						},
+					},
+				},
+				Criterions: []Criterion{
+					{
+						TestRef: "oval:org.opensuse.security:tst:99999999999",
+						Comment: "mailx-12.5-1.87 is installed",
+					},
+				},
+			},
+			tests: map[string]rpmInfoTest{
+				"oval:org.opensuse.security:tst:99999999999": {
+					Name:         "mailx",
+					FixedVersion: "0:12.5-1.87",
+				},
+			},
+			expected: []distroPackage{},
+		},
+		{
+			cri: Criteria{
+				Operator: "AND",
 				Criterions: []Criterion{
 					{
 						Comment: "SUSE Linux Enterprise Server 12 is installed",
@@ -485,6 +519,18 @@ func TestGetOSVersion(t *testing.T) {
 		{
 			s:        "SUSE Linux Enterprise Server for Python 2 15 SP1",
 			expected: "15.1",
+		},
+		{
+			s:        "SUSE Manager Proxy 4.0",
+			expected: "",
+		},
+		{
+			s:        "SUSE Linux Enterprise Micro 5.1",
+			expected: "",
+		},
+		{
+			s:        "SUSE Linux Enterprise Storage 7",
+			expected: "",
 		},
 	}
 

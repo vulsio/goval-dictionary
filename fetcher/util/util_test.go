@@ -1,6 +1,7 @@
 package util
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -41,6 +42,7 @@ func TestCveIDPattern(t *testing.T) {
 func TestUniqueStrings(t *testing.T) {
 	in := []string{"1", "1", "2", "3", "1", "2"}
 	got := UniqueStrings(in)
+	sort.Slice(got, func(i, j int) bool { return got[i] < got[j] })
 	want := []string{"1", "2", "3"}
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("(-got +want):\n%s", diff)

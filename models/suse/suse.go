@@ -384,8 +384,8 @@ func getOSVersion(platformName string) (string, error) {
 	}
 
 	if strings.HasPrefix(platformName, "SUSE Linux Enterprise") {
-		// e.g. SUSE Linux Enterprise Micro 5.1
-		if strings.HasPrefix(platformName, "SUSE Linux Enterprise Micro") {
+		// e.g. SUSE Linux Enterprise Storage 7, SUSE Linux Enterprise Micro 5.1
+		if strings.HasPrefix(platformName, "SUSE Linux Enterprise Storage") || strings.HasPrefix(platformName, "SUSE Linux Enterprise Micro") {
 			return "", nil
 		}
 

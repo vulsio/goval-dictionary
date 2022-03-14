@@ -338,6 +338,9 @@ func TestWalkSUSE(t *testing.T) {
 							{
 								Comment: "SUSE Linux Enterprise Micro 5.1 is installed",
 							},
+							{
+								Comment: "SUSE Linux Enterprise Storage 7 is installed",
+							},
 						},
 					},
 				},
@@ -523,6 +526,10 @@ func TestGetOSVersion(t *testing.T) {
 		},
 		{
 			s:        "SUSE Linux Enterprise Micro 5.1",
+			expected: "",
+		},
+		{
+			s:        "SUSE Linux Enterprise Storage 7",
 			expected: "",
 		},
 	}

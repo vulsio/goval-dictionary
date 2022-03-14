@@ -305,7 +305,7 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 		for _, d := range root.Definitions[idx.From:idx.To] {
 			for idx2 := range chunkSlice(len(d.AffectedPacks), batchSize) {
 				for i := range d.AffectedPacks[idx2.From:idx2.To] {
-					d.AffectedPacks[i].DefinitionID = d.ID
+					d.AffectedPacks[idx2.From+i].DefinitionID = d.ID
 				}
 				if err := tx.Create(d.AffectedPacks[idx2.From:idx2.To]).Error; err != nil {
 					tx.Rollback()

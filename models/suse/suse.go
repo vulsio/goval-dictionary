@@ -384,6 +384,11 @@ func getOSVersion(platformName string) (string, error) {
 	}
 
 	if strings.HasPrefix(platformName, "SUSE Linux Enterprise") {
+		// e.g. SUSE Linux Enterprise Micro 5.1
+		if strings.HasPrefix(platformName, "SUSE Linux Enterprise Micro") {
+			return "", nil
+		}
+
 		// e.g. SUSE Linux Enterprise Server 12 SP1-LTSS
 		ss := strings.Fields(platformName)
 		if strings.HasPrefix(ss[len(ss)-1], "SP") || isInt(ss[len(ss)-2]) {

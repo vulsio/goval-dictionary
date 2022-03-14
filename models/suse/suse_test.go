@@ -328,10 +328,20 @@ func TestWalkSUSE(t *testing.T) {
 		{
 			cri: Criteria{
 				Operator: "AND",
-				Criterions: []Criterion{
+				Criterias: []Criteria{
 					{
-						Comment: "SUSE Manager Proxy 4.0 is installed",
+						Operator: "OR",
+						Criterions: []Criterion{
+							{
+								Comment: "SUSE Manager Proxy 4.0 is installed",
+							},
+							{
+								Comment: "SUSE Linux Enterprise Micro 5.1 is installed",
+							},
+						},
 					},
+				},
+				Criterions: []Criterion{
 					{
 						TestRef: "oval:org.opensuse.security:tst:99999999999",
 						Comment: "mailx-12.5-1.87 is installed",
@@ -509,6 +519,10 @@ func TestGetOSVersion(t *testing.T) {
 		},
 		{
 			s:        "SUSE Manager Proxy 4.0",
+			expected: "",
+		},
+		{
+			s:        "SUSE Linux Enterprise Micro 5.1",
 			expected: "",
 		},
 	}

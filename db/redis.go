@@ -187,32 +187,16 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 	}
 
 	defs := []models.Definition{}
-	delDefIDs := []string{}
 	for i, defstr := range defStrs {
 		if defstr == nil {
-			// TODO: Check the occurrence of this log while operating the service. Originally, I want to return an error because the DB is broken.
-			// Only Logging and stack missing defID fields to be deleted
-			log15.Error("Failed to HMGet. err: Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
-			delDefIDs = append(delDefIDs, defIDs[i])
-			continue
+			return nil, xerrors.Errorf("Failed to HMGet. Redis relationship may be broken. err: Some fields do not exist. family: %s, version: %s, defID: %s", family, osVer, defIDs[i])
 		}
-
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to restoreDefinition. err: %w", err)
 		}
 		defs = append(defs, def)
 	}
-	if len(delDefIDs) > 0 {
-		pipe := r.conn.Pipeline()
-		for _, pkgKey := range pkgKeys {
-			_ = pipe.SRem(ctx, pkgKey, delDefIDs)
-		}
-		if _, err := pipe.Exec(ctx); err != nil {
-			return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
-		}
-	}
-
 	return defs, nil
 }
 
@@ -238,28 +222,16 @@ func (r *RedisDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.De
 	}
 
 	defs := []models.Definition{}
-	delDefIDs := []string{}
 	for i, defstr := range defStrs {
 		if defstr == nil {
-			// TODO: Check the occurrence of this log while operating the service. Originally, I want to return an error because the DB is broken.
-			// Only Logging and stack missing defID fields to be deleted
-			log15.Error("Failed to HMGet. err: Some fields do not exist. continue scanning", "Family", family, "Version", osVer, "defID", defIDs[i])
-			delDefIDs = append(delDefIDs, defIDs[i])
-			continue
+			return nil, xerrors.Errorf("Failed to HMGet. Redis relationship may be broken. err: Some fields do not exist. family: %s, version: %s, defID: %s", family, osVer, defIDs[i])
 		}
-
 		def, err := restoreDefinition(defstr.(string), family, osVer, arch)
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to restoreDefinition. err: %w", err)
 		}
 		defs = append(defs, def)
 	}
-	if len(delDefIDs) > 0 {
-		if _, err := r.conn.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), delDefIDs).Result(); err != nil {
-			return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
-		}
-	}
-
 	return defs, nil
 }
 

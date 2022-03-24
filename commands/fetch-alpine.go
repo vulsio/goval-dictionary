@@ -75,20 +75,22 @@ func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
+	osVerDefs := map[string][]models.Definition{}
 	for _, r := range results {
 		var secdb alpine.SecDB
-		err := yaml.Unmarshal(r.Body, &secdb)
-		if err != nil {
+		if err := yaml.Unmarshal(r.Body, &secdb); err != nil {
 			return xerrors.Errorf("Failed to unmarshal. err: %w", err)
 		}
+		osVerDefs[r.Target] = append(osVerDefs[r.Target], alpine.ConvertToModel(&secdb)...)
+	}
 
+	for osVer, defs := range osVerDefs {
 		root := models.Root{
 			Family:      c.Alpine,
-			OSVersion:   r.Target,
-			Definitions: alpine.ConvertToModel(&secdb),
+			OSVersion:   osVer,
+			Definitions: defs,
 			Timestamp:   time.Now(),
 		}
-
 		if err := driver.InsertOval(&root); err != nil {
 			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}

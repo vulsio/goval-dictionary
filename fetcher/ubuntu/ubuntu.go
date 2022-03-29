@@ -51,6 +51,8 @@ func getOVALURL(major string) string {
 		return fmt.Sprintf(main, config.Ubuntu20)
 	case "21":
 		return fmt.Sprintf(main, config.Ubuntu21)
+	case "22":
+		return fmt.Sprintf(main, config.Ubuntu22)
 	default:
 		return "unknown"
 	}

@@ -100,6 +100,16 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
+				family: config.RedHat,
+				osVer:  "8.1-eus",
+			},
+			expected: args{
+				family: config.RedHat,
+				osVer:  "8.1-eus",
+			},
+		},
+		{
+			in: args{
 				family: config.CentOS,
 				osVer:  "8",
 			},
@@ -266,6 +276,31 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 
 		if family != tt.expected.family || osVer != tt.expected.osVer {
 			t.Errorf("[%d] formatFamilyAndOSVer expected: %#v\n  actual: %#v\n", i, tt.expected, args{family: family, osVer: osVer})
+		}
+	}
+}
+
+func Test_formatRedhatVersion(t *testing.T) {
+	tests := []struct {
+		in       string
+		expected string
+	}{
+		{
+			in:       "8",
+			expected: "8",
+		},
+		{
+			in:       "8.4",
+			expected: "8",
+		},
+		{
+			in:       "8.1-eus",
+			expected: "8.1-eus",
+		},
+	}
+	for i, tt := range tests {
+		if aout := formatRedhatVersion(tt.in); aout != tt.expected {
+			t.Errorf("[%d] formatRedhatVersion expected: %#v\n  actual: %#v\n", i, tt.expected, aout)
 		}
 	}
 }

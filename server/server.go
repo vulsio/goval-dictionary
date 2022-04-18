@@ -12,8 +12,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
-	"github.com/vulsio/goval-dictionary/db"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/goval-dictionary/db"
 )
 
 // Start starts CVE dictionary HTTP Server.
@@ -45,6 +46,8 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/count/:family/:release", countOvalDefs(driver))
 	e.GET("/lastmodified/:family/:release", getLastModified(driver))
 	//  e.Post("/cpes", getByPackName(driver))
+	e.GET("/countrepotocpe", countRepoToCPE(driver))
+	e.POST("/repotocpe", getRepositoryCPE(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening...", "URL", bindURL)
@@ -122,6 +125,39 @@ func getLastModified(driver db.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
 
+		return c.JSON(http.StatusOK, t)
+	}
+}
+
+func countRepoToCPE(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
+		t, err := driver.CountRepositoryToCPEs()
+		if err != nil {
+			log15.Error(fmt.Sprintf("Failed to GetRepositoryCPE: %s", err))
+			return c.JSON(http.StatusInternalServerError, nil)
+		}
+		return c.JSON(http.StatusOK, t)
+	}
+}
+
+type param struct {
+	Repositories []string `json:"repositories"`
+}
+
+func getRepositoryCPE(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
+		p := param{}
+		if err := c.Bind(&p); err != nil {
+			log15.Error(fmt.Sprintf("Failed to Bind parameter: %s", err))
+			return c.JSON(http.StatusInternalServerError, nil)
+		}
+		log15.Debug("Params", "Repository", p.Repositories)
+
+		t, err := driver.GetRepositoryCPE(p.Repositories)
+		if err != nil {
+			log15.Error(fmt.Sprintf("Failed to GetRepositoryCPE: %s", err))
+			return c.JSON(http.StatusInternalServerError, nil)
+		}
 		return c.JSON(http.StatusOK, t)
 	}
 }

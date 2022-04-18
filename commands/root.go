@@ -29,6 +29,9 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.oval.yaml)")
 
+	RootCmd.PersistentFlags().Bool("log-to-file", false, "output log to file")
+	_ = viper.BindPFlag("log-to-file", RootCmd.PersistentFlags().Lookup("log-to-file"))
+
 	RootCmd.PersistentFlags().String("log-dir", log.GetDefaultLogDir(), "/path/to/log")
 	_ = viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
 

@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -12,8 +11,6 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
-	c "github.com/vulsio/goval-dictionary/config"
-	"github.com/vulsio/goval-dictionary/models"
 	"golang.org/x/xerrors"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -21,6 +18,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/redhat"
 )
 
 // Supported DB dialects.
@@ -104,6 +105,10 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.Bugzilla{},
 		&models.Cpe{},
 		&models.Debian{},
+
+		// for RedHat
+		&redhat.RepositoryToCPE{},
+		&redhat.RepositoryCPE{},
 	); err != nil {
 		return xerrors.Errorf("Failed to migrate. err: %w", err)
 	}
@@ -164,7 +169,7 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		err := q.
 			Limit(limit).Offset(i * limit).
 			Find(&tmpDefs).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err != nil {
 			return nil, err
 		}
 		if len(tmpDefs) == 0 {
@@ -214,7 +219,7 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 	}
 
 	defs := []models.Definition{}
-	if err := q.Find(&defs).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := q.Find(&defs).Error; err != nil {
 		return nil, err
 	}
 
@@ -237,7 +242,7 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
-		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
 	tx := r.conn.Begin()
@@ -386,4 +391,59 @@ func (r *RDBDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
 	fetchMeta.GovalDictRevision = c.Revision
 	fetchMeta.SchemaVersion = models.LatestSchemaVersion
 	return r.conn.Save(fetchMeta).Error
+}
+
+// InsertRedHatRepositoryToCPE insert Repository to CPE data
+func (r *RDBDriver) InsertRedHatRepositoryToCPE(repositoryToCPEs []redhat.RepositoryToCPE) error {
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	tx := r.conn.Begin()
+	log15.Info("Deleting old Repository To CPE Data...")
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(redhat.RepositoryToCPE{}).Error; err != nil {
+		return xerrors.Errorf("Failed to delete . err: %w", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(redhat.RepositoryCPE{}).Error; err != nil {
+		return xerrors.Errorf("Failed to delete . err: %w", err)
+	}
+
+	log15.Info("Inserting new Repository To CPE Data...")
+	for idx := range chunkSlice(len(repositoryToCPEs), batchSize) {
+		if err := tx.Create(repositoryToCPEs[idx.From:idx.To]).Error; err != nil {
+			tx.Rollback()
+			return xerrors.Errorf("Failed to insert Definitions. err: %w", err)
+		}
+	}
+
+	return tx.Commit().Error
+}
+
+// GetRepositoryCPE get CPEs related to the input repositories
+func (r *RDBDriver) GetRepositoryCPE(repositories []string) ([]string, error) {
+	repoToCPEs := []redhat.RepositoryToCPE{}
+	if err := r.conn.
+		Preload("RepositoryCPEs").
+		Where("repository_to_cpes.repository IN ?", repositories).Find(&repoToCPEs).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get repository CPE. err: %w", err)
+	}
+
+	cpes := []string{}
+	for _, repoToCPE := range repoToCPEs {
+		for _, cpe := range repoToCPE.RepositoryCPEs {
+			cpes = append(cpes, cpe.Cpe)
+		}
+	}
+
+	return cpes, nil
+}
+
+// CountRepositoryToCPEs counts the number of records in repository_to_cpes
+func (r *RDBDriver) CountRepositoryToCPEs() (int, error) {
+	var count int64
+	if err := r.conn.Model(&redhat.RepositoryToCPE{}).Count(&count).Error; err != nil {
+		return 0, xerrors.Errorf("Failed to count repository_to_cpes records. err: %w", err)
+	}
+	return int(count), nil
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/k0kubun/pp"
+
 	"github.com/vulsio/goval-dictionary/models"
 )
 

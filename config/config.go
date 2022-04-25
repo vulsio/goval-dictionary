@@ -22,13 +22,13 @@ const (
 	// Raspbian is
 	Raspbian = "raspbian"
 
-	// Ubuntu14 is Ubuntu Trusty
+	// Ubuntu14 is Trusty Tahr
 	Ubuntu14 = "trusty"
 
-	// Ubuntu16 is Ubuntu Xenial
+	// Ubuntu16 is Xenial Xerus
 	Ubuntu16 = "xenial"
 
-	// Ubuntu18 is Ubuntu Bionic
+	// Ubuntu18 is Bionic Beaver
 	Ubuntu18 = "bionic"
 
 	// Ubuntu19 is Eoan Ermine
@@ -39,6 +39,9 @@ const (
 
 	// Ubuntu21 is Hirsute Hippo
 	Ubuntu21 = "hirsute"
+
+	// Ubuntu22 is Jammy Jellyfish
+	Ubuntu22 = "jammy"
 
 	// Debian7 is wheezy
 	Debian7 = "wheezy"

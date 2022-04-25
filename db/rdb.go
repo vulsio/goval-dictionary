@@ -12,8 +12,6 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
-	c "github.com/vulsio/goval-dictionary/config"
-	"github.com/vulsio/goval-dictionary/models"
 	"golang.org/x/xerrors"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -21,6 +19,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/models"
 )
 
 // Supported DB dialects.

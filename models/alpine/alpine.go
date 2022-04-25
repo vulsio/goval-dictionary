@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+
 	"github.com/vulsio/goval-dictionary/models"
 )
 

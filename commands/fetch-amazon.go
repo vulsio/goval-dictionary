@@ -5,13 +5,16 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/models"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/amazon"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/amazon"
 )
 
 // fetchAmazonCmd is Subcommand for fetch Amazon ALAS RSS
@@ -27,52 +30,17 @@ func init() {
 	fetchCmd.AddCommand(fetchAmazonCmd)
 }
 
-func fetchAmazon(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
-
-	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
-	if err != nil {
-		log15.Error("Failed to fetch updateinfo for Amazon Linux1", "err", err)
-		return err
-	}
-	root := models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "1",
-		Definitions: models.ConvertAmazonToModel(uinfo),
-		Timestamp:   time.Now(),
-	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
-	if err := execute(&root); err != nil {
-		log15.Error("Failed to Insert Amazon1", "err", err)
-		return err
+func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
-	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
-	if err != nil {
-		log15.Error("Failed to fetch updateinfo for Amazon Linux2", "err", err)
-		return err
-	}
-	root = models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "2",
-		Definitions: models.ConvertAmazonToModel(uinfo),
-		Timestamp:   time.Now(),
-	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
-	if err := execute(&root); err != nil {
-		log15.Error("Failed to Insert Amazon2", "err", err)
-		return err
-	}
-	return nil
-}
-
-func execute(root *models.Root) error {
-	driver, locked, err := db.NewDB(c.Amazon, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			return fmt.Errorf("Failed to open DB. Close DB connection before fetching: %w", err)
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		return fmt.Errorf("Failed to open DB: %w", err)
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 	defer func() {
 		err := driver.CloseDB()
@@ -81,18 +49,76 @@ func execute(root *models.Root) error {
 		}
 	}()
 
-	fmeta := models.FetchMeta{
-		Timestamp: time.Now(),
-		FileName:  fmt.Sprintf("FetchUpdateInfoAmazonLinux%s", root.OSVersion),
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	if err := driver.InsertOval(c.Amazon, root, fmeta); err != nil {
-		return fmt.Errorf("Failed to insert OVAL: %w", err)
+	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux1. err: %w", err)
 	}
-	if err := driver.InsertFetchMeta(fmeta); err != nil {
-		log15.Error("Failed to insert meta", "err", err)
-		return fmt.Errorf("Failed to insert FetchMeta: %w", err)
+	root := models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "1",
+		Definitions: amazon.ConvertToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon1. err: %w", err)
+	}
+
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2. err: %w", err)
+	}
+	root = models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "2",
+		Definitions: amazon.ConvertToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon2. err: %w", err)
+	}
+
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2022()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2022. err: %w", err)
+	}
+	root = models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "2022",
+		Definitions: amazon.ConvertToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2022. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon2022. err: %w", err)
+	}
+
+	fetchMeta.LastFetchedAt = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
+	}
+
+	return nil
+}
+
+func execute(driver db.DB, root *models.Root) error {
+	if err := driver.InsertOval(root); err != nil {
+		return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 	}
 	log15.Info("Finish", "Updated", len(root.Definitions))
+
 	return nil
 }

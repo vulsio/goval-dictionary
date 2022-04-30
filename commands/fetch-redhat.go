@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/models"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ymomoi/goval-parser/oval"
 	"golang.org/x/xerrors"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/redhat"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/redhat"
 )
 
 // fetchRedHatCmd is Subcommand for fetch RedHat OVAL
@@ -30,22 +31,33 @@ func init() {
 	fetchCmd.AddCommand(fetchRedHatCmd)
 }
 
-func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+func fetchRedHat(_ *cobra.Command, args []string) (err error) {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	if len(args) == 0 {
-		log15.Error("Specify versions to fetch")
 		return xerrors.New("Failed to fetch redhat command. err: specify versions to fetch")
 	}
 
-	driver, locked, err := db.NewDB(c.RedHat, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
+	}
+
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	// Distinct
@@ -54,8 +66,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 	for _, arg := range args {
 		ver, err := strconv.Atoi(arg)
 		if err != nil || ver < 5 {
-			log15.Error("Specify version to fetch (from 5 to latest RHEL version)", "arg", arg)
-			return err
+			return xerrors.Errorf("Specify version to fetch (from 5 to latest RHEL version). arg: %s", arg)
 		}
 		v[arg] = true
 	}
@@ -63,50 +74,42 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	results, err := fetcher.FetchRedHatFiles(vers)
+	results, err := fetcher.FetchFiles(vers)
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := redhat.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
-			return err
+			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
-		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
-		defs := models.ConvertRedHatToModel(&ovalroot)
 
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
+		log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
+		ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
 		if err != nil {
-			log15.Error("Failed to parse time", "err", err)
-			return err
+			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
+		}
+		if ts.Before(time.Now().AddDate(0, 0, -3)) {
+			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
 		}
 
 		root := models.Root{
 			Family:      c.RedHat,
 			OSVersion:   r.Target,
-			Definitions: defs,
+			Definitions: redhat.ConvertToModel(&ovalroot),
 			Timestamp:   time.Now(),
 		}
 
-		ss := strings.Split(r.URL, "/")
-		fmeta := models.FetchMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
-		}
-
-		if err := driver.InsertOval(c.RedHat, &root, fmeta); err != nil {
-			log15.Error("Failed to insert oval", "err", err)
-			return err
-		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
+	}
+
+	fetchMeta.LastFetchedAt = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	return nil

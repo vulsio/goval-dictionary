@@ -3,13 +3,15 @@ package commands
 import (
 	"fmt"
 
-	"github.com/inconshreveable/log15"
 	"github.com/k0kubun/pp"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
 )
 
 // SelectCmd is Subcommand for fetch RedHat OVAL
@@ -30,51 +32,83 @@ func init() {
 	_ = viper.BindPFlag("by-cveid", selectCmd.PersistentFlags().Lookup("by-cveid"))
 }
 
-func executeSelect(cmd *cobra.Command, args []string) error {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+func executeSelect(_ *cobra.Command, args []string) error {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	flagPkg := viper.GetBool("by-package")
 	flagCveID := viper.GetBool("by-cveid")
 
 	if (!flagPkg && !flagCveID) || (flagPkg && flagCveID) {
-		log15.Error("Specify --by-package or --by-cveid")
 		return xerrors.New("Failed to select command. err: specify --by-package or --by-cveid")
 	}
 
-	if flagPkg && len(args) != 4 {
-		log15.Error(`
-		Usage:
-		select OVAL by package name
-		./goval-dictionary select --by-package redhat 7 java-1.7.0-openjdk x86_64
-		`)
-		return xerrors.New("Failed to set by-package option args.")
+	if len(args) < 3 {
+		if flagPkg {
+			return xerrors.Errorf(`
+			Usage:
+			select OVAL by package name
+			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+		if flagCveID {
+			return xerrors.Errorf(`
+			Usage:
+			select OVAL by CVE-ID
+			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+	} else if len(args) > 4 {
+		if flagPkg {
+			return xerrors.Errorf(`
+			Usage:
+			select OVAL by package name
+			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
+		if flagCveID {
+			return xerrors.Errorf(`
+			Usage:
+			select OVAL by CVE-ID
+			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
+			`)
+		}
 	}
 
-	if flagCveID && len(args) != 3 {
-		log15.Error(`
-		Usage:
-		select OVAL by CVE-ID
-		./goval-dictionary select --by-cveid redhat 7 CVE-2015-1111
-		`)
-		return xerrors.New("Failed to set by-cveid option args.")
+	family := args[0]
+	release := args[1]
+	arg := args[2]
+	arch := ""
+	if len(args) == 4 {
+		switch family {
+		case config.Amazon, config.Oracle, config.Fedora:
+			arch = args[3]
+		default:
+			return xerrors.Errorf("Family: %s cannot use the Architecture argument.", family)
+		}
 	}
 
-	driver, locked, err := db.NewDB(args[0], viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before select", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before select. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
 		return err
 	}
 
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to select command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+
 	if flagPkg {
-		dfs, err := driver.GetByPackName(args[0], args[1], args[2], args[3])
+		dfs, err := driver.GetByPackName(family, release, arg, arch)
 		if err != nil {
-			//TODO Logger
-			log15.Error("Failed to get cve by package.", "err", err)
-			return err
+			return xerrors.Errorf("Failed to get cve by package. err: %w", err)
 		}
 
 		for _, d := range dfs {
@@ -91,9 +125,9 @@ func executeSelect(cmd *cobra.Command, args []string) error {
 	}
 
 	if flagCveID {
-		dfs, err := driver.GetByCveID(args[0], args[1], args[2])
+		dfs, err := driver.GetByCveID(family, release, arg, arch)
 		if err != nil {
-			log15.Crit("Failed to get cve by cveID", "err", err)
+			return xerrors.Errorf("Failed to get cve by cveID. err: %w", err)
 		}
 		for _, d := range dfs {
 			fmt.Printf("%s\n", d.Title)

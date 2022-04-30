@@ -1,0 +1,12 @@
+vim-X11
+vim-X11-debuginfo
+vim-common
+vim-common-debuginfo
+vim-debuginfo
+vim-debugsource
+vim-default-editor
+vim-enhanced
+vim-enhanced-debuginfo
+vim-filesystem
+vim-minimal
+vim-minimal-debuginfo

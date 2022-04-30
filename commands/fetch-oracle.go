@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/models"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ymomoi/goval-parser/oval"
+	"golang.org/x/xerrors"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/oracle"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/oracle"
 )
 
 // fetchOracleCmd is Subcommand for fetch Oracle OVAL
@@ -28,60 +30,73 @@ func init() {
 	fetchCmd.AddCommand(fetchOracleCmd)
 }
 
-func fetchOracle(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+func fetchOracle(_ *cobra.Command, _ []string) (err error) {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
-	driver, locked, err := db.NewDB(c.Oracle, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchOracleFiles()
+	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
+	results, err := fetcher.FetchFiles()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
+	}
+
+	osVerDefs := map[string][]models.Definition{}
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := oracle.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
-			return err
+			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
-		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
-
-		//  var timeformat = "2006-01-02T15:04:05.999-07:00"
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, strings.Split(ovalroot.Generator.Timestamp, ".")[0])
+		log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
+		ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
 		if err != nil {
-			log15.Error("Failed to parse time", "err", err)
-			return err
+			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
+		}
+		if ts.Before(time.Now().AddDate(0, 0, -3)) {
+			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
 		}
 
-		ss := strings.Split(r.URL, "/")
-		fmeta := models.FetchMeta{
-			Timestamp: t,
-			FileName:  ss[len(ss)-1],
+		for osVer, defs := range oracle.ConvertToModel(&ovalroot) {
+			osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
+		}
+	}
+
+	for osVer, defs := range osVerDefs {
+		root := models.Root{
+			Family:      c.Oracle,
+			OSVersion:   osVer,
+			Definitions: defs,
+			Timestamp:   time.Now(),
 		}
 
-		roots := models.ConvertOracleToModel(&ovalroot)
-		for _, root := range roots {
-			root.Timestamp = time.Now()
-			if err := driver.InsertOval(c.Oracle, &root, fmeta); err != nil {
-				log15.Error("Failed to insert oval", "err", err)
-				return err
-			}
-			log15.Info("Finish", "Updated", len(root.Definitions))
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
-		}
+		log15.Info("Finish", "Updated", len(root.Definitions))
+	}
+
+	fetchMeta.LastFetchedAt = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	return nil

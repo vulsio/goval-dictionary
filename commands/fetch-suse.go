@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/models"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ymomoi/goval-parser/oval"
 	"golang.org/x/xerrors"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/suse"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/suse"
 )
 
 // fetchSUSECmd is Subcommand for fetch SUSE OVAL
@@ -23,11 +24,10 @@ var fetchSUSECmd = &cobra.Command{
 	Short: "Fetch Vulnerability dictionary from SUSE",
 	Long: `Fetch Vulnerability dictionary from SUSE
 	
-$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 $ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 $ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
 $ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
-$ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 `,
 	RunE: fetchSUSE,
 }
@@ -35,16 +35,17 @@ $ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 func init() {
 	fetchCmd.AddCommand(fetchSUSECmd)
 
-	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type")
+	fetchSUSECmd.PersistentFlags().String("suse-type", "opensuse-leap", "Fetch SUSE Type(choices: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop)")
 	_ = viper.BindPFlag("suse-type", fetchSUSECmd.PersistentFlags().Lookup("suse-type"))
 }
 
-func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+func fetchSUSE(_ *cobra.Command, args []string) (err error) {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	if len(args) == 0 {
-		log15.Error("Specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
-		return xerrors.New("Failed to fetch suse command. err: specify versions to fetch")
+		return xerrors.New("Failed to fetch suse command. err: specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
 	}
 
 	// Distinct
@@ -67,70 +68,71 @@ func fetchSUSE(cmd *cobra.Command, args []string) (err error) {
 		suseType = c.SUSEEnterpriseServer
 	case "suse-enterprise-desktop":
 		suseType = c.SUSEEnterpriseDesktop
-	case "suse-openstack-cloud":
-		suseType = c.SUSEOpenstackCloud
 	default:
-		log15.Error("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop, suse-openstack-cloud")
-		return xerrors.New("Failed to fetch suse command. err: specify SUSE type to fetch")
+		return xerrors.Errorf("Specify SUSE type to fetch. Available SUSE Type: opensuse, opensuse-leap, suse-enterprise-server, suse-enterprise-desktop")
 	}
 
-	driver, locked, err := db.NewDB(suseType, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
-	var results []fetcher.FetchResult
-	results, err = fetcher.FetchSUSEFiles(suseType, vers)
+	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
+	}
+
+	results, err := fetcher.FetchFiles(suseType, vers)
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
 	for _, r := range results {
-		ovalroot := oval.Root{}
+		ovalroot := suse.Root{}
 		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			log15.Error("Failed to unmarshal", "url", r.URL, "err", err)
-			return err
+			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
 		}
-		log15.Info("Fetched", "URL", r.URL, "OVAL definitions", len(ovalroot.Definitions.Definitions))
-
-		var timeformat = "2006-01-02T15:04:05"
-		t, err := time.Parse(timeformat, ovalroot.Generator.Timestamp)
+		filename := r.URL[strings.LastIndex(r.URL, "/")+1:]
+		log15.Info("Fetched", "File", filename, "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
+		ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
 		if err != nil {
-			log15.Error("Failed to parse time", "err", err)
-			return err
+			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
 		}
-		ss := strings.Split(r.URL, "/")
-		filename := ss[len(ss)-1]
-		fmeta := models.FetchMeta{
-			Timestamp: t,
-			FileName:  filename,
+		if ts.Before(time.Now().AddDate(0, 0, -3)) {
+			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
 		}
 
-		roots := models.ConvertSUSEToModel(filename, &ovalroot)
-		for _, root := range roots {
-			root.Timestamp = time.Now()
-			if err := driver.NewOvalDB(root.Family); err != nil {
-				log15.Error("Failed to NewOvalDB for Family found in SUSE OVAL", "err", err)
-				return err
+		osVerDefs, err := suse.ConvertToModel(filename, &ovalroot)
+		if err != nil {
+			return xerrors.Errorf("Failed to convert from OVAL to goval-dictionary model. err: %w", err)
+		}
+		for osVer, defs := range osVerDefs {
+			root := models.Root{
+				Family:      suseType,
+				OSVersion:   osVer,
+				Definitions: defs,
+				Timestamp:   time.Now(),
 			}
-
-			if err := driver.InsertOval(root.Family, &root, fmeta); err != nil {
-				log15.Error("Failed to insert oval", "err", err)
-				return err
+			if err := driver.InsertOval(&root); err != nil {
+				return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 			}
 			log15.Info("Finish", "Updated", len(root.Definitions))
 		}
+	}
 
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
-		}
+	fetchMeta.LastFetchedAt = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
 	return nil

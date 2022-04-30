@@ -1,21 +1,21 @@
 package commands
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"golang.org/x/xerrors"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/inconshreveable/log15"
-	c "github.com/kotakanbe/goval-dictionary/config"
-	"github.com/kotakanbe/goval-dictionary/db"
-	"github.com/kotakanbe/goval-dictionary/fetcher"
-	"github.com/kotakanbe/goval-dictionary/models"
-	"github.com/kotakanbe/goval-dictionary/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	c "github.com/vulsio/goval-dictionary/config"
+	"github.com/vulsio/goval-dictionary/db"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/alpine"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/models/alpine"
 )
 
 // fetchAlpineCmd is Subcommand for fetch Alpine secdb
@@ -31,11 +31,12 @@ func init() {
 	fetchCmd.AddCommand(fetchAlpineCmd)
 }
 
-func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
-	util.SetLogger(viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json"))
+func fetchAlpine(_ *cobra.Command, args []string) (err error) {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
 
 	if len(args) == 0 {
-		log15.Error("Specify versions to fetch")
 		return xerrors.New("Failed to fetch alpine command. err: specify versions to fetch")
 	}
 
@@ -49,83 +50,57 @@ func fetchAlpine(cmd *cobra.Command, args []string) (err error) {
 		vers = append(vers, k)
 	}
 
-	driver, locked, err := db.NewDB(c.Alpine, viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to open DB. Close DB connection before fetching", "err", err)
-			return err
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		log15.Error("Failed to open DB", "err", err)
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchAlpineFiles(vers)
+	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to fetch files", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to Insert CVEs into DB. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	// Join community.yaml, main.yaml
-	type T struct {
-		url  string
-		defs []models.Definition
+	results, err := fetcher.FetchFiles(vers)
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
-	m := map[string]T{}
+
+	osVerDefs := map[string][]models.Definition{}
 	for _, r := range results {
-		secdb, err := unmarshalYml(r.Body)
-		if err != nil {
-			log15.Error("Failed to unmarshal yml.", "err", err)
-			return err
+		var secdb alpine.SecDB
+		if err := yaml.Unmarshal(r.Body, &secdb); err != nil {
+			return xerrors.Errorf("Failed to unmarshal. err: %w", err)
 		}
-
-		defs := models.ConvertAlpineToModel(secdb)
-		if t, ok := m[r.Target]; ok {
-			t.defs = append(t.defs, defs...)
-			m[r.Target] = t
-		} else {
-			ss := strings.Split(r.URL, "/")
-			m[r.Target] = T{
-				url:  strings.Join(ss[len(ss)-3:len(ss)-1], "/"),
-				defs: defs,
-			}
-		}
+		osVerDefs[r.Target] = append(osVerDefs[r.Target], alpine.ConvertToModel(&secdb)...)
 	}
 
-	// pp.Println(m)
-
-	for target, t := range m {
+	for osVer, defs := range osVerDefs {
 		root := models.Root{
 			Family:      c.Alpine,
-			OSVersion:   target,
-			Definitions: t.defs,
+			OSVersion:   osVer,
+			Definitions: defs,
 			Timestamp:   time.Now(),
 		}
-
-		fmeta := models.FetchMeta{
-			Timestamp: time.Now(),
-			FileName:  t.url,
-		}
-
-		log15.Info(fmt.Sprintf("%d CVEs", len(t.defs)))
-		if err := driver.InsertOval(c.Alpine, &root, fmeta); err != nil {
-			log15.Error("Failed to insert meta.", "err", err)
-			return err
-		}
-		if err := driver.InsertFetchMeta(fmeta); err != nil {
-			log15.Error("Failed to insert meta", "err", err)
-			return err
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
 		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
-	return nil
-}
-
-func unmarshalYml(data []byte) (*models.AlpineSecDB, error) {
-	t := models.AlpineSecDB{}
-	err := yaml.Unmarshal([]byte(data), &t)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal: %s", err)
+	fetchMeta.LastFetchedAt = time.Now()
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
-	return &t, nil
+
+	return nil
 }

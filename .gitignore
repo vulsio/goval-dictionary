@@ -30,5 +30,6 @@ goval-dictionary
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal
+*.sqlite3-journal
 tags
 /dist/

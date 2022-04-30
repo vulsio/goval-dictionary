@@ -2,14 +2,24 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
-// FetchMeta has metadata
-type FetchMeta struct {
-	ID uint `gorm:"primary_key"`
+// LatestSchemaVersion manages the Schema version used in the latest goval-dictionary.
+const LatestSchemaVersion = 2
 
-	FileName  string `gorm:"type:varchar(255)"`
-	Timestamp time.Time
+// FetchMeta has DB information
+type FetchMeta struct {
+	gorm.Model        `json:"-"`
+	GovalDictRevision string
+	SchemaVersion     uint
+	LastFetchedAt     time.Time
+}
+
+// OutDated checks whether last fetched feed is out dated
+func (f FetchMeta) OutDated() bool {
+	return f.SchemaVersion != LatestSchemaVersion
 }
 
 // Root is root struct
@@ -30,7 +40,7 @@ type Definition struct {
 	Title         string `gorm:"type:text"`
 	Description   string // If the type:text, varchar(255) is specified, MySQL overflows and gives an error. No problem in GORMv2. (https://github.com/go-gorm/mysql/tree/15e2cbc6fd072be99215a82292e025dab25e2e16#configuration)
 	Advisory      Advisory
-	Debian        Debian
+	Debian        *Debian
 	AffectedPacks []Package
 	References    []Reference
 }
@@ -42,7 +52,7 @@ type Package struct {
 
 	Name            string `gorm:"index:idx_packages_name"` // If the type:text, varchar(255) is specified, MySQL overflows and gives an error. No problem in GORMv2. (https://github.com/go-gorm/mysql/tree/15e2cbc6fd072be99215a82292e025dab25e2e16#configuration)
 	Version         string `gorm:"type:varchar(255)"`       // affected earlier than this version
-	Arch            string `gorm:"type:varchar(255)"`       // Used for Amazon and Oracle Linux
+	Arch            string `gorm:"type:varchar(255)"`       // Used for Amazon Linux, Oracle Linux and Fedora
 	NotFixedYet     bool   // Ubuntu Only
 	ModularityLabel string `gorm:"type:varchar(255)"` // RHEL 8 or later only
 }
@@ -71,10 +81,9 @@ type Advisory struct {
 }
 
 // Cve : >definitions>definition>metadata>advisory>cve
-// RedHat OVAL
 type Cve struct {
 	ID         uint `gorm:"primary_key" json:"-"`
-	AdvisoryID uint `gorm:"idx_cves_advisory_id" json:"-" xml:"-"`
+	AdvisoryID uint `gorm:"index:idx_cves_advisory_id" json:"-" xml:"-"`
 
 	CveID  string `gorm:"type:varchar(255)"`
 	Cvss2  string `gorm:"type:varchar(255)"`
@@ -86,7 +95,6 @@ type Cve struct {
 }
 
 // Bugzilla : >definitions>definition>metadata>advisory>bugzilla
-// RedHat OVAL
 type Bugzilla struct {
 	ID         uint `gorm:"primary_key" json:"-"`
 	AdvisoryID uint `gorm:"index:idx_bugzillas_advisory_id" json:"-" xml:"-"`
@@ -109,7 +117,6 @@ type Debian struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_debian_definition_id" json:"-" xml:"-"`
 
-	CveID    string `gorm:"type:varchar(255);index:idx_debian_cve_id"`
 	MoreInfo string `gorm:"type:text"`
 
 	Date time.Time

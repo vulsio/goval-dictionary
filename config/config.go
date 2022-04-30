@@ -22,13 +22,13 @@ const (
 	// Raspbian is
 	Raspbian = "raspbian"
 
-	// Ubuntu14 is Ubuntu Trusty
+	// Ubuntu14 is Trusty Tahr
 	Ubuntu14 = "trusty"
 
-	// Ubuntu16 is Ubuntu Xenial
+	// Ubuntu16 is Xenial Xerus
 	Ubuntu16 = "xenial"
 
-	// Ubuntu18 is Ubuntu Bionic
+	// Ubuntu18 is Bionic Beaver
 	Ubuntu18 = "bionic"
 
 	// Ubuntu19 is Eoan Ermine
@@ -39,6 +39,9 @@ const (
 
 	// Ubuntu21 is Hirsute Hippo
 	Ubuntu21 = "hirsute"
+
+	// Ubuntu22 is Jammy Jellyfish
+	Ubuntu22 = "jammy"
 
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
@@ -52,6 +55,9 @@ const (
 	// Debian10 is buster
 	Debian10 = "buster"
 
+	// Debian11 is bullseye
+	Debian11 = "bullseye"
+
 	// OpenSUSE is
 	OpenSUSE = "opensuse"
 
@@ -61,17 +67,8 @@ const (
 	// SUSEEnterpriseServer is
 	SUSEEnterpriseServer = "suse.linux.enterprise.server"
 
-	// SUSEEnterpriseModule is
-	SUSEEnterpriseModule = "suse.linux.enterprise.module"
-
-	// SUSEEnterpriseWorkstation is SUSE Linux Enterprise Workstation Extension
-	SUSEEnterpriseWorkstation = "suse.linux.enterprise.workstation.extension"
-
 	// SUSEEnterpriseDesktop is
 	SUSEEnterpriseDesktop = "suse.linux.enterprise.desktop"
-
-	// SUSEOpenstackCloud is
-	SUSEOpenstackCloud = "suse.openstack.cloud"
 
 	// Oracle is
 	Oracle = "oracle"
@@ -81,4 +78,7 @@ const (
 
 	// Amazon is
 	Amazon = "amazon"
+
+	// Fedora is
+	Fedora = "fedora"
 )

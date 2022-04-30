@@ -17,9 +17,9 @@ goval-dictionary requires the following packages.
 ### Install
 
 ```bash
-$ mkdir -p $GOPATH/src/github.com/kotakanbe
-$ cd $GOPATH/src/github.com/kotakanbe
-$ git clone https://github.com/kotakanbe/goval-dictionary.git
+$ mkdir -p $GOPATH/src/github.com/vulsio
+$ cd $GOPATH/src/github.com/vulsio
+$ git clone https://github.com/vulsio/goval-dictionary.git
 $ cd goval-dictionary
 $ make install
 ```
@@ -29,7 +29,7 @@ $ make install
 ## Usage
 
 ```bash
-$ goval-dictionary help
+$ goval-dictionary --help
 OVAL(Open Vulnerability and Assessment Language) dictionary
 
 Usage:
@@ -41,10 +41,11 @@ Available Commands:
   help        Help about any command
   select      Select from DB
   server      Start OVAL dictionary HTTP server
+  version     Show version
 
 Flags:
       --config string       config file (default is $HOME/.oval.yaml)
-      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
       --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
@@ -74,13 +75,12 @@ Available Commands:
   ubuntu      Fetch Vulnerability dictionary from Ubuntu
 
 Flags:
-      --expire uint   timeout to set for Redis keys in seconds. If set to 0, the key is persistent.
   -h, --help          help for fetch
       --no-details    without vulnerability details
 
 Global Flags:
       --config string       config file (default is $HOME/.oval.yaml)
-      --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
       --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
@@ -94,7 +94,7 @@ Use "goval-dictionary fetch [command] --help" for more information about a comma
 #### Usage: Fetch OVAL data from RedHat
 
 - [Redhat OVAL](https://www.redhat.com/security/data/oval/)
-- 
+-
 ```bash
 $ goval-dictionary fetch redhat 5 6 7 8
 ```
@@ -104,15 +104,16 @@ $ goval-dictionary fetch redhat 5 6 7 8
 - [Debian OVAL](https://www.debian.org/security/oval/)
 
 ```bash
-$ goval-dictionary fetch debian 7 8 9 10
+$ goval-dictionary fetch debian 7 8 9 10 11
 ```
 
 #### Usage: Fetch OVAL data from Ubuntu
 
-- [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
+- [Ubuntu(main)](https://security-metadata.canonical.com/oval/)
+- [Ubuntu(sub)](https://people.canonical.com/~ubuntu-security/oval/)
 
 ```bash
-$ goval-dictionary fetch ubuntu 14 16 18 19 20 21
+$ goval-dictionary fetch ubuntu 14 16 18 19 20 21 22
 ```
 
 #### Usage: Fetch OVAL data from SUSE
@@ -143,11 +144,10 @@ Global Flags:
 ```
 
 ```bash
-$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2
+$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
 $ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
 $ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
 $ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
-$ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 ```
 
 #### Usage: Fetch OVAL data from Oracle
@@ -155,7 +155,7 @@ $ goval-dictionary fetch suse --suse-type suse-openstack-cloud 6 7 8 9
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
 
 ```bash
- $ goval-dictionary fetch-oracle
+ $ goval-dictionary fetch oracle
 ```
 
 ### Usage: Fetch alpine-secdb as OVAL data type
@@ -165,7 +165,7 @@ alpine-secdb is provided in YAML format and not OVAL, but it is supported by gov
 See [here](https://secdb.alpinelinux.org/) for a list of supported alpines.
 
 ```bash
- $ goval-dictionary fetch-alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14
+ $ goval-dictionary fetch alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15
 ```
 
 #### Usage: Fetch Amazon ALAS as OVAL data type
@@ -173,7 +173,15 @@ See [here](https://secdb.alpinelinux.org/) for a list of supported alpines.
 Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
 
 ```bash
- $ goval-dictionary fetch-amazon
+ $ goval-dictionary fetch amazon
+```
+
+#### Usage: Fetch Security Updates from Fedora
+
+- [Fedora Updates](https://dl.fedoraproject.org/pub/fedora/linux/updates/)
+
+```bash
+$ goval-dictionary fetch fedora 32 33 34 35
 ```
 
 ### Usage: select oval by package name
@@ -708,14 +716,14 @@ $ curl http://127.0.0.1:1324/cves/ubuntu/16/CVE-2017-15400 | jq
 ]
 ```
 
-For details, see https://github.com/kotakanbe/goval-dictionary/blob/master/server/server.go#L44
+For details, see https://github.com/vulsio/goval-dictionary/blob/master/server/server.go#L44
 
 ----
 
 ## Tips
 
 - How to use Redis as DB backend
-see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
+see [#7](https://github.com/vulsio/goval-dictionary/pull/7)
 
 ----
 
@@ -723,7 +731,8 @@ see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
 
 - [RedHat](https://www.redhat.com/security/data/oval/)
 - [Debian](https://www.debian.org/security/oval/)
-- [Ubuntu](https://people.canonical.com/~ubuntu-security/oval/)
+- [Ubuntu(main)](https://security-metadata.canonical.com/oval/)
+- [Ubuntu(sub)](https://people.canonical.com/~ubuntu-security/oval/)
 - [SUSE](http://ftp.suse.com/pub/projects/security/oval/)
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
 - [Alpine-secdb](https://secdb.alpinelinux.org/)
@@ -733,16 +742,16 @@ see [#7](https://github.com/kotakanbe/goval-dictionary/pull/7)
 
 ## Authors
 
-kotakanbe ([@kotakanbe](https://twitter.com/kotakanbe)) created goval-dictionary and [these fine people](https://github.com/kotakanbe/goval-dictionary/graphs/contributors) have contributed.
+kotakanbe ([@kotakanbe](https://twitter.com/kotakanbe)) created goval-dictionary and [these fine people](https://github.com/vulsio/goval-dictionary/graphs/contributors) have contributed.
 
 ----
 
 ## Change Log
 
-Please see [CHANGELOG](https://github.com/kotakanbe/goval-dictionary/blob/master/CHANGELOG.md).
+Please see [CHANGELOG](https://github.com/vulsio/goval-dictionary/blob/master/CHANGELOG.md).
 
 ----
 
 ## License
 
-Please see [LICENSE](https://github.com/kotakanbe/goval-dictionary/blob/master/LICENSE).
+Please see [LICENSE](https://github.com/vulsio/goval-dictionary/blob/master/LICENSE).

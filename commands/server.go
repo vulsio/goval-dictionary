@@ -2,9 +2,14 @@ package commands
 
 import (
 	"github.com/inconshreveable/log15"
-	server "github.com/kotakanbe/goval-dictionary/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
+	"github.com/vulsio/goval-dictionary/db"
+	"github.com/vulsio/goval-dictionary/log"
+	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/server"
 )
 
 // ServerCmd is Subcommand for OVAL dictionary HTTP Server
@@ -25,12 +30,30 @@ func init() {
 	_ = viper.BindPFlag("port", serverCmd.PersistentFlags().Lookup("port"))
 }
 
-func executeServer(cmd *cobra.Command, args []string) (err error) {
-	logDir := viper.GetString("log-dir")
+func executeServer(_ *cobra.Command, _ []string) (err error) {
+	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
+	if err != nil {
+		if locked {
+			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
+		}
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
+	}
+
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+	}
+	if fetchMeta.OutDated() {
+		return xerrors.Errorf("Failed to start server. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+
 	log15.Info("Starting HTTP Server...")
-	if err = server.Start(logDir); err != nil {
-		log15.Error("Failed to start server.", "err", err)
-		return err
+	if err = server.Start(viper.GetBool("log-to-file"), viper.GetString("log-dir"), driver); err != nil {
+		return xerrors.Errorf("Failed to start server. err: %w", err)
 	}
 
 	return nil

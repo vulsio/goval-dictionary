@@ -6,12 +6,12 @@ RUN apk add --no-cache \
         gcc \
         musl-dev
 
-ENV REPOSITORY github.com/kotakanbe/goval-dictionary
+ENV REPOSITORY github.com/vulsio/goval-dictionary
 COPY . $GOPATH/src/$REPOSITORY
 RUN cd $GOPATH/src/$REPOSITORY && make install
 
 
-FROM alpine:3.14
+FROM alpine:3.15
 
 LABEL maintainer sadayuki-matsuno
 

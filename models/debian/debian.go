@@ -53,7 +53,7 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 			},
 			Debian: &models.Debian{
 				MoreInfo: ovaldef.Debian.MoreInfo,
-				Date:     util.ParsedOrDefaultTime("2006-01-02", ovaldef.Debian.Date),
+				Date:     util.ParsedOrDefaultTime([]string{"2006-01-02"}, ovaldef.Debian.Date),
 			},
 			AffectedPacks: collectDebianPacks(ovaldef.Criteria),
 			References:    rs,

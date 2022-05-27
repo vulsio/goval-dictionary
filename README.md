@@ -184,6 +184,14 @@ Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supporte
 $ goval-dictionary fetch fedora 32 33 34 35
 ```
 
+#### Usage: Fetch Security Updates from EPEL(Extra Packages for Enterprise Linux)
+
+- [EPEL UpdateInfo](https://dl.fedoraproject.org/pub/epel/)
+
+```bash
+$ goval-dictionary fetch epel 7 8
+```
+
 ### Usage: select oval by package name
 
 Select from DB where package name is golang.

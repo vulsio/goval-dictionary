@@ -81,4 +81,7 @@ const (
 
 	// Fedora is
 	Fedora = "fedora"
+
+	// EPEL is
+	EPEL = "epel"
 )

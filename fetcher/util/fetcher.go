@@ -48,6 +48,8 @@ func (m MIMEType) String() string {
 		return "bzip2"
 	case MIMETypeXz:
 		return "xz"
+	case MIMETypeGzip:
+		return "gzip"
 	default:
 		return "Unknown"
 	}

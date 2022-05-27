@@ -1,4 +1,4 @@
-package fedora
+package epel
 
 import (
 	"bufio"
@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -14,11 +15,12 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/vulsio/goval-dictionary/fetcher/util"
-	models "github.com/vulsio/goval-dictionary/models/fedora"
+	models "github.com/vulsio/goval-dictionary/models/epel"
 )
 
 const (
-	fedoraURL   = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/%s/%s/repodata/repomd.xml"
+	epel7URL    = "https://dl.fedoraproject.org/pub/epel/7/%s/repodata/repomd.xml"
+	epelURL     = "https://dl.fedoraproject.org/pub/epel/%s/%s/%s/repodata/repomd.xml"
 	bugZillaURL = "https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s"
 	kojiPkgURL  = "https://kojipkgs.fedoraproject.org/packages/%s/%s/%s/files/module/modulemd.%s.txt"
 )
@@ -31,16 +33,19 @@ var (
 func FetchUpdateInfos(versions []string) (map[string]*models.Updates, error) {
 	// map[osVer][updateInfoID]models.UpdateInfo
 	uinfos := make(map[string]map[string]models.UpdateInfo, len(versions))
+
 	for _, arch := range targetArches {
 		reqs, moduleReqs := newFetchRequests(versions, arch)
 		everythingResults, err := fetchEverything(reqs)
 		if err != nil {
 			return nil, xerrors.Errorf("fetchEverything. err: %w", err)
 		}
-
-		moduleResults, err := fetchModules(moduleReqs, arch)
-		if err != nil {
-			return nil, xerrors.Errorf("fetchModules. err: %w", err)
+		moduleResults := map[string]*models.Updates{}
+		if len(moduleReqs) > 0 {
+			moduleResults, err = fetchModules(moduleReqs, arch)
+			if err != nil {
+				return nil, xerrors.Errorf("fetchModules. err: %w", err)
+			}
 		}
 
 		for osVer, result := range mergeUpdates(everythingResults, moduleResults) {
@@ -66,7 +71,7 @@ func FetchUpdateInfos(versions []string) (map[string]*models.Updates, error) {
 	}
 
 	for version, v := range results {
-		log15.Info(fmt.Sprintf("%d Advisories for Fedora %s Fetched", len(v.UpdateList), version))
+		log15.Info(fmt.Sprintf("%d Advisories for EPEL %s Fetched", len(v.UpdateList), version))
 	}
 
 	return results, nil
@@ -74,18 +79,27 @@ func FetchUpdateInfos(versions []string) (map[string]*models.Updates, error) {
 
 func newFetchRequests(target []string, arch string) (reqs []util.FetchRequest, moduleReqs []util.FetchRequest) {
 	for _, v := range target {
-		reqs = append(reqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(fedoraURL, v, "Everything", arch),
-			MIMEType:     util.MIMETypeXML,
-			Concurrently: true,
-		})
-		moduleReqs = append(moduleReqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(fedoraURL, v, "Modular", arch),
-			MIMEType:     util.MIMETypeXML,
-			Concurrently: true,
-		})
+		if v == "7" {
+			reqs = append(reqs, util.FetchRequest{
+				Target:       v,
+				URL:          fmt.Sprintf(epel7URL, arch),
+				MIMEType:     util.MIMETypeXML,
+				Concurrently: true,
+			})
+		} else {
+			reqs = append(reqs, util.FetchRequest{
+				Target:       v,
+				URL:          fmt.Sprintf(epelURL, v, "Everything", arch),
+				MIMEType:     util.MIMETypeXML,
+				Concurrently: true,
+			})
+			moduleReqs = append(moduleReqs, util.FetchRequest{
+				Target:       v,
+				URL:          fmt.Sprintf(epelURL, v, "Modular", arch),
+				MIMEType:     util.MIMETypeXML,
+				Concurrently: true,
+			})
+		}
 	}
 	return
 }
@@ -169,7 +183,7 @@ func fetchFeedFiles(reqs []util.FetchRequest) ([]util.FetchResult, error) {
 
 func fetchUpdateInfos(results []util.FetchResult) ([]util.FetchResult, error) {
 	log15.Info("start fetch updateinfo in repomd.xml")
-	updateInfoReqs, err := extractInfoFromRepoMd(results, "updateinfo", util.MIMETypeXz)
+	updateInfoReqs, err := extractInfoFromRepoMd(results, "updateinfo")
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to extract updateinfo from xml, err: %w", err)
 	}
@@ -251,7 +265,7 @@ func fetchModuleFeedFiles(reqs []util.FetchRequest) ([]util.FetchResult, error) 
 
 func fetchModulesYaml(results []util.FetchResult) (moduleInfosPerVersion, error) {
 	log15.Info("start fetch modules.yaml in repomd.xml")
-	updateInfoReqs, err := extractInfoFromRepoMd(results, "modules", util.MIMETypeGzip)
+	updateInfoReqs, err := extractInfoFromRepoMd(results, "modules")
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to extract modules from xml, err: %w", err)
 	}
@@ -355,7 +369,7 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	return ids, nil
 }
 
-func extractInfoFromRepoMd(results []util.FetchResult, rt string, mt util.MIMEType) ([]util.FetchRequest, error) {
+func extractInfoFromRepoMd(results []util.FetchResult, rt string) ([]util.FetchRequest, error) {
 	var updateInfoReqs []util.FetchRequest
 	for _, r := range results {
 		var repoMd repoMd
@@ -372,10 +386,22 @@ func extractInfoFromRepoMd(results []util.FetchResult, rt string, mt util.MIMETy
 				return nil, xerrors.Errorf("Failed to parse URL in XML. err: %w", err)
 			}
 			u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
+			var mimeType util.MIMEType
+			switch ext := filepath.Ext(repo.Location.Href); ext {
+			case ".bz2":
+				mimeType = util.MIMETypeBzip2
+			case ".xz":
+				mimeType = util.MIMETypeXz
+			case ".gz":
+				mimeType = util.MIMETypeGzip
+			default:
+				return nil, xerrors.Errorf("Failed to create request. ext: %s, err: unexpected MIMEType", ext)
+			}
+
 			req := util.FetchRequest{
 				URL:          u.String(),
 				Target:       r.Target,
-				MIMEType:     mt,
+				MIMEType:     mimeType,
 				Concurrently: true,
 			}
 			updateInfoReqs = append(updateInfoReqs, req)

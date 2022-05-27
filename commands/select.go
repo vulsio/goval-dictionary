@@ -49,14 +49,14 @@ func executeSelect(_ *cobra.Command, args []string) error {
 			return xerrors.Errorf(`
 			Usage:
 			select OVAL by package name
-			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
+			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon, Fedora, EPEL Only)]
 			`)
 		}
 		if flagCveID {
 			return xerrors.Errorf(`
 			Usage:
 			select OVAL by CVE-ID
-			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
+			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon, Fedora, EPEL Only)]
 			`)
 		}
 	} else if len(args) > 4 {
@@ -64,14 +64,14 @@ func executeSelect(_ *cobra.Command, args []string) error {
 			return xerrors.Errorf(`
 			Usage:
 			select OVAL by package name
-			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
+			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon, Fedora, EPEL Only)]
 			`)
 		}
 		if flagCveID {
 			return xerrors.Errorf(`
 			Usage:
 			select OVAL by CVE-ID
-			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
+			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon, Fedora, EPEL Only)]
 			`)
 		}
 	}
@@ -82,7 +82,7 @@ func executeSelect(_ *cobra.Command, args []string) error {
 	arch := ""
 	if len(args) == 4 {
 		switch family {
-		case config.Amazon, config.Oracle, config.Fedora:
+		case config.Amazon, config.Oracle, config.Fedora, config.EPEL:
 			arch = args[3]
 		default:
 			return xerrors.Errorf("Family: %s cannot use the Architecture argument.", family)

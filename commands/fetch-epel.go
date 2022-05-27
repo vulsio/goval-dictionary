@@ -12,31 +12,28 @@ import (
 
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	fetcher "github.com/vulsio/goval-dictionary/fetcher/fedora"
+	fetcher "github.com/vulsio/goval-dictionary/fetcher/epel"
 	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
-	"github.com/vulsio/goval-dictionary/models/fedora"
+	"github.com/vulsio/goval-dictionary/models/epel"
 )
 
-// fetchFedoraCmd is Subcommand for fetch Fedora OVAL
-var fetchFedoraCmd = &cobra.Command{
-	Use:   "fedora",
-	Short: "Fetch Vulnerability dictionary from Fedora",
-	Long:  `Fetch Vulnerability dictionary from Fedora`,
-	RunE:  fetchFedora,
+// fetchEPELCmd is Subcommand for fetch EPEL OVAL
+var fetchEPELCmd = &cobra.Command{
+	Use:   "epel",
+	Short: "Fetch Vulnerability dictionary from EPEL",
+	Long:  `Fetch Vulnerability dictionary from EPEL`,
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  fetchEPEL,
 }
 
 func init() {
-	fetchCmd.AddCommand(fetchFedoraCmd)
+	fetchCmd.AddCommand(fetchEPELCmd)
 }
 
-func fetchFedora(_ *cobra.Command, args []string) (err error) {
+func fetchEPEL(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
-	}
-
-	if len(args) == 0 {
-		return xerrors.New("Failed to fetch fedora command. err: specify versions to fetch")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -70,10 +67,10 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 	v := map[string]bool{}
 	for _, arg := range args {
 		ver, err := strconv.Atoi(arg)
-		// Fedora versions prior to version 32 have no update information
-		// https://dl.fedoraproject.org/pub/fedora/linux/updates/
-		if err != nil || ver < 32 {
-			return xerrors.Errorf("Specify version to fetch (from 32 to latest Fedora version). arg: %s", arg)
+		// EPEL versions prior to version 7 have no update information
+		// https://dl.fedoraproject.org/pub/epel/
+		if err != nil || ver < 7 {
+			return xerrors.Errorf("Specify version to fetch (from 7 to latest EPEL version). arg: %s", arg)
 		}
 		v[arg] = true
 	}
@@ -88,14 +85,14 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 
 	for k, v := range uinfos {
 		root := models.Root{
-			Family:      c.Fedora,
+			Family:      c.EPEL,
 			OSVersion:   k,
-			Definitions: fedora.ConvertToModel(v),
+			Definitions: epel.ConvertToModel(v),
 			Timestamp:   time.Now(),
 		}
-		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s. Inserting to DB", len(root.Definitions), k))
+		log15.Info(fmt.Sprintf("%d CVEs for EPEL %s. Inserting to DB", len(root.Definitions), k))
 		if err := execute(driver, &root); err != nil {
-			return xerrors.Errorf("Failed to Insert Fedora %s. err: %w", k, err)
+			return xerrors.Errorf("Failed to Insert EPEL %s. err: %w", k, err)
 		}
 	}
 	return nil

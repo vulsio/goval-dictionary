@@ -157,21 +157,13 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		q = q.Where("packages.name = ?", packName).Preload("AffectedPacks")
 	}
 
-	// Specify limit number to avoid `too many SQL variable`.
-	// https://github.com/future-architect/vuls/issues/886
 	defs := []models.Definition{}
-	limit, tmpDefs := 998, []models.Definition{}
-	for i := 0; true; i++ {
-		err := q.
-			Limit(limit).Offset(i * limit).
-			Find(&tmpDefs).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		if len(tmpDefs) == 0 {
-			break
-		}
+	tmpDefs := []models.Definition{}
+	if err := q.FindInBatches(&tmpDefs, 998, func(_ *gorm.DB, _ int) error {
 		defs = append(defs, tmpDefs...)
+		return nil
+	}).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to FindInBatches. family: %s, osVer: %s, packName: %s, arch: %s, err: %w", family, osVer, packName, arch, err)
 	}
 
 	if family == c.RedHat {

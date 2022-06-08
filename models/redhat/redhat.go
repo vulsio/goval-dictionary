@@ -55,9 +55,8 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 			})
 		}
 
-		const timeformat = "2006-01-02"
-		issued := util.ParsedOrDefaultTime(timeformat, d.Advisory.Issued.Date)
-		updated := util.ParsedOrDefaultTime(timeformat, d.Advisory.Updated.Date)
+		issued := util.ParsedOrDefaultTime([]string{"2006-01-02"}, d.Advisory.Issued.Date)
+		updated := util.ParsedOrDefaultTime([]string{"2006-01-02"}, d.Advisory.Updated.Date)
 
 		def := models.Definition{
 			DefinitionID: d.ID,

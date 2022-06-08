@@ -49,12 +49,7 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 			})
 		}
 
-		var date time.Time
-		if strings.HasSuffix(d.Advisory.PublicDate, "UTC") {
-			date = util.ParsedOrDefaultTime("2006-01-02 15:04:05 UTC", d.Advisory.PublicDate)
-		} else {
-			date = util.ParsedOrDefaultTime("2006-01-02", d.Advisory.PublicDate)
-		}
+		date := util.ParsedOrDefaultTime([]string{"2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05 +0000", "2006-01-02 15:04:05 UTC"}, d.Advisory.PublicDate)
 
 		def := models.Definition{
 			DefinitionID: d.ID,

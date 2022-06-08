@@ -7,15 +7,17 @@ import (
 )
 
 // ParsedOrDefaultTime returns time.Parse(layout, value), or time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC) if it failed to parse
-func ParsedOrDefaultTime(layout, value string) time.Time {
+func ParsedOrDefaultTime(layouts []string, value string) time.Time {
 	defaultTime := time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-	if value == "" {
+	if value == "" || value == "unknown" {
 		return defaultTime
 	}
-	t, err := time.Parse(layout, value)
-	if err != nil {
-		log15.Warn("Failed to parse string", "timeformat", layout, "target string", value, "err", err)
-		return defaultTime
+
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, value); err == nil {
+			return t
+		}
 	}
-	return t
+	log15.Warn("Failed to parse string", "timeformat", layouts, "target string", value)
+	return defaultTime
 }

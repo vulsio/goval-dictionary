@@ -53,8 +53,8 @@ func ConvertToModel(data *Updates) (defs []models.Definition) {
 			}
 		}
 
-		issuedAt := util.ParsedOrDefaultTime("2006-01-02 15:04:05", update.Issued.Date)
-		updatedAt := util.ParsedOrDefaultTime("2006-01-02 15:04:05", update.Updated.Date)
+		issuedAt := util.ParsedOrDefaultTime([]string{"2006-01-02 15:04:05"}, update.Issued.Date)
+		updatedAt := util.ParsedOrDefaultTime([]string{"2006-01-02 15:04:05"}, update.Updated.Date)
 		def := models.Definition{
 			DefinitionID: "def-" + update.ID,
 			Title:        update.ID,

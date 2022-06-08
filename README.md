@@ -94,9 +94,9 @@ Use "goval-dictionary fetch [command] --help" for more information about a comma
 #### Usage: Fetch OVAL data from RedHat
 
 - [Redhat OVAL](https://www.redhat.com/security/data/oval/)
--
+
 ```bash
-$ goval-dictionary fetch redhat 5 6 7 8
+$ goval-dictionary fetch redhat 5 6 7 8 9
 ```
 
 #### Usage: Fetch OVAL data from Debian

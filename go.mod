@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.8.1
 	github.com/ulikunitz/xz v0.5.10
 	golang.org/x/net v0.0.0-20211206223403-eba003a116a9

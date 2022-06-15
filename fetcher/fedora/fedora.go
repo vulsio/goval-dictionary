@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/inconshreveable/log15"
@@ -21,10 +22,12 @@ const (
 	archX8664   = "x86_64"
 	archAarch64 = "aarch64"
 
-	fedoraUpdateURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/%s/repodata/repomd.xml"
-	fedoraModuleURL = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
-	bugZillaURL     = "https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s"
-	kojiPkgURL      = "https://kojipkgs.fedoraproject.org/packages/%s/%s/%s/files/module/modulemd.%s.txt"
+	pubUpdateURL     = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Everything/%s/repodata/repomd.xml"
+	pubModuleURL     = "https://dl.fedoraproject.org/pub/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
+	archiveUpdateURL = "https://archives.fedoraproject.org/pub/archive/fedora/linux/updates/%s/Everything/%s/repodata/repomd.xml"
+	archiveModuleURL = "https://archives.fedoraproject.org/pub/archive/fedora/linux/updates/%s/Modular/%s/repodata/repomd.xml"
+	bugZillaURL      = "https://bugzilla.redhat.com/show_bug.cgi?ctype=xml&id=%s"
+	kojiPkgURL       = "https://kojipkgs.fedoraproject.org/packages/%s/%s/%s/files/module/modulemd.%s.txt"
 )
 
 // FetchUpdateInfosFedora fetch OVAL from Fedora
@@ -74,15 +77,24 @@ func FetchUpdateInfosFedora(versions []string) (map[string]*models.Updates, erro
 
 func newFedoraFetchRequests(target []string, arch string) (reqs []util.FetchRequest, moduleReqs []util.FetchRequest) {
 	for _, v := range target {
+		var updateURL, moduleURL string
+		if n, _ := strconv.Atoi(v); n < 34 {
+			updateURL = archiveUpdateURL
+			moduleURL = archiveModuleURL
+		} else {
+			updateURL = pubUpdateURL
+			moduleURL = pubModuleURL
+		}
+
 		reqs = append(reqs, util.FetchRequest{
 			Target:       v,
-			URL:          fmt.Sprintf(fedoraUpdateURL, v, arch),
+			URL:          fmt.Sprintf(updateURL, v, arch),
 			MIMEType:     util.MIMETypeXML,
 			Concurrently: true,
 		})
 		moduleReqs = append(moduleReqs, util.FetchRequest{
 			Target:       v,
-			URL:          fmt.Sprintf(fedoraModuleURL, v, arch),
+			URL:          fmt.Sprintf(moduleURL, v, arch),
 			MIMEType:     util.MIMETypeXML,
 			Concurrently: true,
 		})

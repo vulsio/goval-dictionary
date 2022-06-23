@@ -89,10 +89,14 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
 		}
 
+		defs, err := ubuntu.ConvertToModel(&ovalroot)
+		if err != nil {
+			return xerrors.Errorf("Failed to convert from OVAL to goval-dictionary model. err: %w", err)
+		}
 		root := models.Root{
 			Family:      c.Ubuntu,
 			OSVersion:   r.Target,
-			Definitions: ubuntu.ConvertToModel(&ovalroot),
+			Definitions: defs,
 			Timestamp:   time.Now(),
 		}
 

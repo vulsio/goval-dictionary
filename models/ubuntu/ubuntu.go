@@ -5,15 +5,94 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/util"
 )
 
 // ConvertToModel Convert OVAL to models
-func ConvertToModel(root *Root) (defs []models.Definition) {
-	for _, d := range root.Definitions.Definitions {
+func ConvertToModel(root *Root) ([]models.Definition, error) {
+	tests, err := parseTests(*root)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to parse oval.Tests. err: %w", err)
+	}
+	return parseDefinitions(root.Definitions.Definitions, tests), nil
+}
+
+var rePkgComment = regexp.MustCompile(`The '(.*)' package binar.+`)
+
+func parseObjects(ovalObjs Objects) map[string]string {
+	objs := map[string]string{}
+	for _, obj := range ovalObjs.DpkginfoObject {
+		matched := rePkgComment.FindAllStringSubmatch(obj.Comment, 1)
+		if len(matched[0]) != 2 {
+			continue
+		}
+		objs[obj.ID] = matched[0][1]
+	}
+	return objs
+}
+
+func parseStates(objStates States) map[string]DpkginfoState {
+	states := map[string]DpkginfoState{}
+	for _, state := range objStates.DpkginfoState {
+		states[state.ID] = state
+	}
+	return states
+}
+
+func parseTests(root Root) (map[string]dpkgInfoTest, error) {
+	objs := parseObjects(root.Objects)
+	states := parseStates(root.States)
+	tests := map[string]dpkgInfoTest{}
+	for _, test := range root.Tests.DpkginfoTest {
+		t, err := followTestRefs(test, objs, states)
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to follow test refs. err: %w", err)
+		}
+		tests[test.ID] = t
+	}
+	return tests, nil
+}
+
+func followTestRefs(test DpkginfoTest, objects map[string]string, states map[string]DpkginfoState) (dpkgInfoTest, error) {
+	var t dpkgInfoTest
+
+	// Follow object ref
+	if test.Object.ObjectRef == "" {
+		return t, nil
+	}
+
+	pkgName, ok := objects[test.Object.ObjectRef]
+	if !ok {
+		return t, xerrors.Errorf("Failed to find object ref. object ref: %s, test ref: %s, err: invalid tests data", test.Object.ObjectRef, test.ID)
+	}
+	t.Name = pkgName
+
+	// Follow state ref
+	if test.State.StateRef == "" {
+		return t, nil
+	}
+
+	state, ok := states[test.State.StateRef]
+	if !ok {
+		return t, xerrors.Errorf("Failed to find state ref. state ref: %s, test ref: %s, err: invalid tests data", test.State.StateRef, test.ID)
+	}
+
+	if state.Evr.Datatype == "debian_evr_string" && state.Evr.Operation == "less than" {
+		t.FixedVersion = state.Evr.Text
+	}
+
+	return t, nil
+}
+
+func parseDefinitions(ovalDefs []Definition, tests map[string]dpkgInfoTest) []models.Definition {
+	defs := []models.Definition{}
+
+	for _, d := range ovalDefs {
 		if strings.Contains(d.Description, "** REJECT **") {
 			continue
 		}
@@ -64,7 +143,7 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 				Updated:         date,
 			},
 			Debian:        nil,
-			AffectedPacks: collectUbuntuPacks(d.Criteria),
+			AffectedPacks: collectUbuntuPacks(d.Criteria, tests),
 			References:    rs,
 		}
 
@@ -81,100 +160,51 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 
 		defs = append(defs, def)
 	}
-	return
+
+	return defs
 }
 
-func collectUbuntuPacks(cri Criteria) []models.Package {
-	return walkUbuntu(cri, []models.Package{})
+func collectUbuntuPacks(cri Criteria, tests map[string]dpkgInfoTest) []models.Package {
+	return walkCriterion(cri, tests)
 }
 
-func walkUbuntu(cri Criteria, acc []models.Package) []models.Package {
+func walkCriterion(cri Criteria, tests map[string]dpkgInfoTest) []models.Package {
+	pkgs := []models.Package{}
 	for _, c := range cri.Criterions {
-		if pkg, ok := parseNotFixedYet(c.Comment); ok {
-			acc = append(acc, *pkg)
-		}
-		if pkg, ok := parseNotDecided(c.Comment); ok {
-			acc = append(acc, *pkg)
-		}
-		if pkg, ok := parseFixed(c.Comment); ok {
-			acc = append(acc, *pkg)
+		t, ok := tests[c.TestRef]
+		if !ok {
+			continue
 		}
 
-		// nop for now
-		// <criterion test_ref="oval:com.ubuntu.xenial:tst:10" comment="The vulnerability of the 'brotli' package in xenial is not known (status: 'needs-triage'). It is pending evaluation." />
-		// <criterion test_ref="oval:com.ubuntu.bionic:tst:201211480000000" comment="apache2: while related to the CVE in some way, a decision has been made to ignore this issue (note: 'code-not-compiled')." />
+		if strings.Contains(c.Comment, "is related to the CVE in some way and has been fixed") || // status: not vulnerable(= not affected)
+			strings.Contains(c.Comment, "while related to the CVE in some way, a decision has been made to ignore this issue") || // status: ignored
+			strings.Contains(c.Comment, "is affected and may need fixing") { // status: needs-triage
+			continue
+		}
 
+		if strings.Contains(c.Comment, "is affected and needs fixing") || // status: needed
+			strings.Contains(c.Comment, "is affected, but a decision has been made to defer addressing it") || // status: deferred
+			strings.Contains(c.Comment, "is affected. An update containing the fix has been completed and is pending publication") { // status: pending
+			pkgs = append(pkgs, models.Package{
+				Name:        t.Name,
+				NotFixedYet: true,
+			})
+		} else if strings.Contains(c.Comment, "was vulnerable but has been fixed") || // status: released
+			strings.Contains(c.Comment, "was vulnerable and has been fixed") { // status: released, only this comment: "firefox package in $RELEASE_NAME was vulnerable and has been fixed, but no release version available for it."
+			pkgs = append(pkgs, models.Package{
+				Name:        t.Name,
+				Version:     t.FixedVersion,
+				NotFixedYet: false,
+			})
+		} else {
+			log15.Warn("Failed to detect patch status.", "comment", c.Comment)
+		}
 	}
 
-	if len(cri.Criterias) == 0 {
-		return acc
-	}
 	for _, c := range cri.Criterias {
-		acc = walkUbuntu(c, acc)
+		if ps := walkCriterion(c, tests); len(ps) > 0 {
+			pkgs = append(pkgs, ps...)
+		}
 	}
-	return acc
-}
-
-var reNotFixed = regexp.MustCompile(`^(.+) package in .+ affected and needs fixing.$`)
-
-func parseNotFixedYet(comment string) (*models.Package, bool) {
-	// Ubuntu 14
-	// The 'php-openid' package in trusty is affected and needs fixing.
-
-	// Ubuntu 16, 18
-	// xine-console package in bionic is affected and needs fixing. />
-	res := reNotFixed.FindStringSubmatch(comment)
-	if len(res) == 2 {
-		return &models.Package{
-			Name:        trimPkgName(res[1]),
-			NotFixedYet: true,
-		}, true
-	}
-	return nil, false
-}
-
-var reNotDecided = regexp.MustCompile(`^(.+) package in .+ is affected, but a decision has been made to defer addressing it.*$`)
-
-func parseNotDecided(comment string) (*models.Package, bool) {
-	// Ubuntu 14
-	// The 'ruby1.9.1' package in trusty is affected, but a decision has been made to defer addressing it (note: '2019-04-10').
-
-	// Ubuntu 16, 18
-	// libxerces-c-samples package in bionic is affected, but a decision has been made to defer addressing it (note: '2019-01-01').
-	res := reNotDecided.FindStringSubmatch(comment)
-	if len(res) == 2 {
-		return &models.Package{
-			Name:        trimPkgName(res[1]),
-			NotFixedYet: true,
-		}, true
-	}
-	return nil, false
-}
-
-var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '([^\s]+).*'\).$`)
-
-func parseFixed(comment string) (*models.Package, bool) {
-	// https://github.com/vulsio/goval-dictionary/issues/120
-	if strings.HasSuffix(comment, " only').") {
-		return nil, false
-	}
-
-	// Ubuntu 14
-	// The 'poppler' package in trusty was vulnerable but has been fixed (note: '0.10.5-1ubuntu2').
-
-	// Ubuntu 16, 18
-	// iproute2 package in bionic, is related to the CVE in some way and has been fixed (note: '3.12.0-2').
-	res := reFixed.FindStringSubmatch(comment)
-	if len(res) == 3 {
-		return &models.Package{
-			Name:    trimPkgName(res[1]),
-			Version: res[2],
-		}, true
-	}
-	return nil, false
-}
-
-func trimPkgName(name string) string {
-	name = strings.TrimPrefix(name, "The '")
-	return strings.TrimSuffix(name, "'")
+	return pkgs
 }

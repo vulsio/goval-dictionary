@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -20,10 +22,14 @@ import (
 
 // updateinfo for x86_64 also contains information for aarch64
 const (
-	al1MirrorListURI   = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
-	al2MirrorListURI   = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
-	al2022ReleasemdURI = "https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml"
+	al1MirrorListURI            = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
+	al2CoreMirrorListURI        = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
+	al2ExtraCatalogURI          = "http://amazonlinux.default.amazonaws.com/2/extras-catalog.json"
+	al2ExtraMirrorListURIFormat = "https://cdn.amazonlinux.com/2/extras/%s/latest/x86_64/mirror.list"
+	al2022ReleasemdURI          = "https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml"
 )
+
+var errNoUpdateInfo = xerrors.New("No updateinfo field in the repomd")
 
 // FetchUpdateInfoAmazonLinux1 fetches a list of Amazon Linux1 updateinfo
 func FetchUpdateInfoAmazonLinux1() (*models.Updates, error) {
@@ -32,7 +38,39 @@ func FetchUpdateInfoAmazonLinux1() (*models.Updates, error) {
 
 // FetchUpdateInfoAmazonLinux2 fetches a list of Amazon Linux2 updateinfo
 func FetchUpdateInfoAmazonLinux2() (*models.Updates, error) {
-	return fetchUpdateInfoAmazonLinux(al2MirrorListURI)
+	updates, err := fetchUpdateInfoAmazonLinux(al2CoreMirrorListURI)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to fetch Amazon Linux 2 core updateinfo. err: %w", err)
+	}
+	for i := range updates.UpdateList {
+		updates.UpdateList[i].Repository = "amzn2-core"
+	}
+
+	rs, err := util.FetchFeedFiles([]util.FetchRequest{{URL: al2ExtraCatalogURI, MIMEType: util.MIMETypeJSON}})
+	if err != nil || len(rs) != 1 {
+		return nil, xerrors.Errorf("Failed to fetch extras-catalog.json for Amazon Linux 2. url: %s, err: %w", al2ExtraCatalogURI, err)
+	}
+
+	var catalog extrasCatalog
+	if err := json.Unmarshal(rs[0].Body, &catalog); err != nil {
+		return nil, xerrors.Errorf("Failed to unmarshal extras-catalog.json for Amazon Linux 2. err: %w", err)
+	}
+
+	for _, t := range catalog.Topics {
+		us, err := fetchUpdateInfoAmazonLinux(fmt.Sprintf(al2ExtraMirrorListURIFormat, t.N))
+		if err != nil {
+			if errors.Is(err, errNoUpdateInfo) {
+				continue
+			}
+			return nil, xerrors.Errorf("Failed to fetch Amazon Linux 2 %s updateinfo. err: %w", t.N, err)
+		}
+		for _, u := range us.UpdateList {
+			u.Repository = fmt.Sprintf("amzn2extra-%s", t.N)
+			updates.UpdateList = append(updates.UpdateList, u)
+		}
+	}
+
+	return updates, nil
 }
 
 // FetchUpdateInfoAmazonLinux2022 fetches a list of Amazon Linux2022 updateinfo
@@ -144,7 +182,7 @@ func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 		}
 	}
 	if len(updateInfoURLs) == 0 {
-		return nil, xerrors.New("No updateinfo field in the repomd")
+		return nil, errNoUpdateInfo
 	}
 	return updateInfoURLs, nil
 }

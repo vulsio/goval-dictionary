@@ -26,6 +26,8 @@ const (
 	MIMETypeXML MIMEType = iota
 	// MIMETypeTxt :
 	MIMETypeTxt
+	// MIMETypeJSON :
+	MIMETypeJSON
 	// MIMETypeYml :
 	MIMETypeYml
 	// MIMETypeBzip2 :
@@ -42,6 +44,8 @@ func (m MIMEType) String() string {
 		return "xml"
 	case MIMETypeTxt:
 		return "txt"
+	case MIMETypeJSON:
+		return "json"
 	case MIMETypeYml:
 		return "yml"
 	case MIMETypeBzip2:
@@ -177,7 +181,7 @@ func fetchFileConcurrently(req FetchRequest, concurrency int) (body []byte, err 
 
 	var b bytes.Buffer
 	switch req.MIMEType {
-	case MIMETypeXML, MIMETypeTxt, MIMETypeYml:
+	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml:
 		b = buf
 	case MIMETypeBzip2:
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
@@ -243,7 +247,7 @@ func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 
 	var b bytes.Buffer
 	switch req.MIMEType {
-	case MIMETypeXML, MIMETypeTxt, MIMETypeYml:
+	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml:
 		b = buf
 	case MIMETypeBzip2:
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {

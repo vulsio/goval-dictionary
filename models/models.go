@@ -72,12 +72,13 @@ type Advisory struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_advisories_definition_id" json:"-" xml:"-"`
 
-	Severity        string `gorm:"type:varchar(255)"`
-	Cves            []Cve
-	Bugzillas       []Bugzilla
-	AffectedCPEList []Cpe
-	Issued          time.Time
-	Updated         time.Time
+	Severity           string `gorm:"type:varchar(255)"`
+	Cves               []Cve
+	Bugzillas          []Bugzilla
+	AffectedCPEList    []Cpe
+	AffectedRepository string `gorm:"type:varchar(255)"` // Amazon Linux 2 Only
+	Issued             time.Time
+	Updated            time.Time
 }
 
 // Cve : >definitions>definition>metadata>advisory>cve

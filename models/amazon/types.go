@@ -39,6 +39,7 @@ type UpdateInfo struct {
 	Packages    []Package   `xml:"pkglist>collection>package" json:"packages,omitempty"`
 	References  []Reference `xml:"references>reference" json:"references,omitempty"`
 	CVEIDs      []string    `json:"cveiDs,omitempty"`
+	Repository  string      `json:"repository,omitempty"`
 }
 
 // Updates has a list of ALAS

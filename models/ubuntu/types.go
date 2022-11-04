@@ -241,3 +241,8 @@ type ConstantVariable struct {
 	Comment  string   `xml:"comment,attr"`
 	Value    []string `xml:"value"`
 }
+
+type dpkgInfoTest struct {
+	Name         string
+	FixedVersion string
+}

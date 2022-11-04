@@ -151,7 +151,7 @@ func parseNotDecided(comment string) (*models.Package, bool) {
 	return nil, false
 }
 
-var reFixed = regexp.MustCompile(`^(.+) package in .+ has been fixed \(note: '([^\s]+).*'\).$`)
+var reFixed = regexp.MustCompile(`^(.+) package in .+ was vulnerable but has been fixed \(note: '([^\s]+).*'\).$`)
 
 func parseFixed(comment string) (*models.Package, bool) {
 	// https://github.com/vulsio/goval-dictionary/issues/120

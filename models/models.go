@@ -64,7 +64,7 @@ type Reference struct {
 
 	Source string `gorm:"type:varchar(255)"`
 	RefID  string `gorm:"type:varchar(255)"`
-	RefURL string `gorm:"type:varchar(255)"`
+	RefURL string `gorm:"type:text"`
 }
 
 // Advisory : >definitions>definition>metadata>advisory

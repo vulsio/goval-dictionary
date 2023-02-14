@@ -78,7 +78,7 @@ func FetchUpdateInfosFedora(versions []string) (map[string]*models.Updates, erro
 func newFedoraFetchRequests(target []string, arch string) (reqs []util.FetchRequest, moduleReqs []util.FetchRequest) {
 	for _, v := range target {
 		var updateURL, moduleURL string
-		if n, _ := strconv.Atoi(v); n < 34 {
+		if n, _ := strconv.Atoi(v); n < 36 {
 			updateURL = archiveUpdateURL
 			moduleURL = archiveModuleURL
 		} else {

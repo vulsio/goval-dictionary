@@ -106,6 +106,21 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to Insert Amazon2022. err: %w", err)
 	}
 
+	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2023()
+	if err != nil {
+		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2023. err: %w", err)
+	}
+	root = models.Root{
+		Family:      c.Amazon,
+		OSVersion:   "2023",
+		Definitions: amazon.ConvertToModel(uinfo),
+		Timestamp:   time.Now(),
+	}
+	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2023. Inserting to DB", len(root.Definitions)))
+	if err := execute(driver, &root); err != nil {
+		return xerrors.Errorf("Failed to Insert Amazon2023. err: %w", err)
+	}
+
 	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)

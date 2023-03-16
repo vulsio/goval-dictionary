@@ -160,6 +160,26 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
+				family: config.Amazon,
+				osVer:  "2022",
+			},
+			expected: args{
+				family: config.Amazon,
+				osVer:  "2022",
+			},
+		},
+		{
+			in: args{
+				family: config.Amazon,
+				osVer:  "2023",
+			},
+			expected: args{
+				family: config.Amazon,
+				osVer:  "2023",
+			},
+		},
+		{
+			in: args{
 				family: config.Alpine,
 				osVer:  "3.15",
 			},

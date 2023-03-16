@@ -117,9 +117,12 @@ func majorDotMinor(osVer string) (majorMinorVersion string) {
 	return strings.Join(ss[:2], ".")
 }
 
-// getAmazonLinuxVer returns AmazonLinux 1, 2, 2022
+// getAmazonLinuxVer returns AmazonLinux 1, 2, 2022, 2023
 func getAmazonLinuxVer(osVersion string) string {
 	ss := strings.Fields(osVersion)
+	if ss[0] == "2023" {
+		return "2023"
+	}
 	if ss[0] == "2022" {
 		return "2022"
 	}

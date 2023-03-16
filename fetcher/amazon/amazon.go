@@ -26,7 +26,8 @@ const (
 	al2CoreMirrorListURI        = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
 	al2ExtraCatalogURI          = "http://amazonlinux.default.amazonaws.com/2/extras-catalog.json"
 	al2ExtraMirrorListURIFormat = "https://cdn.amazonlinux.com/2/extras/%s/latest/x86_64/mirror.list"
-	al2022ReleasemdURI          = "https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml"
+	al2022ReleasemdURI          = "https://cdn.amazonlinux.com/al2022/core/releasemd.xml"
+	al2023ReleasemdURI          = "https://cdn.amazonlinux.com/al2023/core/releasemd.xml"
 )
 
 var errNoUpdateInfo = xerrors.New("No updateinfo field in the repomd")
@@ -105,7 +106,42 @@ func getAmazonLinux2022MirrorListURI() (uri string, err error) {
 		return "", xerrors.Errorf("Failed to get the latest version of al2022. url: %s", al2022ReleasemdURI)
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
-	return fmt.Sprintf("https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
+	return fmt.Sprintf("https://cdn.amazonlinux.com/al2022/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
+}
+
+// FetchUpdateInfoAmazonLinux2023 fetches a list of Amazon Linux2023 updateinfo
+func FetchUpdateInfoAmazonLinux2023() (*models.Updates, error) {
+	uri, err := getAmazonLinux2023MirrorListURI()
+	if err != nil {
+		return nil, err
+	}
+	return fetchUpdateInfoAmazonLinux(uri)
+}
+
+func getAmazonLinux2023MirrorListURI() (uri string, err error) {
+	results, err := util.FetchFeedFiles([]util.FetchRequest{{URL: al2023ReleasemdURI, MIMEType: util.MIMETypeXML}})
+	if err != nil || len(results) != 1 {
+		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2023. url: %s, err: %w", al2023ReleasemdURI, err)
+	}
+
+	var root root
+	// Since the XML charset encoding is defined as `utf8` instead of `utf-8`, the following error will occur if it do not set decoder.CharsetReader.
+	// `Failed to fetch updateinfo for Amazon Linux2023. err: xml: encoding "utf8" declared but Decoder.CharsetReader is nil`
+	decoder := xml.NewDecoder(bytes.NewReader(results[0].Body))
+	decoder.CharsetReader = charset.NewReaderLabel
+	if err := decoder.Decode(&root); err != nil {
+		return "", xerrors.Errorf("Failed to decode releasemd.xml for AL2023. err: %w", err)
+	}
+
+	versions := []string{}
+	for _, release := range root.Releases.Release {
+		versions = append(versions, release.Version)
+	}
+	if len(versions) == 0 {
+		return "", xerrors.Errorf("Failed to get the latest version of al2023. url: %s", al2023ReleasemdURI)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
+	return fmt.Sprintf("https://cdn.amazonlinux.com/al2023/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
 }
 
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *models.Updates, err error) {

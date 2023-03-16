@@ -25,7 +25,7 @@ func newFetchRequests(suseType string, target []string) (reqs []util.FetchReques
 	return
 }
 
-// FetchFiles fetch OVAL from RedHat
+// FetchFiles fetch OVAL from SUSE
 func FetchFiles(suseType string, versions []string) ([]util.FetchResult, error) {
 	reqs := newFetchRequests(suseType, versions)
 	if len(reqs) == 0 {

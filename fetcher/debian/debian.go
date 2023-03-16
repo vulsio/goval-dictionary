@@ -46,7 +46,7 @@ func debianName(major string) string {
 	}
 }
 
-// FetchFiles fetch OVAL from RedHat
+// FetchFiles fetch OVAL from Debian
 func FetchFiles(versions []string) ([]util.FetchResult, error) {
 	reqs := newFetchRequests(versions)
 	if len(reqs) == 0 {

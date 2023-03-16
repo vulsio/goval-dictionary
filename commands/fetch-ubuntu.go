@@ -16,14 +16,17 @@ import (
 	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/ubuntu"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // fetchUbuntuCmd is Subcommand for fetch Ubuntu OVAL
 var fetchUbuntuCmd = &cobra.Command{
-	Use:   "ubuntu",
-	Short: "Fetch Vulnerability dictionary from Ubuntu",
-	Long:  `Fetch Vulnerability dictionary from Ubuntu`,
-	RunE:  fetchUbuntu,
+	Use:     "ubuntu [version]",
+	Short:   "Fetch Vulnerability dictionary from Ubuntu",
+	Long:    `Fetch Vulnerability dictionary from Ubuntu`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    fetchUbuntu,
+	Example: "$ goval-dictionary fetch ubuntu 20 22",
 }
 
 func init() {
@@ -33,10 +36,6 @@ func init() {
 func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
-	}
-
-	if len(args) == 0 {
-		return xerrors.New("Failed to fetch ubuntu command. err: specify versions to fetch")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -59,17 +58,7 @@ func fetchUbuntu(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	// Distinct
-	v := map[string]bool{}
-	vers := []string{}
-	for _, arg := range args {
-		v[arg] = true
-	}
-	for k := range v {
-		vers = append(vers, k)
-	}
-
-	results, err := fetcher.FetchFiles(vers)
+	results, err := fetcher.FetchFiles(util.Unique(args))
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}

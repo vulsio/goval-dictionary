@@ -16,20 +16,19 @@ import (
 	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/suse"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // fetchSUSECmd is Subcommand for fetch SUSE OVAL
 var fetchSUSECmd = &cobra.Command{
-	Use:   "suse",
+	Use:   "suse [version]",
 	Short: "Fetch Vulnerability dictionary from SUSE",
-	Long: `Fetch Vulnerability dictionary from SUSE
-	
-$ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
-$ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
-$ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
-$ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
-`,
-	RunE: fetchSUSE,
+	Long:  `Fetch Vulnerability dictionary from SUSE`,
+	RunE:  fetchSUSE,
+	Example: `$ goval-dictionary fetch suse --suse-type opensuse 13.2 tumbleweed
+$ goval-dictionary fetch suse --suse-type opensuse-leap 15.2 15.3
+$ goval-dictionary fetch suse --suse-type suse-enterprise-server 12 15
+$ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 12 15`,
 }
 
 func init() {
@@ -42,20 +41,6 @@ func init() {
 func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
-	}
-
-	if len(args) == 0 {
-		return xerrors.New("Failed to fetch suse command. err: specify versions to fetch. Oval files are here: http://ftp.suse.com/pub/projects/security/oval/")
-	}
-
-	// Distinct
-	v := map[string]bool{}
-	vers := []string{}
-	for _, arg := range args {
-		v[arg] = true
-	}
-	for k := range v {
-		vers = append(vers, k)
 	}
 
 	var suseType string
@@ -92,7 +77,7 @@ func fetchSUSE(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchFiles(suseType, vers)
+	results, err := fetcher.FetchFiles(suseType, util.Unique(args))
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}

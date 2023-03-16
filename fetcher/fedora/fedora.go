@@ -78,10 +78,20 @@ func FetchUpdateInfosFedora(versions []string) (map[string]*models.Updates, erro
 func newFedoraFetchRequests(target []string, arch string) (reqs []util.FetchRequest, moduleReqs []util.FetchRequest) {
 	for _, v := range target {
 		var updateURL, moduleURL string
-		if n, _ := strconv.Atoi(v); n < 36 {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			log15.Warn("Skip unknown fedora.", "version", v)
+			continue
+		}
+
+		switch {
+		case n < 32:
+			log15.Warn("Skip fedora because no vulnerability information provided.", "version", v)
+			continue
+		case n < 36:
 			updateURL = archiveUpdateURL
 			moduleURL = archiveModuleURL
-		} else {
+		default:
 			updateURL = pubUpdateURL
 			moduleURL = pubModuleURL
 		}

@@ -155,7 +155,7 @@ $ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
 - [Oracle Linux](https://linux.oracle.com/security/oval/)
 
 ```bash
- $ goval-dictionary fetch oracle
+ $ goval-dictionary fetch oracle 5 6 7 8 9
 ```
 
 ### Usage: Fetch alpine-secdb as OVAL data type
@@ -173,7 +173,7 @@ See [here](https://secdb.alpinelinux.org/) for a list of supported alpines.
 Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supported by goval-dictionary to make Amazon ALAS easier to handle from Vuls.
 
 ```bash
- $ goval-dictionary fetch amazon
+ $ goval-dictionary fetch amazon 1 2 2022 2023
 ```
 
 #### Usage: Fetch Security Updates from Fedora

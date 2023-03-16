@@ -26,7 +26,7 @@ const (
 	al2CoreMirrorListURI        = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
 	al2ExtraCatalogURI          = "http://amazonlinux.default.amazonaws.com/2/extras-catalog.json"
 	al2ExtraMirrorListURIFormat = "https://cdn.amazonlinux.com/2/extras/%s/latest/x86_64/mirror.list"
-	al2022ReleasemdURI          = "https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml"
+	al2022ReleasemdURI          = "https://cdn.amazonlinux.com/al2022/core/releasemd.xml"
 	al2023ReleasemdURI          = "https://cdn.amazonlinux.com/al2023/core/releasemd.xml"
 )
 
@@ -106,7 +106,7 @@ func getAmazonLinux2022MirrorListURI() (uri string, err error) {
 		return "", xerrors.Errorf("Failed to get the latest version of al2022. url: %s", al2022ReleasemdURI)
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
-	return fmt.Sprintf("https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
+	return fmt.Sprintf("https://cdn.amazonlinux.com/al2022/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
 }
 
 // FetchUpdateInfoAmazonLinux2023 fetches a list of Amazon Linux2023 updateinfo

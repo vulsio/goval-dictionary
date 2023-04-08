@@ -11,16 +11,16 @@ type SecDB[T PackageType] struct {
 	Packages      []T
 }
 
-// CveIdPackage is a struct of CVE-ID and package
-type CveIdPackage struct {
-	CveId   string
+// CveIDPackage is a struct of CVE-ID and package
+type CveIDPackage struct {
+	CveID   string
 	Package models.Package
 }
 
 // PackageType is interface for a alpine package type
 type PackageType interface {
 	PackageType1 | PackageType2
-	extractCveIdPackages() []CveIdPackage
+	extractCveIDPackages() []CveIDPackage
 }
 
 // PackageType1 is the package struct of before alpine 3.14

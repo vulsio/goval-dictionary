@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-
 	"github.com/vulsio/goval-dictionary/models"
 )
 
-func (p PackageType1) extractCveIdPackages() []CveIdPackage {
-	cveIDPacks := []CveIdPackage{}
+func (p PackageType1) extractCveIDPackages() []CveIDPackage {
+	cveIDPacks := []CveIDPackage{}
 	for ver, vulnIDs := range p.Pkg.Secfixes {
 		for _, s := range vulnIDs {
 			cveID := strings.Split(s, " ")[0]
@@ -19,7 +18,7 @@ func (p PackageType1) extractCveIdPackages() []CveIdPackage {
 				continue
 			}
 
-			cveIDPacks = append(cveIDPacks, CveIdPackage{CveId: cveID, Package: models.Package{
+			cveIDPacks = append(cveIDPacks, CveIDPackage{CveID: cveID, Package: models.Package{
 				Name:    p.Pkg.Name,
 				Version: ver,
 			}})
@@ -28,8 +27,8 @@ func (p PackageType1) extractCveIdPackages() []CveIdPackage {
 	return cveIDPacks
 }
 
-func (p PackageType2) extractCveIdPackages() []CveIdPackage {
-	cveIDPacks := []CveIdPackage{}
+func (p PackageType2) extractCveIDPackages() []CveIDPackage {
+	cveIDPacks := []CveIDPackage{}
 	for _, secFix := range p.Pkg.Secfixes {
 		for _, fix := range secFix.Fixes {
 			for _, s := range fix.Identifiers {
@@ -38,7 +37,7 @@ func (p PackageType2) extractCveIdPackages() []CveIdPackage {
 					continue
 				}
 
-				cveIDPacks = append(cveIDPacks, CveIdPackage{CveId: cveID, Package: models.Package{
+				cveIDPacks = append(cveIDPacks, CveIDPackage{CveID: cveID, Package: models.Package{
 					Name:    p.Pkg.Name,
 					Version: secFix.Version,
 				}})
@@ -50,18 +49,18 @@ func (p PackageType2) extractCveIdPackages() []CveIdPackage {
 
 // ConvertToModel Convert OVAL to models
 func ConvertToModel[T PackageType](data *SecDB[T]) (defs []models.Definition) {
-	packs := []CveIdPackage{}
+	packs := []CveIDPackage{}
 	for _, pack := range data.Packages {
-		packs = append(packs, pack.extractCveIdPackages()...)
+		packs = append(packs, pack.extractCveIDPackages()...)
 	}
 
 	cveIDPacks := map[string][]models.Package{}
 	for _, pack := range packs {
-		if packs, ok := cveIDPacks[pack.CveId]; ok {
+		if packs, ok := cveIDPacks[pack.CveID]; ok {
 			packs = append(packs, pack.Package)
-			cveIDPacks[pack.CveId] = packs
+			cveIDPacks[pack.CveID] = packs
 		} else {
-			cveIDPacks[pack.CveId] = []models.Package{pack.Package}
+			cveIDPacks[pack.CveID] = []models.Package{pack.Package}
 		}
 	}
 

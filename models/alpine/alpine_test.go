@@ -1,13 +1,12 @@
 package alpine
 
 import (
-	"gopkg.in/yaml.v2"
 	"reflect"
 	"testing"
 
 	"github.com/k0kubun/pp"
-
 	"github.com/vulsio/goval-dictionary/models"
+	"gopkg.in/yaml.v2"
 )
 
 func TestExtractPackageType1(t *testing.T) {

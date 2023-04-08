@@ -10,30 +10,58 @@ import (
 	"github.com/vulsio/goval-dictionary/models"
 )
 
-// ConvertToModel Convert OVAL to models
-func ConvertToModel(data *SecDB) (defs []models.Definition) {
-	cveIDPacks := map[string][]models.Package{}
-	for _, pack := range data.Packages {
-		for ver, vulnIDs := range pack.Pkg.Secfixes {
-			for _, s := range vulnIDs {
+func (p PackageType1) extractCveIdPackages() []CveIdPackage {
+	cveIDPacks := []CveIdPackage{}
+	for ver, vulnIDs := range p.Pkg.Secfixes {
+		for _, s := range vulnIDs {
+			cveID := strings.Split(s, " ")[0]
+			if !strings.HasPrefix(cveID, "CVE") {
+				continue
+			}
+
+			cveIDPacks = append(cveIDPacks, CveIdPackage{CveId: cveID, Package: models.Package{
+				Name:    p.Pkg.Name,
+				Version: ver,
+			}})
+		}
+	}
+	return cveIDPacks
+}
+
+func (p PackageType2) extractCveIdPackages() []CveIdPackage {
+	cveIDPacks := []CveIdPackage{}
+	for _, secFix := range p.Pkg.Secfixes {
+		for _, fix := range secFix.Fixes {
+			for _, s := range fix.Identifiers {
 				cveID := strings.Split(s, " ")[0]
 				if !strings.HasPrefix(cveID, "CVE") {
 					continue
 				}
 
-				if packs, ok := cveIDPacks[cveID]; ok {
-					packs = append(packs, models.Package{
-						Name:    pack.Pkg.Name,
-						Version: ver,
-					})
-					cveIDPacks[cveID] = packs
-				} else {
-					cveIDPacks[cveID] = []models.Package{{
-						Name:    pack.Pkg.Name,
-						Version: ver,
-					}}
-				}
+				cveIDPacks = append(cveIDPacks, CveIdPackage{CveId: cveID, Package: models.Package{
+					Name:    p.Pkg.Name,
+					Version: secFix.Version,
+				}})
 			}
+		}
+	}
+	return cveIDPacks
+}
+
+// ConvertToModel Convert OVAL to models
+func ConvertToModel[T PackageType](data *SecDB[T]) (defs []models.Definition) {
+	packs := []CveIdPackage{}
+	for _, pack := range data.Packages {
+		packs = append(packs, pack.extractCveIdPackages()...)
+	}
+
+	cveIDPacks := map[string][]models.Package{}
+	for _, pack := range packs {
+		if packs, ok := cveIDPacks[pack.CveId]; ok {
+			packs = append(packs, pack.Package)
+			cveIDPacks[pack.CveId] = packs
+		} else {
+			cveIDPacks[pack.CveId] = []models.Package{pack.Package}
 		}
 	}
 

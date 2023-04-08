@@ -77,11 +77,16 @@ func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 
 	osVerDefs := map[string][]models.Definition{}
 	for _, r := range results {
-		var secdb alpine.SecDB
-		if err := yaml.Unmarshal(r.Body, &secdb); err != nil {
+		var secdb alpine.SecDB[alpine.PackageType1]
+		if err := yaml.Unmarshal(r.Body, &secdb); err == nil {
+			osVerDefs[r.Target] = append(osVerDefs[r.Target], alpine.ConvertToModel(&secdb)...)
+			continue
+		}
+		var secdb2 alpine.SecDB[alpine.PackageType2]
+		if err := yaml.Unmarshal(r.Body, &secdb2); err != nil {
 			return xerrors.Errorf("Failed to unmarshal. err: %w", err)
 		}
-		osVerDefs[r.Target] = append(osVerDefs[r.Target], alpine.ConvertToModel(&secdb)...)
+		osVerDefs[r.Target] = append(osVerDefs[r.Target], alpine.ConvertToModel(&secdb2)...)
 	}
 
 	for osVer, defs := range osVerDefs {

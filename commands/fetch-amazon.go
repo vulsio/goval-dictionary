@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -15,22 +14,25 @@ import (
 	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/amazon"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // fetchAmazonCmd is Subcommand for fetch Amazon ALAS RSS
 // https://alas.aws.amazon.com/alas.rss
 var fetchAmazonCmd = &cobra.Command{
-	Use:   "amazon",
-	Short: "Fetch Vulnerability dictionary from Amazon ALAS",
-	Long:  `Fetch Vulnerability dictionary from Amazon ALAS`,
-	RunE:  fetchAmazon,
+	Use:     "amazon [version]",
+	Short:   "Fetch Vulnerability dictionary from Amazon ALAS",
+	Long:    `Fetch Vulnerability dictionary from Amazon ALAS`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    fetchAmazon,
+	Example: "$ goval-dictionary fetch amazon 1 2 2022 2023",
 }
 
 func init() {
 	fetchCmd.AddCommand(fetchAmazonCmd)
 }
 
-func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
+func fetchAmazon(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
@@ -61,79 +63,28 @@ func fetchAmazon(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	uinfo, err := fetcher.FetchUpdateInfoAmazonLinux1()
+	m, err := fetcher.FetchFiles(util.Unique(args))
 	if err != nil {
-		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux1. err: %w", err)
+		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
-	root := models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "1",
-		Definitions: amazon.ConvertToModel(uinfo),
-		Timestamp:   time.Now(),
-	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux1. Inserting to DB", len(root.Definitions)))
-	if err := execute(driver, &root); err != nil {
-		return xerrors.Errorf("Failed to Insert Amazon1. err: %w", err)
-	}
+	for ver, us := range m {
+		root := models.Root{
+			Family:      c.Amazon,
+			OSVersion:   ver,
+			Definitions: amazon.ConvertToModel(us),
+			Timestamp:   time.Now(),
+		}
 
-	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2()
-	if err != nil {
-		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2. err: %w", err)
-	}
-	root = models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "2",
-		Definitions: amazon.ConvertToModel(uinfo),
-		Timestamp:   time.Now(),
-	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2. Inserting to DB", len(root.Definitions)))
-	if err := execute(driver, &root); err != nil {
-		return xerrors.Errorf("Failed to Insert Amazon2. err: %w", err)
-	}
-
-	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2022()
-	if err != nil {
-		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2022. err: %w", err)
-	}
-	root = models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "2022",
-		Definitions: amazon.ConvertToModel(uinfo),
-		Timestamp:   time.Now(),
-	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2022. Inserting to DB", len(root.Definitions)))
-	if err := execute(driver, &root); err != nil {
-		return xerrors.Errorf("Failed to Insert Amazon2022. err: %w", err)
-	}
-
-	uinfo, err = fetcher.FetchUpdateInfoAmazonLinux2023()
-	if err != nil {
-		return xerrors.Errorf("Failed to fetch updateinfo for Amazon Linux2023. err: %w", err)
-	}
-	root = models.Root{
-		Family:      c.Amazon,
-		OSVersion:   "2023",
-		Definitions: amazon.ConvertToModel(uinfo),
-		Timestamp:   time.Now(),
-	}
-	log15.Info(fmt.Sprintf("%d CVEs for Amazon Linux2023. Inserting to DB", len(root.Definitions)))
-	if err := execute(driver, &root); err != nil {
-		return xerrors.Errorf("Failed to Insert Amazon2023. err: %w", err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
+		}
+		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 
 	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
-
-	return nil
-}
-
-func execute(driver db.DB, root *models.Root) error {
-	if err := driver.InsertOval(root); err != nil {
-		return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
-	}
-	log15.Info("Finish", "Updated", len(root.Definitions))
 
 	return nil
 }

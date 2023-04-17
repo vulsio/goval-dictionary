@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -16,14 +15,17 @@ import (
 	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/fedora"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // fetchFedoraCmd is Subcommand for fetch Fedora OVAL
 var fetchFedoraCmd = &cobra.Command{
-	Use:   "fedora",
-	Short: "Fetch Vulnerability dictionary from Fedora",
-	Long:  `Fetch Vulnerability dictionary from Fedora`,
-	RunE:  fetchFedora,
+	Use:     "fedora [version]",
+	Short:   "Fetch Vulnerability dictionary from Fedora",
+	Long:    `Fetch Vulnerability dictionary from Fedora`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    fetchFedora,
+	Example: "$ goval-dictionary fetch fedora 37",
 }
 
 func init() {
@@ -33,10 +35,6 @@ func init() {
 func fetchFedora(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
-	}
-
-	if len(args) == 0 {
-		return xerrors.New("Failed to fetch fedora command. err: specify versions to fetch")
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -65,23 +63,7 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	// Distinct
-	vers := []string{}
-	v := map[string]bool{}
-	for _, arg := range args {
-		ver, err := strconv.Atoi(arg)
-		// Fedora versions prior to version 32 have no update information
-		// https://dl.fedoraproject.org/pub/fedora/linux/updates/
-		if err != nil || ver < 32 {
-			return xerrors.Errorf("Specify version to fetch (from 32 to latest Fedora version). arg: %s", arg)
-		}
-		v[arg] = true
-	}
-	for k := range v {
-		vers = append(vers, k)
-	}
-
-	uinfos, err := fetcher.FetchUpdateInfosFedora(vers)
+	uinfos, err := fetcher.FetchUpdateInfosFedora(util.Unique(args))
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
@@ -94,9 +76,10 @@ func fetchFedora(_ *cobra.Command, args []string) (err error) {
 			Timestamp:   time.Now(),
 		}
 		log15.Info(fmt.Sprintf("%d CVEs for Fedora %s. Inserting to DB", len(root.Definitions), k))
-		if err := execute(driver, &root); err != nil {
-			return xerrors.Errorf("Failed to Insert Fedora %s. err: %w", k, err)
+		if err := driver.InsertOval(&root); err != nil {
+			return xerrors.Errorf("Failed to insert OVAL. err: %w", err)
 		}
+		log15.Info("Finish", "Updated", len(root.Definitions))
 	}
 	return nil
 }

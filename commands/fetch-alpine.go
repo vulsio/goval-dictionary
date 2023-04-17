@@ -16,15 +16,18 @@ import (
 	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/alpine"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // fetchAlpineCmd is Subcommand for fetch Alpine secdb
 // https://secdb.alpinelinux.org/
 var fetchAlpineCmd = &cobra.Command{
-	Use:   "alpine",
-	Short: "Fetch Vulnerability dictionary from Alpine secdb",
-	Long:  `Fetch Vulnerability dictionary from Alpine secdb`,
-	RunE:  fetchAlpine,
+	Use:     "alpine [version]",
+	Short:   "Fetch Vulnerability dictionary from Alpine secdb",
+	Long:    `Fetch Vulnerability dictionary from Alpine secdb`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    fetchAlpine,
+	Example: "$ goval-dictionary fetch alpine 3.16 3.17",
 }
 
 func init() {
@@ -34,20 +37,6 @@ func init() {
 func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
-	}
-
-	if len(args) == 0 {
-		return xerrors.New("Failed to fetch alpine command. err: specify versions to fetch")
-	}
-
-	// Distinct
-	v := map[string]bool{}
-	vers := []string{}
-	for _, arg := range args {
-		v[arg] = true
-	}
-	for k := range v {
-		vers = append(vers, k)
 	}
 
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -70,7 +59,7 @@ func fetchAlpine(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	results, err := fetcher.FetchFiles(vers)
+	results, err := fetcher.FetchFiles(util.Unique(args))
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}

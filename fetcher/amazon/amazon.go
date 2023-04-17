@@ -10,10 +10,8 @@ import (
 	"fmt"
 	"net/url"
 	"path"
-	"sort"
 
 	"github.com/inconshreveable/log15"
-	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
 
 	"github.com/vulsio/goval-dictionary/fetcher/util"
@@ -21,127 +19,71 @@ import (
 )
 
 // updateinfo for x86_64 also contains information for aarch64
-const (
-	al1MirrorListURI            = "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"
-	al2CoreMirrorListURI        = "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list"
-	al2ExtraCatalogURI          = "http://amazonlinux.default.amazonaws.com/2/extras-catalog.json"
-	al2ExtraMirrorListURIFormat = "https://cdn.amazonlinux.com/2/extras/%s/latest/x86_64/mirror.list"
-	al2022ReleasemdURI          = "https://cdn.amazonlinux.com/al2022/core/releasemd.xml"
-	al2023ReleasemdURI          = "https://cdn.amazonlinux.com/al2023/core/releasemd.xml"
-)
+
+type mirror struct {
+	core  string
+	extra string
+}
+
+var mirrors = map[string]mirror{
+	"1": {core: "http://repo.us-west-2.amazonaws.com/2018.03/updates/x86_64/mirror.list"},
+	"2": {
+		core:  "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list",
+		extra: "http://amazonlinux.default.amazonaws.com/2/extras-catalog.json",
+	},
+	"2022": {core: "https://cdn.amazonlinux.com/al2022/core/mirrors/latest/x86_64/mirror.list"},
+	"2023": {core: "https://cdn.amazonlinux.com/al2023/core/mirrors/latest/x86_64/mirror.list"},
+}
 
 var errNoUpdateInfo = xerrors.New("No updateinfo field in the repomd")
 
-// FetchUpdateInfoAmazonLinux1 fetches a list of Amazon Linux1 updateinfo
-func FetchUpdateInfoAmazonLinux1() (*models.Updates, error) {
-	return fetchUpdateInfoAmazonLinux(al1MirrorListURI)
-}
-
-// FetchUpdateInfoAmazonLinux2 fetches a list of Amazon Linux2 updateinfo
-func FetchUpdateInfoAmazonLinux2() (*models.Updates, error) {
-	updates, err := fetchUpdateInfoAmazonLinux(al2CoreMirrorListURI)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to fetch Amazon Linux 2 core updateinfo. err: %w", err)
-	}
-	for i := range updates.UpdateList {
-		updates.UpdateList[i].Repository = "amzn2-core"
-	}
-
-	rs, err := util.FetchFeedFiles([]util.FetchRequest{{URL: al2ExtraCatalogURI, MIMEType: util.MIMETypeJSON}})
-	if err != nil || len(rs) != 1 {
-		return nil, xerrors.Errorf("Failed to fetch extras-catalog.json for Amazon Linux 2. url: %s, err: %w", al2ExtraCatalogURI, err)
-	}
-
-	var catalog extrasCatalog
-	if err := json.Unmarshal(rs[0].Body, &catalog); err != nil {
-		return nil, xerrors.Errorf("Failed to unmarshal extras-catalog.json for Amazon Linux 2. err: %w", err)
-	}
-
-	for _, t := range catalog.Topics {
-		us, err := fetchUpdateInfoAmazonLinux(fmt.Sprintf(al2ExtraMirrorListURIFormat, t.N))
-		if err != nil {
-			if errors.Is(err, errNoUpdateInfo) {
-				continue
+// FetchFiles fetch from Amazon ALAS
+func FetchFiles(versions []string) (map[string]*models.Updates, error) {
+	m := map[string]*models.Updates{}
+	for _, v := range versions {
+		switch v {
+		case "1", "2022", "2023":
+			us, err := fetchUpdateInfoAmazonLinux(mirrors[v].core)
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to fetch Amazon Linux %s UpdateInfo. err: %w", v, err)
 			}
-			return nil, xerrors.Errorf("Failed to fetch Amazon Linux 2 %s updateinfo. err: %w", t.N, err)
+			m[v] = us
+		case "2":
+			updates, err := fetchUpdateInfoAmazonLinux(mirrors[v].core)
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to fetch Amazon Linux %s UpdateInfo. err: %w", v, err)
+			}
+
+			rs, err := util.FetchFeedFiles([]util.FetchRequest{{URL: mirrors[v].extra, MIMEType: util.MIMETypeJSON}})
+			if err != nil || len(rs) != 1 {
+				return nil, xerrors.Errorf("Failed to fetch extras-catalog.json for Amazon Linux 2. url: %s, err: %w", mirrors[v].extra, err)
+			}
+
+			var catalog extrasCatalog
+			if err := json.Unmarshal(rs[0].Body, &catalog); err != nil {
+				return nil, xerrors.Errorf("Failed to unmarshal extras-catalog.json for Amazon Linux 2. err: %w", err)
+			}
+
+			for _, t := range catalog.Topics {
+				us, err := fetchUpdateInfoAmazonLinux(fmt.Sprintf("https://cdn.amazonlinux.com/2/extras/%s/latest/x86_64/mirror.list", t.N))
+				if err != nil {
+					if errors.Is(err, errNoUpdateInfo) {
+						continue
+					}
+					return nil, xerrors.Errorf("Failed to fetch Amazon Linux 2 %s updateinfo. err: %w", t.N, err)
+				}
+				for _, u := range us.UpdateList {
+					u.Repository = fmt.Sprintf("amzn2extra-%s", t.N)
+					updates.UpdateList = append(updates.UpdateList, u)
+				}
+			}
+
+			m[v] = updates
+		default:
+			log15.Warn("Skip unknown amazon.", "version", v)
 		}
-		for _, u := range us.UpdateList {
-			u.Repository = fmt.Sprintf("amzn2extra-%s", t.N)
-			updates.UpdateList = append(updates.UpdateList, u)
-		}
 	}
-
-	return updates, nil
-}
-
-// FetchUpdateInfoAmazonLinux2022 fetches a list of Amazon Linux2022 updateinfo
-func FetchUpdateInfoAmazonLinux2022() (*models.Updates, error) {
-	uri, err := getAmazonLinux2022MirrorListURI()
-	if err != nil {
-		return nil, err
-	}
-	return fetchUpdateInfoAmazonLinux(uri)
-}
-
-func getAmazonLinux2022MirrorListURI() (uri string, err error) {
-	results, err := util.FetchFeedFiles([]util.FetchRequest{{URL: al2022ReleasemdURI, MIMEType: util.MIMETypeXML}})
-	if err != nil || len(results) != 1 {
-		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2022. url: %s, err: %w", al2022ReleasemdURI, err)
-	}
-
-	var root root
-	// Since the XML charset encoding is defined as `utf8` instead of `utf-8`, the following error will occur if it do not set decoder.CharsetReader.
-	// `Failed to fetch updateinfo for Amazon Linux2022. err: xml: encoding "utf8" declared but Decoder.CharsetReader is nil`
-	decoder := xml.NewDecoder(bytes.NewReader(results[0].Body))
-	decoder.CharsetReader = charset.NewReaderLabel
-	if err := decoder.Decode(&root); err != nil {
-		return "", xerrors.Errorf("Failed to decode releasemd.xml for AL2022. err: %w", err)
-	}
-
-	versions := []string{}
-	for _, release := range root.Releases.Release {
-		versions = append(versions, release.Version)
-	}
-	if len(versions) == 0 {
-		return "", xerrors.Errorf("Failed to get the latest version of al2022. url: %s", al2022ReleasemdURI)
-	}
-	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
-	return fmt.Sprintf("https://cdn.amazonlinux.com/al2022/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
-}
-
-// FetchUpdateInfoAmazonLinux2023 fetches a list of Amazon Linux2023 updateinfo
-func FetchUpdateInfoAmazonLinux2023() (*models.Updates, error) {
-	uri, err := getAmazonLinux2023MirrorListURI()
-	if err != nil {
-		return nil, err
-	}
-	return fetchUpdateInfoAmazonLinux(uri)
-}
-
-func getAmazonLinux2023MirrorListURI() (uri string, err error) {
-	results, err := util.FetchFeedFiles([]util.FetchRequest{{URL: al2023ReleasemdURI, MIMEType: util.MIMETypeXML}})
-	if err != nil || len(results) != 1 {
-		return "", xerrors.Errorf("Failed to fetch releasemd.xml for AL2023. url: %s, err: %w", al2023ReleasemdURI, err)
-	}
-
-	var root root
-	// Since the XML charset encoding is defined as `utf8` instead of `utf-8`, the following error will occur if it do not set decoder.CharsetReader.
-	// `Failed to fetch updateinfo for Amazon Linux2023. err: xml: encoding "utf8" declared but Decoder.CharsetReader is nil`
-	decoder := xml.NewDecoder(bytes.NewReader(results[0].Body))
-	decoder.CharsetReader = charset.NewReaderLabel
-	if err := decoder.Decode(&root); err != nil {
-		return "", xerrors.Errorf("Failed to decode releasemd.xml for AL2023. err: %w", err)
-	}
-
-	versions := []string{}
-	for _, release := range root.Releases.Release {
-		versions = append(versions, release.Version)
-	}
-	if len(versions) == 0 {
-		return "", xerrors.Errorf("Failed to get the latest version of al2023. url: %s", al2023ReleasemdURI)
-	}
-	sort.Sort(sort.Reverse(sort.StringSlice(versions)))
-	return fmt.Sprintf("https://cdn.amazonlinux.com/al2023/core/mirrors/%s/x86_64/mirror.list", versions[0]), nil
+	return m, nil
 }
 
 func fetchUpdateInfoAmazonLinux(mirrorListURL string) (uinfo *models.Updates, err error) {

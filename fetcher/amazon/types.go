@@ -1,23 +1,5 @@
 package amazon
 
-import "encoding/xml"
-
-// root is a struct of releasemd.xml for AL2022
-// curl https://al2022-repos-us-west-2-9761ab97.s3.dualstack.us-west-2.amazonaws.com/core/releasemd.xml
-type root struct {
-	XMLName  xml.Name `xml:"root"`
-	Releases struct {
-		Release []struct {
-			Version string `xml:"version,attr"`
-			Update  []struct {
-				Name          string `xml:"name"`
-				VersionString string `xml:"version_string"`
-				ReleaseNotes  string `xml:"release_notes"`
-			} `xml:"update"`
-		} `xml:"release"`
-	} `xml:"releases"`
-}
-
 // extrasCatalog is a struct of extras-catalog.json for Amazon Linux 2 Extra Repository
 type extrasCatalog struct {
 	Topics []struct {

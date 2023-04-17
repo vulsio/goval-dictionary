@@ -8,6 +8,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 
 	c "github.com/vulsio/goval-dictionary/config"
@@ -20,17 +21,19 @@ import (
 
 // fetchOracleCmd is Subcommand for fetch Oracle OVAL
 var fetchOracleCmd = &cobra.Command{
-	Use:   "oracle",
-	Short: "Fetch Vulnerability dictionary from Oracle",
-	Long:  `Fetch Vulnerability dictionary from Oracle`,
-	RunE:  fetchOracle,
+	Use:     "oracle [version]",
+	Short:   "Fetch Vulnerability dictionary from Oracle",
+	Long:    `Fetch Vulnerability dictionary from Oracle`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    fetchOracle,
+	Example: "$ goval-dictionary fetch oracle 8 9",
 }
 
 func init() {
 	fetchCmd.AddCommand(fetchOracleCmd)
 }
 
-func fetchOracle(_ *cobra.Command, _ []string) (err error) {
+func fetchOracle(_ *cobra.Command, args []string) (err error) {
 	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
@@ -76,7 +79,9 @@ func fetchOracle(_ *cobra.Command, _ []string) (err error) {
 		}
 
 		for osVer, defs := range oracle.ConvertToModel(&ovalroot) {
-			osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
+			if slices.Contains(args, osVer) {
+				osVerDefs[osVer] = append(osVerDefs[osVer], defs...)
+			}
 		}
 	}
 

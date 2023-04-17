@@ -126,7 +126,7 @@ if args.ostype == 'debian':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'ubuntu':
-    if len(list(set(args.release) - set(['14', '16', '18', '19', '20', '21', '22']))) > 0:
+    if len(list(set(args.release) - set(['14.04', '16.04', '18.04', '19.10', '20.04', '20.10', '21.04', '21.10', '22.04', '22.10']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
@@ -141,12 +141,12 @@ elif args.ostype == 'oracle':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'amazon':
-    if len(list(set(args.release) - set(['1', '2', '2022']))) > 0:
+    if len(list(set(args.release) - set(['1', '2', '2022', '2023']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'alpine':
-    if len(list(set(args.release) - set(['3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15', '3.16']))) > 0:
+    if len(list(set(args.release) - set(['3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15', '3.16', '3.17']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError

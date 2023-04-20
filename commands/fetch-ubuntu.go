@@ -26,7 +26,7 @@ var fetchUbuntuCmd = &cobra.Command{
 	Long:    `Fetch Vulnerability dictionary from Ubuntu`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE:    fetchUbuntu,
-	Example: "$ goval-dictionary fetch ubuntu 20 22",
+	Example: "$ goval-dictionary fetch ubuntu 20.04 22.04",
 }
 
 func init() {

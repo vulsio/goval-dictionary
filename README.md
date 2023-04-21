@@ -180,7 +180,7 @@ Amazon ALAS provideis Vulnerability data as `no-OVAL-format`, but it is supporte
 - [Fedora Updates](https://dl.fedoraproject.org/pub/fedora/linux/updates/)
 
 ```bash
-$ goval-dictionary fetch fedora 32 33 34 35
+$ goval-dictionary fetch fedora 32 33 34 35 36 37 38
 ```
 
 ### Usage: select oval by package name

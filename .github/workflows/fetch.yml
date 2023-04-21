@@ -354,7 +354,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      Version: 32 33 34 35 36 37
+      Version: 32 33 34 35 36 37 38
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3

@@ -99,20 +99,8 @@ type Bug struct {
 
 // Tests : >tests
 type Tests struct {
-	XMLName               xml.Name              `xml:"tests"`
-	FamilyTest            FamilyTest            `xml:"family_test"`
-	Textfilecontent54Test Textfilecontent54Test `xml:"textfilecontent54_test"`
-	DpkginfoTest          []DpkginfoTest        `xml:"dpkginfo_test"`
-}
-
-// FamilyTest : >tests>family_test
-type FamilyTest struct {
-	ID             string    `xml:"id,attr"`
-	Check          string    `xml:"check,attr"`
-	CheckExistence string    `xml:"check_existence,attr"`
-	Comment        string    `xml:"comment,attr"`
-	Object         ObjectRef `xml:"object"`
-	State          StateRef  `xml:"state"`
+	XMLName               xml.Name                `xml:"tests"`
+	Textfilecontent54Test []Textfilecontent54Test `xml:"textfilecontent54_test"`
 }
 
 // Textfilecontent54Test : >tests>textfilecontent54_test
@@ -125,28 +113,14 @@ type Textfilecontent54Test struct {
 	State          StateRef  `xml:"state"`
 }
 
-// DpkginfoTest : >tests>dpkginfo_test
-type DpkginfoTest struct {
-	ID             string    `xml:"id,attr"`
-	CheckExistence string    `xml:"check_existence,attr"`
-	Check          string    `xml:"check,attr"`
-	Comment        string    `xml:"comment,attr"`
-	Object         ObjectRef `xml:"object"`
-	State          StateRef  `xml:"state"`
-}
-
-// ObjectRef : >tests>family_test>object-object_ref
-//           : >tests>textfilecontent54_test>object-object_ref
-//           : >tests>dpkginfo_test>object-object_ref
+// ObjectRef : >tests>textfilecontent54_test>object-object_ref
 type ObjectRef struct {
 	XMLName   xml.Name `xml:"object"`
 	Text      string   `xml:",chardata"`
 	ObjectRef string   `xml:"object_ref,attr"`
 }
 
-// StateRef : >tests>family_test>state-state_ref
-//          : >tests>textfilecontent54_test>state-state_ref
-//          : >tests>dpkginfo_test>state-state_ref
+// StateRef : >tests>textfilecontent54_test>state-state_ref
 type StateRef struct {
 	XMLName  xml.Name `xml:"state"`
 	Text     string   `xml:",chardata"`
@@ -155,75 +129,45 @@ type StateRef struct {
 
 // Objects : >objects
 type Objects struct {
-	XMLName                 xml.Name                `xml:"objects"`
-	FamilyObject            FamilyObject            `xml:"family_object"`
-	Textfilecontent54Object Textfilecontent54Object `xml:"textfilecontent54_object"`
-	DpkginfoObject          []DpkginfoObject        `xml:"dpkginfo_object"`
-}
-
-// FamilyObject : >objects>family_object
-type FamilyObject struct {
-	ID      string `xml:"id,attr"`
-	Comment string `xml:"comment,attr"`
+	XMLName                 xml.Name                  `xml:"objects"`
+	Textfilecontent54Object []Textfilecontent54Object `xml:"textfilecontent54_object"`
 }
 
 // Textfilecontent54Object : >objects>textfilecontent54_object
 type Textfilecontent54Object struct {
 	ID       string `xml:"id,attr"`
 	Comment  string `xml:"comment,attr"`
-	Filepath string `xml:"filepath"`
+	Path     string `xml:"path"`
+	Filename string `xml:"filename"`
 	Pattern  struct {
 		Text      string `xml:",chardata"`
 		Operation string `xml:"operation,attr"`
+		Datatype  string `xml:"datatype,attr"`
+		VarRef    string `xml:"var_ref,attr"`
+		VarCheck  string `xml:"var_check,attr"`
 	} `xml:"pattern"`
 	Instance struct {
-		Text     string `xml:",chardata"`
-		Datatype string `xml:"datatype,attr"`
+		Text      string `xml:",chardata"`
+		Operation string `xml:"operation,attr"`
+		Datatype  string `xml:"datatype,attr"`
 	} `xml:"instance"`
-}
-
-// DpkginfoObject : >objects>dpkginfo_object
-type DpkginfoObject struct {
-	ID      string `xml:"id,attr"`
-	Comment string `xml:"comment,attr"`
-	Name    struct {
-		Text     string `xml:",chardata"`
-		VarRef   string `xml:"var_ref,attr"`
-		VarCheck string `xml:"var_check,attr"`
-	} `xml:"name"`
 }
 
 // States : >states
 type States struct {
-	XMLName                xml.Name               `xml:"states"`
-	FamilyState            FamilyState            `xml:"family_state"`
-	Textfilecontent54State Textfilecontent54State `xml:"textfilecontent54_state"`
-	DpkginfoState          []DpkginfoState        `xml:"dpkginfo_state"`
-}
-
-// FamilyState : >states>family_state
-type FamilyState struct {
-	ID      string `xml:"id,attr"`
-	Comment string `xml:"comment,attr"`
-	Family  string `xml:"family"`
+	XMLName                xml.Name                 `xml:"states"`
+	Textfilecontent54State []Textfilecontent54State `xml:"textfilecontent54_state"`
 }
 
 // Textfilecontent54State : >states>textfilecontent54_state
 type Textfilecontent54State struct {
 	ID            string `xml:"id,attr"`
 	Comment       string `xml:"comment,attr"`
-	Subexpression string `xml:"subexpression"`
-}
-
-// DpkginfoState : >states>dpkginfo_state
-type DpkginfoState struct {
-	ID      string `xml:"id,attr"`
-	Comment string `xml:"comment,attr"`
-	Evr     struct {
+	Subexpression struct {
 		Text      string `xml:",chardata"`
 		Datatype  string `xml:"datatype,attr"`
 		Operation string `xml:"operation,attr"`
-	} `xml:"evr"`
+	} `xml:"subexpression"`
 }
 
 // Variables : >variables

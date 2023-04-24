@@ -26,7 +26,7 @@ var rePkgComment = regexp.MustCompile(`The '(.*)' package binar.+`)
 
 func parseObjects(ovalObjs Objects) map[string]string {
 	objs := map[string]string{}
-	for _, obj := range ovalObjs.DpkginfoObject {
+	for _, obj := range ovalObjs.Textfilecontent54Object {
 		matched := rePkgComment.FindAllStringSubmatch(obj.Comment, 1)
 		if len(matched[0]) != 2 {
 			continue
@@ -36,9 +36,9 @@ func parseObjects(ovalObjs Objects) map[string]string {
 	return objs
 }
 
-func parseStates(objStates States) map[string]DpkginfoState {
-	states := map[string]DpkginfoState{}
-	for _, state := range objStates.DpkginfoState {
+func parseStates(objStates States) map[string]Textfilecontent54State {
+	states := map[string]Textfilecontent54State{}
+	for _, state := range objStates.Textfilecontent54State {
 		states[state.ID] = state
 	}
 	return states
@@ -48,7 +48,7 @@ func parseTests(root Root) (map[string]dpkgInfoTest, error) {
 	objs := parseObjects(root.Objects)
 	states := parseStates(root.States)
 	tests := map[string]dpkgInfoTest{}
-	for _, test := range root.Tests.DpkginfoTest {
+	for _, test := range root.Tests.Textfilecontent54Test {
 		t, err := followTestRefs(test, objs, states)
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to follow test refs. err: %w", err)
@@ -58,7 +58,7 @@ func parseTests(root Root) (map[string]dpkgInfoTest, error) {
 	return tests, nil
 }
 
-func followTestRefs(test DpkginfoTest, objects map[string]string, states map[string]DpkginfoState) (dpkgInfoTest, error) {
+func followTestRefs(test Textfilecontent54Test, objects map[string]string, states map[string]Textfilecontent54State) (dpkgInfoTest, error) {
 	var t dpkgInfoTest
 
 	// Follow object ref
@@ -82,8 +82,8 @@ func followTestRefs(test DpkginfoTest, objects map[string]string, states map[str
 		return t, xerrors.Errorf("Failed to find state ref. state ref: %s, test ref: %s, err: invalid tests data", test.State.StateRef, test.ID)
 	}
 
-	if state.Evr.Datatype == "debian_evr_string" && state.Evr.Operation == "less than" {
-		t.FixedVersion = state.Evr.Text
+	if state.Subexpression.Datatype == "debian_evr_string" && state.Subexpression.Operation == "less than" {
+		t.FixedVersion = state.Subexpression.Text
 	}
 
 	return t, nil
@@ -177,14 +177,14 @@ func walkCriterion(cri Criteria, tests map[string]dpkgInfoTest) []models.Package
 		}
 
 		if strings.Contains(c.Comment, "is related to the CVE in some way and has been fixed") || // status: not vulnerable(= not affected)
-			strings.Contains(c.Comment, "while related to the CVE in some way, a decision has been made to ignore this issue") || // status: ignored
 			strings.Contains(c.Comment, "is affected and may need fixing") { // status: needs-triage
 			continue
 		}
 
 		if strings.Contains(c.Comment, "is affected and needs fixing") || // status: needed
 			strings.Contains(c.Comment, "is affected, but a decision has been made to defer addressing it") || // status: deferred
-			strings.Contains(c.Comment, "is affected. An update containing the fix has been completed and is pending publication") { // status: pending
+			strings.Contains(c.Comment, "is affected. An update containing the fix has been completed and is pending publication") || // status: pending
+			strings.Contains(c.Comment, "while related to the CVE in some way, a decision has been made to ignore this issue") { // status: ignored
 			pkgs = append(pkgs, models.Package{
 				Name:        t.Name,
 				NotFixedYet: true,

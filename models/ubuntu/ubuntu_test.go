@@ -44,7 +44,12 @@ func TestCollectUbuntuPacks(t *testing.T) {
 			tests: map[string]dpkgInfoTest{
 				"oval:com.ubuntu.jammy:tst:2018128860000050": {Name: "gcc-snapshot"},
 			},
-			expected: []models.Package{},
+			expected: []models.Package{
+				{
+					Name:        "gcc-snapshot",
+					NotFixedYet: true,
+				},
+			},
 		},
 		{
 			cri: Criteria{

@@ -6,7 +6,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/go-version v1.4.0
+	github.com/hashicorp/go-version v1.6.0
 	github.com/htcat/htcat v1.0.2
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/k0kubun/pp v3.0.1+incompatible

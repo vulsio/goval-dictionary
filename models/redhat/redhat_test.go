@@ -130,6 +130,43 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
+		// 4
+		{
+			cri: Criteria{
+				Criterias: []Criteria{
+					{
+						Criterias: []Criteria{
+							{
+								Criterions: []Criterion{
+									{Comment: "rpm is earlier than 0:4.8.0-12.el6_0.2"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Red Hat Enterprise Linux 6 is installed"},
+						},
+					},
+					{
+						Criterias: []Criteria{
+							{
+								Criterions: []Criterion{
+									{Comment: "rpm is earlier than 0:4.8.0-19.el6_2.1"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Red Hat Enterprise Linux 6 is installed"},
+						},
+					},
+				},
+			},
+			expected: []models.Package{
+				{
+					Name:    "rpm",
+					Version: "0:4.8.0-19.el6_2.1",
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

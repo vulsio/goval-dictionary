@@ -30,6 +30,8 @@ const (
 	MIMETypeJSON
 	// MIMETypeYml :
 	MIMETypeYml
+	// MIMETypeHTML :
+	MIMETypeHTML
 	// MIMETypeBzip2 :
 	MIMETypeBzip2
 	// MIMETypeXz :
@@ -48,10 +50,14 @@ func (m MIMEType) String() string {
 		return "json"
 	case MIMETypeYml:
 		return "yml"
+	case MIMETypeHTML:
+		return "html"
 	case MIMETypeBzip2:
 		return "bzip2"
 	case MIMETypeXz:
 		return "xz"
+	case MIMETypeGzip:
+		return "gz"
 	default:
 		return "Unknown"
 	}
@@ -181,7 +187,7 @@ func fetchFileConcurrently(req FetchRequest, concurrency int) (body []byte, err 
 
 	var b bytes.Buffer
 	switch req.MIMEType {
-	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml:
+	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml, MIMETypeHTML:
 		b = buf
 	case MIMETypeBzip2:
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
@@ -247,7 +253,7 @@ func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 
 	var b bytes.Buffer
 	switch req.MIMEType {
-	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml:
+	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml, MIMETypeHTML:
 		b = buf
 	case MIMETypeBzip2:
 		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {

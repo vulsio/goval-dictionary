@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/xml"
+	"fmt"
 	"strings"
 	"time"
 
@@ -63,25 +64,35 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to fetch files. err: %w", err)
 	}
 
-	for _, r := range results {
-		ovalroot := redhat.Root{}
-		if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
-			return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
+	for v, rs := range results {
+		m := map[string]redhat.Root{}
+		for _, r := range rs {
+			ovalroot := redhat.Root{}
+			if err = xml.Unmarshal(r.Body, &ovalroot); err != nil {
+				return xerrors.Errorf("Failed to unmarshal xml. url: %s, err: %w", r.URL, err)
+			}
+
+			log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
+			ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
+			if err != nil {
+				return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
+			}
+			if ts.Before(time.Now().AddDate(0, 0, -3)) {
+				log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
+			}
+
+			m[r.URL[strings.LastIndex(r.URL, "/")+1:]] = ovalroot
 		}
 
-		log15.Info("Fetched", "File", r.URL[strings.LastIndex(r.URL, "/")+1:], "Count", len(ovalroot.Definitions.Definitions), "Timestamp", ovalroot.Generator.Timestamp)
-		ts, err := time.Parse("2006-01-02T15:04:05", ovalroot.Generator.Timestamp)
-		if err != nil {
-			return xerrors.Errorf("Failed to parse timestamp. url: %s, timestamp: %s, err: %w", r.URL, ovalroot.Generator.Timestamp, err)
-		}
-		if ts.Before(time.Now().AddDate(0, 0, -3)) {
-			log15.Warn("The fetched OVAL has not been updated for 3 days, the OVAL URL may have changed, please register a GitHub issue.", "GitHub", "https://github.com/vulsio/goval-dictionary/issues", "OVAL", r.URL, "Timestamp", ovalroot.Generator.Timestamp)
+		roots := make([]redhat.Root, 0, len(m))
+		for _, k := range []string{fmt.Sprintf("rhel-%s.oval.xml.bz2", v), fmt.Sprintf("com.redhat.rhsa-RHEL%s.xml.bz2", v)} {
+			roots = append(roots, m[k])
 		}
 
 		root := models.Root{
 			Family:      c.RedHat,
-			OSVersion:   r.Target,
-			Definitions: redhat.ConvertToModel(&ovalroot),
+			OSVersion:   v,
+			Definitions: redhat.ConvertToModel(roots),
 			Timestamp:   time.Now(),
 		}
 

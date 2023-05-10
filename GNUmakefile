@@ -29,26 +29,22 @@ VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'github.com/vulsio/goval-dictionary/config.Version=$(VERSION)' \
 	-X 'github.com/vulsio/goval-dictionary/config.Revision=$(REVISION)'
-GO := GO111MODULE=on go
-GO_OFF := GO111MODULE=off go
+GO := CGO_ENABLED=0 go
 
 all: build test
 
 build: main.go
 	$(GO) build -a -ldflags "$(LDFLAGS)" -o goval-dictionary $<
 
-b: 	main.go
-	$(GO) build -ldflags "$(LDFLAGS)" -o goval-dictionary $<
-
 install: main.go
 	$(GO) install -ldflags "$(LDFLAGS)"
 
 lint:
-	$(GO) install github.com/mgechev/revive@latest
+	go install github.com/mgechev/revive@latest
 	revive -config ./.revive.toml -formatter plain $(PKGS)
 
 golangci:
-	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	golangci-lint run
 
 vet:
@@ -57,9 +53,6 @@ vet:
 fmt:
 	gofmt -s -w $(SRCS)
 
-mlint:
-	$(foreach file,$(SRCS),gometalinter $(file) || exit;)
-
 fmtcheck:
 	$(foreach file,$(SRCS),gofmt -s -d $(file);)
 
@@ -67,9 +60,6 @@ pretest: lint vet fmtcheck
 
 test: pretest
 	$(GO) test -cover -v ./... || exit;
-
-unused:
-	$(foreach pkg,$(PKGS),unused $(pkg);)
 
 cov:
 	@ go get -v github.com/axw/gocov/gocov

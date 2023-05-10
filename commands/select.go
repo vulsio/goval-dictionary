@@ -89,12 +89,12 @@ func executeSelect(_ *cobra.Command, args []string) error {
 		}
 	}
 
-	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
+	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
-		if locked {
-			return xerrors.Errorf("Failed to open DB. Close DB connection before select. err: %w", err)
+		if xerrors.Is(err, db.ErrDBLocked) {
+			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()

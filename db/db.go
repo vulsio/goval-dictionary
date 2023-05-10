@@ -13,7 +13,7 @@ import (
 // DB is interface for a database driver
 type DB interface {
 	Name() string
-	OpenDB(string, string, bool, Option) (bool, error)
+	OpenDB(string, string, bool, Option) error
 	CloseDB() error
 	MigrateDB() error
 
@@ -34,30 +34,27 @@ type Option struct {
 }
 
 // NewDB return DB accessor.
-func NewDB(dbType, dbPath string, debugSQL bool, option Option) (driver DB, locked bool, err error) {
+func NewDB(dbType, dbPath string, debugSQL bool, option Option) (driver DB, err error) {
 	if driver, err = newDB(dbType); err != nil {
-		return driver, false, xerrors.Errorf("Failed to new db. err: %w", err)
+		return driver, xerrors.Errorf("Failed to new db. err: %w", err)
 	}
 
-	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL, option); err != nil {
-		if locked {
-			return nil, true, err
-		}
-		return nil, false, err
+	if err := driver.OpenDB(dbType, dbPath, debugSQL, option); err != nil {
+		return nil, xerrors.Errorf("Failed to open db. err: %w", err)
 	}
 
 	isV1, err := driver.IsGovalDictModelV1()
 	if err != nil {
-		return nil, false, xerrors.Errorf("Failed to IsGovalDictModelV1. err: %w", err)
+		return nil, xerrors.Errorf("Failed to IsGovalDictModelV1. err: %w", err)
 	}
 	if isV1 {
-		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
+		return nil, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
 	}
 
 	if err := driver.MigrateDB(); err != nil {
-		return driver, false, xerrors.Errorf("Failed to migrate db. err: %w", err)
+		return driver, xerrors.Errorf("Failed to migrate db. err: %w", err)
 	}
-	return driver, false, nil
+	return driver, nil
 }
 
 func newDB(dbType string) (DB, error) {

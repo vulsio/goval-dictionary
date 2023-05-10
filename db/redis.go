@@ -83,11 +83,11 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, _ bool, option Option) (locked bool, err error) {
+func (r *RedisDriver) OpenDB(_, dbPath string, _ bool, option Option) error {
 	if err := r.connectRedis(dbPath, option); err != nil {
-		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
+		return xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dialectRedis, dbPath, err)
 	}
-	return false, nil
+	return nil
 }
 
 func (r *RedisDriver) connectRedis(dbPath string, option Option) error {

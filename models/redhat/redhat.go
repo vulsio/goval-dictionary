@@ -1,9 +1,11 @@
 package redhat
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
+	version "github.com/knqyf263/go-rpm-version"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 
@@ -12,7 +14,7 @@ import (
 )
 
 // ConvertToModel Convert OVAL to models
-func ConvertToModel(roots []Root) []models.Definition {
+func ConvertToModel(v string, roots []Root) []models.Definition {
 	defs := map[string]models.Definition{}
 	for _, root := range roots {
 		for _, d := range root.Definitions.Definitions {
@@ -74,7 +76,7 @@ func ConvertToModel(roots []Root) []models.Definition {
 					Updated:         updated,
 				},
 				Debian:        nil,
-				AffectedPacks: collectRedHatPacks(d.Criteria),
+				AffectedPacks: collectRedHatPacks(v, d.Criteria),
 				References:    rs,
 			}
 
@@ -97,11 +99,31 @@ func ConvertToModel(roots []Root) []models.Definition {
 	return maps.Values(defs)
 }
 
-func collectRedHatPacks(cri Criteria) []models.Package {
+func collectRedHatPacks(v string, cri Criteria) []models.Package {
 	ps := walkRedHat(cri, []models.Package{}, "")
 	pkgs := map[string]models.Package{}
 	for _, p := range ps {
-		pkgs[p.Name] = p
+		// OVALv1 includes definitions other than the target RHEL version
+		if !strings.Contains(p.Version, ".el"+v) && !strings.Contains(p.Version, ".module+el"+v) {
+			continue
+		}
+
+		n := p.Name
+		if p.ModularityLabel != "" {
+			n = fmt.Sprintf("%s::%s", p.ModularityLabel, p.Name)
+		}
+
+		// since different versions are defined for the same package, the newer version is adopted
+		// example: OVALv2: oval:com.redhat.rhsa:def:20111349, oval:com.redhat.rhsa:def:20120451
+		if base, ok := pkgs[n]; ok {
+			v1 := version.NewVersion(base.Version)
+			v2 := version.NewVersion(p.Version)
+			if v1.GreaterThan(v2) {
+				p = base
+			}
+		}
+
+		pkgs[n] = p
 	}
 	return maps.Values(pkgs)
 }

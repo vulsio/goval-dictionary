@@ -12,11 +12,12 @@ import (
 
 func TestWalkRedHat(t *testing.T) {
 	var tests = []struct {
+		version  string
 		cri      Criteria
 		expected []models.Package
 	}{
-		// 0
 		{
+			version: "6",
 			cri: Criteria{
 				Criterions: []Criterion{
 					{Comment: "kernel-headers is earlier than 0:2.6.32-71.7.1.el6"},
@@ -29,8 +30,8 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
-		// 1
 		{
+			version: "6",
 			cri: Criteria{
 				Criterias: []Criteria{
 					{
@@ -56,8 +57,8 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
-		// 2
 		{
+			version: "6",
 			cri: Criteria{
 				Criterias: []Criteria{
 					{
@@ -106,32 +107,8 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
-		// 3 dnf module
 		{
-			cri: Criteria{
-				Criterias: []Criteria{
-					{
-						Criterions: []Criterion{
-							{Comment: "ruby is earlier than 0:2.5.5-105.module+el8.1.0+3656+f80bfa1d"},
-							{Comment: "ruby is signed with Red Hat redhatrelease2 key"},
-						},
-					},
-				},
-				Criterions: []Criterion{
-					{Comment: "Red Hat Enterprise Linux 8 is installed"},
-					{Comment: "Module ruby:2.5 is enabled"},
-				},
-			},
-			expected: []models.Package{
-				{
-					Name:            "ruby",
-					Version:         "0:2.5.5-105.module+el8.1.0+3656+f80bfa1d",
-					ModularityLabel: "ruby:2.5",
-				},
-			},
-		},
-		// 4
-		{
+			version: "6",
 			cri: Criteria{
 				Criterias: []Criteria{
 					{
@@ -167,14 +144,129 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
+		{
+			version: "6",
+			cri: Criteria{
+				Criterias: []Criteria{
+					{
+						Criterias: []Criteria{
+							{
+								Criterions: []Criterion{
+									{Comment: "rpm is earlier than 0:4.8.0-12.el6_0.2"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Red Hat Enterprise Linux 6 is installed"},
+						},
+					},
+					{
+						Criterias: []Criteria{
+							{
+								Criterions: []Criterion{
+									{Comment: "rpm is earlier than 0:4.8.0-19.el7_0.1"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Red Hat Enterprise Linux 7 is installed"},
+						},
+					},
+				},
+			},
+			expected: []models.Package{
+				{
+					Name:    "rpm",
+					Version: "0:4.8.0-12.el6_0.2",
+				},
+			},
+		},
+		{
+			version: "8",
+			cri: Criteria{
+				Criterias: []Criteria{
+					{
+						Criterions: []Criterion{
+							{Comment: "ruby is earlier than 0:2.5.5-105.module+el8.1.0+3656+f80bfa1d"},
+							{Comment: "ruby is signed with Red Hat redhatrelease2 key"},
+						},
+					},
+				},
+				Criterions: []Criterion{
+					{Comment: "Red Hat Enterprise Linux 8 is installed"},
+					{Comment: "Module ruby:2.5 is enabled"},
+				},
+			},
+			expected: []models.Package{
+				{
+					Name:            "ruby",
+					Version:         "0:2.5.5-105.module+el8.1.0+3656+f80bfa1d",
+					ModularityLabel: "ruby:2.5",
+				},
+			},
+		},
+		{
+			version: "8",
+			cri: Criteria{
+				Criterias: []Criteria{
+					{
+						Criterias: []Criteria{
+							{
+								Criterions: []Criterion{
+									{Comment: "libvirt is earlier than 0:4.5.0-42.module+el8.2.0+6024+15a2423f"},
+									{Comment: "libvirt is signed with Red Hat redhatrelease2 key"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Module virt:rhel is enabled"},
+						},
+					},
+					{
+						Criterias: []Criteria{
+							{
+								Criterions: []Criterion{
+									{Comment: "libvirt is earlier than 0:4.5.0-42.module+el8.2.0+6024+15a2423f"},
+									{Comment: "libvirt is signed with Red Hat redhatrelease2 key"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Module virt-devel:rhel is enabled"},
+						},
+					},
+				},
+				Criterions: []Criterion{
+					{Comment: "Red Hat Enterprise Linux 8 is installed"},
+				},
+			},
+			expected: []models.Package{
+				{
+					Name:            "libvirt",
+					Version:         "0:4.5.0-42.module+el8.2.0+6024+15a2423f",
+					ModularityLabel: "virt:rhel",
+				},
+				{
+					Name:            "libvirt",
+					Version:         "0:4.5.0-42.module+el8.2.0+6024+15a2423f",
+					ModularityLabel: "virt-devel:rhel",
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {
-		actual := collectRedHatPacks(tt.cri)
+		actual := collectRedHatPacks(tt.version, tt.cri)
 		sort.Slice(actual, func(i, j int) bool {
+			if actual[i].Name == actual[j].Name {
+				return actual[i].ModularityLabel < actual[j].ModularityLabel
+			}
 			return actual[i].Name < actual[j].Name
 		})
 		sort.Slice(tt.expected, func(i, j int) bool {
+			if tt.expected[i].Name == tt.expected[j].Name {
+				return tt.expected[i].ModularityLabel < tt.expected[j].ModularityLabel
+			}
 			return tt.expected[i].Name < tt.expected[j].Name
 		})
 

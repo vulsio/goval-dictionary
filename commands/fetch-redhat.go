@@ -92,7 +92,7 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		root := models.Root{
 			Family:      c.RedHat,
 			OSVersion:   v,
-			Definitions: redhat.ConvertToModel(roots),
+			Definitions: redhat.ConvertToModel(v, roots),
 			Timestamp:   time.Now(),
 		}
 

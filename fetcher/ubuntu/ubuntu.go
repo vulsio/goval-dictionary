@@ -38,7 +38,6 @@ func getOVALURL(version string) string {
 	}
 
 	const main = "https://security-metadata.canonical.com/oval/oci.com.ubuntu.%s.cve.oval.xml.bz2"
-	const sub = "https://people.canonical.com/~ubuntu-security/oval/oci.com.ubuntu.%s.cve.oval.xml.bz2"
 	switch major {
 	case "4", "5", "6", "7", "8", "9", "10", "11", "12":
 		return "unsupported"
@@ -72,20 +71,13 @@ func getOVALURL(version string) string {
 			return "unknown"
 		}
 	case "19":
-		switch minor {
-		case "04":
-			return "unsupported"
-		case "10":
-			return fmt.Sprintf(sub, config.Ubuntu1910)
-		default:
-			return "unknown"
-		}
+		return "unsupported"
 	case "20":
 		switch minor {
 		case "04":
 			return fmt.Sprintf(main, config.Ubuntu2004)
 		case "10":
-			return fmt.Sprintf(sub, config.Ubuntu2010)
+			return "unsupported"
 		default:
 			return "unknown"
 		}

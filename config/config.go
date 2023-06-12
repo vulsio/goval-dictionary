@@ -70,6 +70,9 @@ const (
 	// Debian11 is bullseye
 	Debian11 = "bullseye"
 
+	// Debian12 is bookworm
+	Debian12 = "bookworm"
+
 	// OpenSUSE is
 	OpenSUSE = "opensuse"
 

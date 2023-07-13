@@ -85,7 +85,7 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 		}
 
 		roots := make([]redhat.Root, 0, len(m))
-		for _, k := range []string{fmt.Sprintf("rhel-%s.oval.xml.bz2", v), fmt.Sprintf("com.redhat.rhsa-RHEL%s.xml.bz2", v)} {
+		for _, k := range []string{fmt.Sprintf("rhel-%s.oval.xml.bz2", v), fmt.Sprintf("com.redhat.rhsa-RHEL%s.xml", v)} {
 			roots = append(roots, m[k])
 		}
 

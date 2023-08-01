@@ -21,8 +21,9 @@ import (
 // updateinfo for x86_64 also contains information for aarch64
 
 type mirror struct {
-	core  string
-	extra string
+	core      string
+	extra     string
+	livepatch string
 }
 
 var mirrors = map[string]mirror{
@@ -31,8 +32,13 @@ var mirrors = map[string]mirror{
 		core:  "https://cdn.amazonlinux.com/2/core/latest/x86_64/mirror.list",
 		extra: "http://amazonlinux.default.amazonaws.com/2/extras-catalog.json",
 	},
-	"2022": {core: "https://cdn.amazonlinux.com/al2022/core/mirrors/latest/x86_64/mirror.list"},
-	"2023": {core: "https://cdn.amazonlinux.com/al2023/core/mirrors/latest/x86_64/mirror.list"},
+	"2022": {
+		core: "https://cdn.amazonlinux.com/al2022/core/mirrors/latest/x86_64/mirror.list",
+	},
+	"2023": {
+		core:      "https://cdn.amazonlinux.com/al2023/core/mirrors/latest/x86_64/mirror.list",
+		livepatch: "https://cdn.amazonlinux.com/al2023/kernel-livepatch/mirrors/latest/x86_64/mirror.list",
+	},
 }
 
 var errNoUpdateInfo = xerrors.New("No updateinfo field in the repomd")
@@ -42,7 +48,7 @@ func FetchFiles(versions []string) (map[string]*models.Updates, error) {
 	m := map[string]*models.Updates{}
 	for _, v := range versions {
 		switch v {
-		case "1", "2022", "2023":
+		case "1", "2022":
 			us, err := fetchUpdateInfoAmazonLinux(mirrors[v].core)
 			if err != nil {
 				return nil, xerrors.Errorf("Failed to fetch Amazon Linux %s UpdateInfo. err: %w", v, err)
@@ -76,6 +82,23 @@ func FetchFiles(versions []string) (map[string]*models.Updates, error) {
 					u.Repository = fmt.Sprintf("amzn2extra-%s", t.N)
 					updates.UpdateList = append(updates.UpdateList, u)
 				}
+			}
+
+			m[v] = updates
+		case "2023":
+			updates, err := fetchUpdateInfoAmazonLinux(mirrors[v].core)
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to fetch Amazon Linux %s UpdateInfo. err: %w", v, err)
+			}
+
+			us, err := fetchUpdateInfoAmazonLinux(mirrors[v].livepatch)
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to fetch Amazon Linux %s Kernel Livepatch UpdateInfo. err: %w", v, err)
+			}
+
+			for _, u := range us.UpdateList {
+				u.Repository = "kernel-livepatch"
+				updates.UpdateList = append(updates.UpdateList, u)
 			}
 
 			m[v] = updates

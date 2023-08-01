@@ -88,7 +88,7 @@ func newFedoraFetchRequests(target []string, arch string) (reqs []util.FetchRequ
 		case n < 32:
 			log15.Warn("Skip fedora because no vulnerability information provided.", "version", v)
 			continue
-		case n < 36:
+		case n < 37:
 			updateURL = archiveUpdateURL
 			moduleURL = archiveModuleURL
 		default:

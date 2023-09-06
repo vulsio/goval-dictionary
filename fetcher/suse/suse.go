@@ -8,18 +8,17 @@ import (
 	"github.com/vulsio/goval-dictionary/fetcher/util"
 )
 
-// https://ftp.suse.com/pub/projects/security/oval/opensuse.leap.42.2.xml
-// https://ftp.suse.com/pub/projects/security/oval/opensuse.13.2.xml
-// https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.desktop.12.xml"
-// https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.12.xml
+// https://ftp.suse.com/pub/projects/security/oval/opensuse.leap.42.2.xml.gz
+// https://ftp.suse.com/pub/projects/security/oval/opensuse.13.2.xml.gz
+// https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.desktop.12.xml.gz
+// https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.12.xml.gz
 func newFetchRequests(suseType string, target []string) (reqs []util.FetchRequest) {
-	const t = "https://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
+	const t = "https://ftp.suse.com/pub/projects/security/oval/%s.%s.xml.gz"
 	for _, v := range target {
 		reqs = append(reqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(t, suseType, v),
-			Concurrently: true,
-			MIMEType:     util.MIMETypeXML,
+			Target:   v,
+			URL:      fmt.Sprintf(t, suseType, v),
+			MIMEType: util.MIMETypeGzip,
 		})
 	}
 	return

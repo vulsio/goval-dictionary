@@ -148,10 +148,9 @@ func fetchUpdateInfoURL(mirrors []string) (updateInfoURLs []string, err error) {
 		}
 		u.Path = path.Join(u.Path, "/repodata/repomd.xml")
 		reqs = append(reqs, util.FetchRequest{
-			Target:       mirror, // base URL of the mirror site
-			URL:          u.String(),
-			Concurrently: true,
-			MIMEType:     util.MIMETypeXML,
+			Target:   mirror, // base URL of the mirror site
+			URL:      u.String(),
+			MIMEType: util.MIMETypeXML,
 		})
 	}
 

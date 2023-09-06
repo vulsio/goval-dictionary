@@ -11,11 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/htcat/htcat"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/ulikunitz/xz"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/goval-dictionary/config"
 )
 
 // MIMEType :
@@ -68,7 +69,6 @@ type FetchRequest struct {
 	Target        string
 	URL           string
 	MIMEType      MIMEType
-	Concurrently  bool
 	LogSuppressed bool
 }
 
@@ -122,12 +122,7 @@ func FetchFeedFiles(reqs []FetchRequest) (results []FetchResult, err error) {
 		tasks <- func() {
 			select {
 			case req := <-reqChan:
-				var body []byte
-				if req.Concurrently {
-					body, err = fetchFileConcurrently(req, 20/len(reqs))
-				} else {
-					body, err = fetchFileWithUA(req)
-				}
+				body, err := fetchFileWithUA(req)
 				wg.Done()
 				if err != nil {
 					errChan <- err
@@ -163,57 +158,6 @@ func FetchFeedFiles(reqs []FetchRequest) (results []FetchResult, err error) {
 	return results, nil
 }
 
-func fetchFileConcurrently(req FetchRequest, concurrency int) (body []byte, err error) {
-	var proxyURL *url.URL
-	httpClient := &http.Client{}
-	httpProxy := viper.GetString("http-proxy")
-	if httpProxy != "" {
-		if proxyURL, err = url.Parse(httpProxy); err != nil {
-			return nil, xerrors.Errorf("Failed to parse proxy url. err: %w", err)
-		}
-		httpClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
-	}
-
-	u, err := url.Parse(req.URL)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to parse given URL: %w", err)
-	}
-
-	buf := bytes.Buffer{}
-	htc := htcat.New(httpClient, u, concurrency)
-	if _, err := htc.WriteTo(&buf); err != nil {
-		return nil, xerrors.Errorf("Failed to write to output stream: %w", err)
-	}
-
-	var b bytes.Buffer
-	switch req.MIMEType {
-	case MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml, MIMETypeHTML:
-		b = buf
-	case MIMETypeBzip2:
-		if _, err := b.ReadFrom(bzip2.NewReader(bytes.NewReader(buf.Bytes()))); err != nil {
-			return nil, xerrors.Errorf("Failed to open bzip2 file. err: %w", err)
-		}
-	case MIMETypeXz:
-		r, err := xz.NewReader(bytes.NewReader(buf.Bytes()))
-		if err != nil {
-			return nil, xerrors.Errorf("Failed to open xz file. err: %w", err)
-		}
-		if _, err := b.ReadFrom(r); err != nil {
-			return nil, xerrors.Errorf("Failed to read xz file. err: %w", err)
-		}
-	case MIMETypeGzip:
-		r, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
-		if err != nil {
-			return nil, xerrors.Errorf("Failed to open gzip file. err: %w", err)
-		}
-		if _, err := b.ReadFrom(r); err != nil {
-			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
-		}
-	}
-
-	return b.Bytes(), nil
-}
-
 func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 	var proxyURL *url.URL
 	var resp *http.Response
@@ -232,7 +176,7 @@ func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 		return nil, xerrors.Errorf("Failed to download. err: %w", err)
 	}
 
-	httpreq.Header.Set("User-Agent", "curl/7.37.0")
+	httpreq.Header.Set("User-Agent", fmt.Sprintf("goval-dictionary/%s.%s", config.Version, config.Revision))
 	resp, err = httpClient.Do(httpreq)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to download. err: %w", err)

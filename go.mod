@@ -8,7 +8,6 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-version v1.6.0
-	github.com/htcat/htcat v1.0.2
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/knqyf263/go-rpm-version v0.0.0-20220614171824-631e686d1075

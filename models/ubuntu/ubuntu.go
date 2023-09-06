@@ -128,7 +128,7 @@ func parseDefinitions(ovalDefs []Definition, tests map[string]dpkgInfoTest) []mo
 			})
 		}
 
-		date := util.ParsedOrDefaultTime([]string{"2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05 +0000", "2006-01-02 15:04:05 UTC"}, d.Advisory.PublicDate)
+		date := util.ParsedOrDefaultTime([]string{"2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05 +0000", "2006-01-02 15:04:05 MST"}, d.Advisory.PublicDate)
 
 		def := models.Definition{
 			DefinitionID: d.ID,

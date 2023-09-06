@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/ulikunitz/xz"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/goval-dictionary/config"
 )
 
 // MIMEType :
@@ -174,7 +176,7 @@ func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 		return nil, xerrors.Errorf("Failed to download. err: %w", err)
 	}
 
-	httpreq.Header.Set("User-Agent", "curl/7.37.0")
+	httpreq.Header.Set("User-Agent", fmt.Sprintf("goval-dictionary/%s.%s", config.Version, config.Revision))
 	resp, err = httpClient.Do(httpreq)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to download. err: %w", err)

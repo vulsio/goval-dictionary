@@ -16,10 +16,9 @@ func newFetchRequests(suseType string, target []string) (reqs []util.FetchReques
 	const t = "https://ftp.suse.com/pub/projects/security/oval/%s.%s.xml"
 	for _, v := range target {
 		reqs = append(reqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(t, suseType, v),
-			Concurrently: true,
-			MIMEType:     util.MIMETypeXML,
+			Target:   v,
+			URL:      fmt.Sprintf(t, suseType, v),
+			MIMEType: util.MIMETypeGzip,
 		})
 	}
 	return

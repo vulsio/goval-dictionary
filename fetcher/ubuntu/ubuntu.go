@@ -21,10 +21,9 @@ func newFetchRequests(target []string) (reqs []util.FetchRequest) {
 			log15.Warn("See https://wiki.ubuntu.com/Releases for supported versions")
 		default:
 			reqs = append(reqs, util.FetchRequest{
-				Target:       v,
-				URL:          url,
-				Concurrently: true,
-				MIMEType:     util.MIMETypeBzip2,
+				Target:   v,
+				URL:      url,
+				MIMEType: util.MIMETypeBzip2,
 			})
 		}
 	}

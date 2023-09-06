@@ -97,16 +97,14 @@ func newFedoraFetchRequests(target []string, arch string) (reqs []util.FetchRequ
 		}
 
 		reqs = append(reqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(updateURL, v, arch),
-			MIMEType:     util.MIMETypeXML,
-			Concurrently: true,
+			Target:   v,
+			URL:      fmt.Sprintf(updateURL, v, arch),
+			MIMEType: util.MIMETypeXML,
 		})
 		moduleReqs = append(moduleReqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(moduleURL, v, arch),
-			MIMEType:     util.MIMETypeXML,
-			Concurrently: true,
+			Target:   v,
+			URL:      fmt.Sprintf(moduleURL, v, arch),
+			MIMEType: util.MIMETypeXML,
 		})
 	}
 	return
@@ -350,7 +348,6 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	for i, v := range b.Blocked {
 		reqs[i] = util.FetchRequest{
 			URL:           fmt.Sprintf(bugZillaURL, v),
-			Concurrently:  true,
 			LogSuppressed: true,
 			MIMEType:      util.MIMETypeXML,
 		}
@@ -395,10 +392,9 @@ func extractInfoFromRepoMd(results []util.FetchResult, rt string, mt util.MIMETy
 			}
 			u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
 			req := util.FetchRequest{
-				URL:          u.String(),
-				Target:       r.Target,
-				MIMEType:     mt,
-				Concurrently: true,
+				URL:      u.String(),
+				Target:   r.Target,
+				MIMEType: mt,
 			}
 			updateInfoReqs = append(updateInfoReqs, req)
 			break

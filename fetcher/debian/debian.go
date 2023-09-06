@@ -20,10 +20,9 @@ func newFetchRequests(target []string) (reqs []util.FetchRequest) {
 			continue
 		}
 		reqs = append(reqs, util.FetchRequest{
-			Target:       v,
-			URL:          fmt.Sprintf(t, name),
-			Concurrently: true,
-			MIMEType:     util.MIMETypeBzip2,
+			Target:   v,
+			URL:      fmt.Sprintf(t, name),
+			MIMEType: util.MIMETypeBzip2,
 		})
 	}
 	return

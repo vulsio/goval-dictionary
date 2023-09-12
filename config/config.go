@@ -31,14 +31,8 @@ const (
 	// Ubuntu1804 is Ubuntu Bionic
 	Ubuntu1804 = "bionic"
 
-	// Ubuntu1910 is Eoan Ermine
-	Ubuntu1910 = "eoan"
-
 	// Ubuntu2004 is Focal Fossa
 	Ubuntu2004 = "focal"
-
-	// Ubuntu2010 is Groovy Gorilla
-	Ubuntu2010 = "groovy"
 
 	// Ubuntu2104 is Hirsute Hippo
 	Ubuntu2104 = "hirsute"

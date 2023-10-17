@@ -166,20 +166,22 @@ type UnameTest struct {
 	State   StateRef  `xml:"state"`
 }
 
-// ObjectRef : >tests>rpminfo_test>object-object_ref
-//           : >tests>rpmverifyfile_test>object-object_ref
-//           : >tests>textfilecontent54_test>object-object_ref
-//           : >tests>uname_test>object-object_ref
+// ObjectRef :
+// >tests>rpminfo_test>object-object_ref
+// >tests>rpmverifyfile_test>object-object_ref
+// >tests>textfilecontent54_test>object-object_ref
+// >tests>uname_test>object-object_ref
 type ObjectRef struct {
 	XMLName   xml.Name `xml:"object"`
 	Text      string   `xml:",chardata"`
 	ObjectRef string   `xml:"object_ref,attr"`
 }
 
-// StateRef : >tests>rpminfo_test>state-state_ref
-//           : >tests>rpmverifyfile_test>state-state_ref
-//           : >tests>textfilecontent54_test>state-state_ref
-//           : >tests>uname_test>state-state_ref
+// StateRef :
+// >tests>rpminfo_test>state-state_ref
+// >tests>rpmverifyfile_test>state-state_ref
+// >tests>textfilecontent54_test>state-state_ref
+// >tests>uname_test>state-state_ref
 type StateRef struct {
 	XMLName  xml.Name `xml:"state"`
 	Text     string   `xml:",chardata"`

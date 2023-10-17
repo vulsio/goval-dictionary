@@ -118,17 +118,19 @@ type DpkginfoTest struct {
 	State          StateRef  `xml:"state"`
 }
 
-// ObjectRef : >tests>textfilecontent54_test>object-object_ref
-//           : >tests>uname_test>object-object_ref
-// 			 : >tests>dpkginfo_test>object-object_ref
+// ObjectRef :
+// >tests>textfilecontent54_test>object-object_ref
+// >tests>uname_test>object-object_ref
+// >tests>dpkginfo_test>object-object_ref
 type ObjectRef struct {
 	XMLName   xml.Name `xml:"object"`
 	Text      string   `xml:",chardata"`
 	ObjectRef string   `xml:"object_ref,attr"`
 }
 
-// StateRef : >tests>textfilecontent54_test>state-state_ref
-//          : >tests>dpkginfo_test>state-state_ref
+// StateRef :
+// >tests>textfilecontent54_test>state-state_ref
+// >tests>dpkginfo_test>state-state_ref
 type StateRef struct {
 	XMLName  xml.Name `xml:"state"`
 	Text     string   `xml:",chardata"`

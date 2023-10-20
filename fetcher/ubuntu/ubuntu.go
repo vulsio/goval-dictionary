@@ -103,7 +103,7 @@ func getOVALURL(version string) string {
 		case "04":
 			return fmt.Sprintf(main, config.Ubuntu2304)
 		case "10":
-			return "unsupported"
+			return fmt.Sprintf(main, config.Ubuntu2310)
 		default:
 			return "unknown"
 		}

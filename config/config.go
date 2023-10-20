@@ -49,6 +49,9 @@ const (
 	// Ubuntu2304 is Lunar Lobster
 	Ubuntu2304 = "lunar"
 
+	// Ubuntu2310 is Mantic Minotaur
+	Ubuntu2310 = "mantic"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

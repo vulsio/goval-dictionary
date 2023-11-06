@@ -13,7 +13,7 @@ require (
 	github.com/knqyf263/go-rpm-version v0.0.0-20220614171824-631e686d1075
 	github.com/labstack/echo/v4 v4.11.2
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.17.0
 	github.com/ulikunitz/xz v0.5.11
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9

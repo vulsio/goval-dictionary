@@ -11,7 +11,7 @@ require (
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/knqyf263/go-rpm-version v0.0.0-20220614171824-631e686d1075
-	github.com/labstack/echo/v4 v4.11.2
+	github.com/labstack/echo/v4 v4.11.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.17.0

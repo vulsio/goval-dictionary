@@ -104,3 +104,26 @@ func (r Rpm) NewPackageFromRpm() (models.Package, error) {
 	}
 	return pkg, nil
 }
+
+// uniquePackages returns deduplicated []Package by Filename
+// If Filename is the same, all other information is considered to be the same
+func uniquePackages(pkgs []models.Package) []models.Package {
+	tmp := make(map[string]models.Package)
+	ret := []models.Package{}
+	for _, pkg := range pkgs {
+		tmp[pkg.Filename] = pkg
+	}
+	for _, v := range tmp {
+		ret = append(ret, v)
+	}
+	return ret
+}
+
+func mergeUpdates(source map[string]*models.Updates, target map[string]*models.Updates) map[string]*models.Updates {
+	for osVer, sourceUpdates := range source {
+		if targetUpdates, ok := target[osVer]; ok {
+			source[osVer].UpdateList = append(sourceUpdates.UpdateList, targetUpdates.UpdateList...)
+		}
+	}
+	return source
+}

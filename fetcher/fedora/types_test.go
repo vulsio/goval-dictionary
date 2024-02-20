@@ -218,6 +218,28 @@ func TestUpdatesPerVersionMerge(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "target is nil",
+			source: map[string]*models.Updates{
+				"39": {
+					UpdateList: []models.UpdateInfo{
+						{
+							Title: "update39",
+						},
+					},
+				},
+			},
+			target: nil,
+			want: map[string]*models.Updates{
+				"39": {
+					UpdateList: []models.UpdateInfo{
+						{
+							Title: "update39",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

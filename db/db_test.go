@@ -180,6 +180,30 @@ func Test_formatFamilyAndOSVer(t *testing.T) {
 		},
 		{
 			in: args{
+				family: config.Amazon,
+				osVer:  "2018.03",
+			},
+			expected: args{
+				family: config.Amazon,
+				osVer:  "1",
+			},
+		},
+		{
+			in: args{
+				family: config.Amazon,
+				osVer:  "2018",
+			},
+			wantErr: `Failed to detect amazon version. err: unexpected Amazon Linux 1 version format. expected: "yyyy.MM", actual: "2018"`,
+		},
+		{
+			in: args{
+				family: config.Amazon,
+				osVer:  "2023.3.20240312",
+			},
+			wantErr: `Failed to detect amazon version. err: unexpected Amazon Linux 1 version format. expected: "yyyy.MM", actual: "2023.3.20240312"`,
+		},
+		{
+			in: args{
 				family: config.Alpine,
 				osVer:  "3.15",
 			},

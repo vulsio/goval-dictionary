@@ -52,6 +52,9 @@ const (
 	// Ubuntu2310 is Mantic Minotaur
 	Ubuntu2310 = "mantic"
 
+	// Ubuntu2404 is Noble Numbat
+	Ubuntu2404 = "noble"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

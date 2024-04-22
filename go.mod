@@ -17,7 +17,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/ulikunitz/xz v0.5.11
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.23.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.5

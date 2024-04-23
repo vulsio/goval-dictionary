@@ -13,6 +13,7 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -220,13 +221,21 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		return nil, xerrors.Errorf("Failed to FindInBatches. family: %s, osVer: %s, packName: %s, arch: %s, err: %w", family, osVer, packName, arch, err)
 	}
 
-	if family == c.RedHat {
+	switch family {
+	case c.RedHat:
 		for i := range defs {
 			defs[i].AffectedPacks = filterByRedHatMajor(defs[i].AffectedPacks, major(osVer))
 		}
+		return defs, nil
+	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseServer:
+		m := map[string]models.Definition{}
+		for _, d := range defs {
+			m[d.DefinitionID] = d
+		}
+		return maps.Values(m), nil
+	default:
+		return defs, nil
 	}
-
-	return defs, nil
 }
 
 // GetByCveID select OVAL definition related to OS Family, osVer, cveID
@@ -265,13 +274,21 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		return nil, err
 	}
 
-	if family == c.RedHat {
+	switch family {
+	case c.RedHat:
 		for i := range defs {
 			defs[i].AffectedPacks = filterByRedHatMajor(defs[i].AffectedPacks, major(osVer))
 		}
+		return defs, nil
+	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseServer:
+		m := map[string]models.Definition{}
+		for _, d := range defs {
+			m[d.DefinitionID] = d
+		}
+		return maps.Values(m), nil
+	default:
+		return defs, nil
 	}
-
-	return defs, nil
 }
 
 // InsertOval inserts OVAL

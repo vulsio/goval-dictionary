@@ -122,7 +122,7 @@ func parseDefinitions(xmlName string, ovalDefs Definitions, tests map[string]rpm
 		} else {
 			for _, c := range d.Advisory.Cves {
 				cves = append(cves, models.Cve{
-					CveID:  c.CveID,
+					CveID:  strings.TrimSuffix(strings.TrimSuffix(c.CveID, " at NVD"), " at SUSE"),
 					Cvss3:  c.Cvss3,
 					Impact: c.Impact,
 					Href:   c.Href,

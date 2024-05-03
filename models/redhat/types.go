@@ -110,7 +110,7 @@ type Bugzilla struct {
 
 // AffectedPkgs : >definitions>definition>metadata>advisory>affected
 type AffectedPkgs struct {
-	Resolution struct {
+	Resolution []struct {
 		State     string   `xml:"state,attr"`
 		Component []string `xml:"component"`
 	} `xml:"resolution"`

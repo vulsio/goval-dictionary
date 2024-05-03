@@ -42,7 +42,7 @@ func FetchFiles(versions []string) (map[string][]util.FetchResult, error) {
 			}
 			results[v] = rs
 
-			rs, err = fetchOVALv2([]string{v, fmt.Sprintf("%s-extras", v), fmt.Sprintf("%s-supplementary", v), fmt.Sprintf("%s-els", v)})
+			rs, err = fetchOVALv2([]string{fmt.Sprintf("%s-including-unpatched", v), fmt.Sprintf("%s-extras-including-unpatched", v), fmt.Sprintf("%s-supplementary", v), fmt.Sprintf("%s-els", v)})
 			if err != nil {
 				return nil, xerrors.Errorf("Failed to fetch OVALv2. err: %w", err)
 			}
@@ -54,7 +54,7 @@ func FetchFiles(versions []string) (map[string][]util.FetchResult, error) {
 			}
 			results[v] = rs
 
-			rs, err = fetchOVALv2([]string{v, fmt.Sprintf("%s-extras", v), fmt.Sprintf("%s-supplementary", v)})
+			rs, err = fetchOVALv2([]string{fmt.Sprintf("%s-including-unpatched", v), fmt.Sprintf("%s-extras-including-unpatched", v), fmt.Sprintf("%s-supplementary", v)})
 			if err != nil {
 				return nil, xerrors.Errorf("Failed to fetch OVALv2. err: %w", err)
 			}
@@ -66,7 +66,7 @@ func FetchFiles(versions []string) (map[string][]util.FetchResult, error) {
 			}
 			results[v] = rs
 
-			rs, err = fetchOVALv2([]string{v})
+			rs, err = fetchOVALv2([]string{fmt.Sprintf("%s-including-unpatched", v)})
 			if err != nil {
 				return nil, xerrors.Errorf("Failed to fetch OVALv2. err: %w", err)
 			}
@@ -77,7 +77,7 @@ func FetchFiles(versions []string) (map[string][]util.FetchResult, error) {
 				break
 			}
 
-			rs, err := fetchOVALv2([]string{v})
+			rs, err := fetchOVALv2([]string{fmt.Sprintf("%s-including-unpatched", v)})
 			if err != nil {
 				return nil, xerrors.Errorf("Failed to fetch OVALv2. err: %w", err)
 			}

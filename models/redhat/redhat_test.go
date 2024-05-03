@@ -253,6 +253,48 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
+		{
+			version: "8",
+			cri: Criteria{
+				Criterias: []Criteria{
+					{
+						Criterias: []Criteria{
+							{
+								Criterias: []Criteria{
+									{
+										Criterias: []Criteria{
+											{
+												Criterions: []Criterion{
+													{Comment: "python2 is installed"},
+													{Comment: "python2 is signed with Red Hat redhatrelease2 key"},
+												},
+											},
+										},
+									},
+								},
+								Criterions: []Criterion{
+									{Comment: "Module inkscape:flatpak is enabled"},
+								},
+							},
+						},
+						Criterions: []Criterion{
+							{Comment: "Red Hat Enterprise Linux 8 is installed"},
+							{Comment: "Red Hat CoreOS 4 is installed"},
+						},
+					},
+				},
+				Criterions: []Criterion{
+					{Comment: "Red Hat Enterprise Linux must be installed"},
+				},
+			},
+			expected: []models.Package{
+				{
+					Name:            "python2",
+					ModularityLabel: "inkscape:flatpak",
+					NotFixedYet:     true,
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

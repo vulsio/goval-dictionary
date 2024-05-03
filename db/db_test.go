@@ -373,6 +373,35 @@ func Test_filterByRedHatMajor(t *testing.T) {
 				},
 			},
 		},
+		{
+			in: args{
+				packs: []models.Package{
+					{
+						Name:    "name-el7",
+						Version: "0:0.0.1-0.0.1.el7",
+					},
+					{
+						Name:    "name-el8",
+						Version: "0:0.0.1-0.0.1.el8",
+					},
+					{
+						Name:        "notfixedyet",
+						NotFixedYet: true,
+					},
+				},
+				majorVer: "8",
+			},
+			expected: []models.Package{
+				{
+					Name:    "name-el8",
+					Version: "0:0.0.1-0.0.1.el8",
+				},
+				{
+					Name:        "notfixedyet",
+					NotFixedYet: true,
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

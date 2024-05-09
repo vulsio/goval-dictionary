@@ -132,6 +132,8 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.Advisory{},
 		&models.Cve{},
 		&models.Bugzilla{},
+		&models.Resolution{},
+		&models.Component{},
 		&models.Cpe{},
 		&models.Debian{},
 	); err != nil {
@@ -156,9 +158,7 @@ func (r *RDBDriver) MigrateDB() error {
 				}
 			}
 		case dialectMysql, dialectPostgreSQL:
-			if err != nil {
-				return xerrors.Errorf("Failed to migrate. err: %w", err)
-			}
+			return xerrors.Errorf("Failed to migrate. err: %w", err)
 		default:
 			return xerrors.Errorf("Not Supported DB dialects. r.name: %s", r.name)
 		}
@@ -196,6 +196,8 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		Preload("Advisory").
 		Preload("Advisory.Cves").
 		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedResolution").
+		Preload("Advisory.AffectedResolution.Components").
 		Preload("Advisory.AffectedCPEList").
 		Preload("References")
 
@@ -253,6 +255,8 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		Preload("Advisory").
 		Preload("Advisory.Cves").
 		Preload("Advisory.Bugzillas").
+		Preload("Advisory.AffectedResolution").
+		Preload("Advisory.AffectedResolution.Components").
 		Preload("Advisory.AffectedCPEList").
 		Preload("References")
 

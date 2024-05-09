@@ -18,11 +18,11 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 	defs := map[string]models.Definition{}
 	for _, root := range roots {
 		for _, d := range root.Definitions.Definitions {
-			if strings.Contains(d.Description, "** REJECT **") {
+			if strings.HasPrefix(d.ID, "oval:com.redhat.unaffected:def:") || strings.Contains(d.Description, "** REJECT **") {
 				continue
 			}
 
-			cves := []models.Cve{}
+			var cves = make([]models.Cve, 0, len(d.Advisory.Cves))
 			for _, c := range d.Advisory.Cves {
 				cves = append(cves, models.Cve{
 					CveID:  c.CveID,
@@ -35,7 +35,7 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 				})
 			}
 
-			rs := []models.Reference{}
+			var rs = make([]models.Reference, 0, len(d.References))
 			for _, r := range d.References {
 				rs = append(rs, models.Reference{
 					Source: r.Source,
@@ -44,19 +44,35 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 				})
 			}
 
-			cl := []models.Cpe{}
+			var cpes = make([]models.Cpe, 0, len(d.Advisory.AffectedCPEList))
 			for _, cpe := range d.Advisory.AffectedCPEList {
-				cl = append(cl, models.Cpe{
+				cpes = append(cpes, models.Cpe{
 					Cpe: cpe,
 				})
 			}
 
-			bs := []models.Bugzilla{}
+			var bs = make([]models.Bugzilla, 0, len(d.Advisory.Bugzillas))
 			for _, b := range d.Advisory.Bugzillas {
 				bs = append(bs, models.Bugzilla{
 					BugzillaID: b.ID,
 					URL:        b.URL,
 					Title:      b.Title,
+				})
+			}
+
+			var ress = make([]models.Resolution, 0, len(d.Advisory.Affected.Resolution))
+			for _, r := range d.Advisory.Affected.Resolution {
+				ress = append(ress, models.Resolution{
+					State: r.State,
+					Components: func() []models.Component {
+						var comps = make([]models.Component, 0, len(r.Component))
+						for _, c := range r.Component {
+							comps = append(comps, models.Component{
+								Component: c,
+							})
+						}
+						return comps
+					}(),
 				})
 			}
 
@@ -68,14 +84,14 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 				Title:        d.Title,
 				Description:  d.Description,
 				Advisory: models.Advisory{
-					Severity:        d.Advisory.Severity,
-					Cves:            cves,
-					Bugzillas:       bs,
-					AffectedCPEList: cl,
-					Issued:          issued,
-					Updated:         updated,
+					Severity:           d.Advisory.Severity,
+					Cves:               cves,
+					Bugzillas:          bs,
+					AffectedResolution: ress,
+					AffectedCPEList:    cpes,
+					Issued:             issued,
+					Updated:            updated,
 				},
-				Debian:        nil,
 				AffectedPacks: collectRedHatPacks(v, d.Criteria),
 				References:    rs,
 			}
@@ -100,17 +116,21 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 }
 
 func collectRedHatPacks(v string, cri Criteria) []models.Package {
-	ps := walkRedHat(cri, []models.Package{}, "")
 	pkgs := map[string]models.Package{}
-	for _, p := range ps {
-		// OVALv1 includes definitions other than the target RHEL version
-		if !strings.Contains(p.Version, ".el"+v) && !strings.Contains(p.Version, ".module+el"+v) {
-			continue
-		}
-
+	for _, p := range walkRedHat(cri, []models.Package{}, "") {
 		n := p.Name
 		if p.ModularityLabel != "" {
 			n = fmt.Sprintf("%s::%s", p.ModularityLabel, p.Name)
+		}
+
+		if p.NotFixedYet {
+			pkgs[n] = p
+			continue
+		}
+
+		// OVALv1 includes definitions other than the target RHEL version
+		if !strings.Contains(p.Version, ".el"+v) && !strings.Contains(p.Version, ".module+el"+v) {
+			continue
 		}
 
 		// since different versions are defined for the same package, the newer version is adopted
@@ -130,19 +150,26 @@ func collectRedHatPacks(v string, cri Criteria) []models.Package {
 
 func walkRedHat(cri Criteria, acc []models.Package, label string) []models.Package {
 	for _, c := range cri.Criterions {
-		if strings.HasPrefix(c.Comment, "Module ") && strings.HasSuffix(c.Comment, " is enabled") {
+		switch {
+		case strings.HasPrefix(c.Comment, "Module ") && strings.HasSuffix(c.Comment, " is enabled"):
 			label = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Module "), " is enabled")
+		case strings.Contains(c.Comment, " is earlier than "):
+			ss := strings.Split(c.Comment, " is earlier than ")
+			if len(ss) != 2 {
+				continue
+			}
+			acc = append(acc, models.Package{
+				Name:            ss[0],
+				Version:         strings.Split(ss[1], " ")[0],
+				ModularityLabel: label,
+			})
+		case !strings.HasPrefix(c.Comment, "Red Hat Enterprise Linux") && !strings.HasPrefix(c.Comment, "Red Hat CoreOS") && strings.HasSuffix(c.Comment, " is installed"):
+			acc = append(acc, models.Package{
+				Name:            strings.TrimSuffix(c.Comment, " is installed"),
+				ModularityLabel: label,
+				NotFixedYet:     true,
+			})
 		}
-
-		ss := strings.Split(c.Comment, " is earlier than ")
-		if len(ss) != 2 {
-			continue
-		}
-		acc = append(acc, models.Package{
-			Name:            ss[0],
-			Version:         strings.Split(ss[1], " ")[0],
-			ModularityLabel: label,
-		})
 	}
 
 	if len(cri.Criterias) == 0 {

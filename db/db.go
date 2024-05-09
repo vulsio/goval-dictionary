@@ -154,8 +154,8 @@ func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
 
 func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
 	for _, p := range packs {
-		if strings.Contains(p.Version, ".el"+majorVer) ||
-			strings.Contains(p.Version, ".module+el"+majorVer) {
+		if p.NotFixedYet ||
+			strings.Contains(p.Version, ".el"+majorVer) || strings.Contains(p.Version, ".module+el"+majorVer) {
 			filtered = append(filtered, p)
 		}
 	}

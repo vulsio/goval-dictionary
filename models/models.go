@@ -53,7 +53,7 @@ type Package struct {
 	Name            string `gorm:"index:idx_packages_name"` // If the type:text, varchar(255) is specified, MySQL overflows and gives an error. No problem in GORMv2. (https://github.com/go-gorm/mysql/tree/15e2cbc6fd072be99215a82292e025dab25e2e16#configuration)
 	Version         string `gorm:"type:varchar(255)"`       // affected earlier than this version
 	Arch            string `gorm:"type:varchar(255)"`       // Used for Amazon Linux, Oracle Linux and Fedora
-	NotFixedYet     bool   // Ubuntu Only
+	NotFixedYet     bool   // Used for RedHat, Ubuntu
 	ModularityLabel string `gorm:"type:varchar(255)"` // RHEL 8 or later only
 }
 
@@ -75,6 +75,7 @@ type Advisory struct {
 	Severity           string `gorm:"type:varchar(255)"`
 	Cves               []Cve
 	Bugzillas          []Bugzilla
+	AffectedResolution []Resolution
 	AffectedCPEList    []Cpe
 	AffectedRepository string `gorm:"type:varchar(255)"` // Amazon Linux 2 Only
 	Issued             time.Time
@@ -103,6 +104,23 @@ type Bugzilla struct {
 	BugzillaID string `gorm:"type:varchar(255)"`
 	URL        string `gorm:"type:varchar(255)"`
 	Title      string `gorm:"type:varchar(255)"`
+}
+
+// Resolution : >definitions>definition>metadata>advisory>affected>resolution
+type Resolution struct {
+	ID         uint `gorm:"primary_key" json:"-"`
+	AdvisoryID uint `gorm:"index:idx_resolution_advisory_id" json:"-" xml:"-"`
+
+	State      string `gorm:"type:varchar(255)"`
+	Components []Component
+}
+
+// Component : >definitions>definition>metadata>advisory>affected>resolution>component
+type Component struct {
+	ID           uint `gorm:"primary_key" json:"-"`
+	ResolutionID uint `gorm:"index:idx_component_resolution_id" json:"-" xml:"-"`
+
+	Component string `gorm:"type:varchar(255)"`
 }
 
 // Cpe : >definitions>definition>metadata>advisory>affected_cpe_list

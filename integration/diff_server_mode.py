@@ -172,7 +172,7 @@ elif args.ostype == "suse":
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError
 elif args.ostype == 'fedora':
-    if len(list(set(args.release) - set(['32', '33', '34', '35']))) > 0:
+    if len(list(set(args.release) - set(['32', '33', '34', '35', '36', '37', '38', '39', '40']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError

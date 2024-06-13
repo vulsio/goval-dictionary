@@ -121,7 +121,7 @@ else:
     exit(1)
 
 if args.ostype == 'debian':
-    if len(list(set(args.release) - set(['7', '8', '9', '10', '11']))) > 0:
+    if len(list(set(args.release) - set(['7', '8', '9', '10', '11', '12']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
@@ -136,7 +136,7 @@ elif args.ostype == 'redhat':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'oracle':
-    if len(list(set(args.release) - set(['5', '6', '7', '8']))) > 0:
+    if len(list(set(args.release) - set(['5', '6', '7', '8', '9']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
@@ -146,7 +146,7 @@ elif args.ostype == 'amazon':
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
 elif args.ostype == 'alpine':
-    if len(list(set(args.release) - set(['3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15', '3.16', '3.17']))) > 0:
+    if len(list(set(args.release) - set(['3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15', '3.16', '3.17', '3.18', '3.19', '3.20']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError
@@ -157,7 +157,7 @@ elif args.ostype == "suse":
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError
     elif args.suse_type == 'opensuse.leap':
-        if len(list(set(args.release) - set(['42.1', '42.2', '42.3', '15.0', '15.1', '15.2', '15.3']))) > 0:
+        if len(list(set(args.release) - set(['42.1', '42.2', '42.3', '15.0', '15.1', '15.2', '15.3', '15.4', '15.5', '15.6']))) > 0:
             logger.error(
                 f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
             raise NotImplementedError

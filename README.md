@@ -69,6 +69,7 @@ Available Commands:
   alpine      Fetch Vulnerability dictionary from Alpine secdb
   amazon      Fetch Vulnerability dictionary from Amazon ALAS
   debian      Fetch Vulnerability dictionary from Debian
+  fedora      Fetch Vulnerability dictionary from Fedora
   oracle      Fetch Vulnerability dictionary from Oracle
   redhat      Fetch Vulnerability dictionary from RedHat
   suse        Fetch Vulnerability dictionary from SUSE
@@ -104,7 +105,7 @@ $ goval-dictionary fetch redhat 5 6 7 8 9
 - [Debian OVAL](https://www.debian.org/security/oval/)
 
 ```bash
-$ goval-dictionary fetch debian 7 8 9 10 11
+$ goval-dictionary fetch debian 7 8 9 10 11 12
 ```
 
 #### Usage: Fetch OVAL data from Ubuntu
@@ -144,7 +145,7 @@ Global Flags:
 
 ```bash
 $ goval-dictionary fetch suse --suse-type opensuse 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.1 12.2 12.3 13.1 13.2 tumbleweed
-$ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3
+$ goval-dictionary fetch suse --suse-type opensuse-leap 42.1 42.2 42.3 15.0 15.1 15.2 15.3 15.4 15.5 15.6
 $ goval-dictionary fetch suse --suse-type suse-enterprise-server 9 10 11 12 15
 $ goval-dictionary fetch suse --suse-type suse-enterprise-desktop 10 11 12 15
 ```
@@ -164,7 +165,7 @@ alpine-secdb is provided in YAML format and not OVAL, but it is supported by gov
 See [here](https://secdb.alpinelinux.org/) for a list of supported alpines.
 
 ```bash
- $ goval-dictionary fetch alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17
+ $ goval-dictionary fetch alpine 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.15 3.16 3.17 3.18 3.19 3.20
 ```
 
 #### Usage: Fetch Amazon ALAS as OVAL data type

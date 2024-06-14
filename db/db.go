@@ -70,36 +70,37 @@ func newDB(dbType string) (DB, error) {
 func formatFamilyAndOSVer(family, osVer string) (string, string, error) {
 	switch family {
 	case c.Debian:
-		osVer = major(osVer)
+		return family, major(osVer), nil
 	case c.Ubuntu:
-		osVer = majorDotMinor(osVer)
+		return family, majorDotMinor(osVer), nil
 	case c.Raspbian:
-		family = c.Debian
-		osVer = major(osVer)
+		return c.Debian, major(osVer), nil
 	case c.RedHat:
-		osVer = major(osVer)
+		return family, major(osVer), nil
 	case c.CentOS:
-		family = c.RedHat
-		osVer = major(osVer)
+		return c.RedHat, major(osVer), nil
 	case c.Oracle:
-		osVer = major(osVer)
+		return family, major(osVer), nil
 	case c.Amazon:
-		osVer = getAmazonLinuxVer(osVer)
+		osVer, err := getAmazonLinuxVer(osVer)
+		if err != nil {
+			return "", "", xerrors.Errorf("Failed to detect amazon version. err: %w", err)
+		}
+		return family, osVer, nil
 	case c.Alpine:
-		osVer = majorDotMinor(osVer)
+		return family, majorDotMinor(osVer), nil
 	case c.Fedora:
-		osVer = major(osVer)
+		return family, major(osVer), nil
 	case c.OpenSUSE:
 		if osVer != "tumbleweed" {
-			osVer = majorDotMinor(osVer)
+			return family, majorDotMinor(osVer), nil
 		}
+		return family, osVer, nil
 	case c.OpenSUSELeap, c.SUSEEnterpriseDesktop, c.SUSEEnterpriseServer:
-		osVer = majorDotMinor(osVer)
+		return family, majorDotMinor(osVer), nil
 	default:
 		return "", "", xerrors.Errorf("Failed to detect family. err: unknown os family(%s)", family)
 	}
-
-	return family, osVer, nil
 }
 
 func major(osVer string) (majorVersion string) {
@@ -115,18 +116,16 @@ func majorDotMinor(osVer string) (majorMinorVersion string) {
 }
 
 // getAmazonLinuxVer returns AmazonLinux 1, 2, 2022, 2023
-func getAmazonLinuxVer(osVersion string) string {
-	ss := strings.Fields(osVersion)
-	if ss[0] == "2023" {
-		return "2023"
+func getAmazonLinuxVer(osVersion string) (string, error) {
+	switch s := strings.Fields(osVersion)[0]; s {
+	case "1", "2", "2022", "2023", "2025", "2027", "2029":
+		return s, nil
+	default:
+		if _, err := time.Parse("2006.01", s); err == nil {
+			return "1", nil
+		}
+		return "", xerrors.Errorf(`unexpected Amazon Linux 1 version format. expected: "yyyy.MM", actual: "%s"`, s)
 	}
-	if ss[0] == "2022" {
-		return "2022"
-	}
-	if ss[0] == "2" {
-		return "2"
-	}
-	return "1"
 }
 
 // IndexChunk has a starting point and an ending point for Chunk

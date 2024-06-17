@@ -81,45 +81,40 @@ func ConvertToModel(root *Root) (defs map[string][]models.Definition) {
 }
 
 func collectOraclePacks(cri Criteria) []distroPackage {
-	return walkOracle(cri, "", "", []distroPackage{})
+	return walkOracle(cri, "", "", "", []distroPackage{})
 }
 
-func walkOracle(cri Criteria, osVer, arch string, acc []distroPackage) []distroPackage {
+func walkOracle(cri Criteria, osVer, arch, label string, acc []distroPackage) []distroPackage {
 	for _, c := range cri.Criterions {
-		// <criterion test_ref="oval:com.oracle.elsa:tst:20110498001" comment="Oracle Linux 6 is installed"/>
-		if strings.HasPrefix(c.Comment, "Oracle Linux ") &&
-			strings.HasSuffix(c.Comment, " is installed") {
+		switch {
+		case strings.HasPrefix(c.Comment, "Oracle Linux ") && strings.HasSuffix(c.Comment, " is installed"): // <criterion test_ref="oval:com.oracle.elsa:tst:20110498001" comment="Oracle Linux 6 is installed"/>
 			osVer = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Oracle Linux "), " is installed")
+		case strings.HasPrefix(c.Comment, "Oracle Linux arch is "): // <criterion test_ref="oval:com.oracle.elsa:tst:20110498002" comment="Oracle Linux arch is x86_64"/>
+			arch = strings.TrimSpace(strings.TrimPrefix(c.Comment, "Oracle Linux arch is "))
+		case strings.HasPrefix(c.Comment, "Module ") && strings.HasSuffix(c.Comment, " is enabled"): // <criterion test_ref="oval:com.oracle.elsa:tst:20190975003" comment="Module container-tools:ol8 is enabled"/>
+			label = strings.TrimSuffix(strings.TrimPrefix(c.Comment, "Module "), " is enabled")
+		default: // <criterion test_ref="oval:com.oracle.elsa:tst:20190975004" comment="buildah is earlier than 0:1.5-3.0.1.gite94b4f9.module+el8.0.0+5215+77f672ad"/>, <criterion test_ref="oval:com.oracle.elsa:tst:20190975005" comment="buildah is signed with the Oracle Linux 8 key"/>
+			name, evr, ok := strings.Cut(c.Comment, " is earlier than ")
+			if !ok {
+				break
+			}
+			acc = append(acc, distroPackage{
+				osVer: osVer,
+				pack: models.Package{
+					Name:            name,
+					Version:         evr,
+					Arch:            arch,
+					ModularityLabel: label,
+				},
+			})
 		}
-
-		// <criterion test_ref="oval:com.oracle.elsa:tst:20110498002" comment="Oracle Linux arch is x86_64"/>
-		const archPrefix = "Oracle Linux arch is "
-		if strings.HasPrefix(c.Comment, archPrefix) {
-			arch = strings.TrimSpace(strings.TrimPrefix(c.Comment, archPrefix))
-		}
-
-		ss := strings.Split(c.Comment, " is earlier than ")
-		if len(ss) != 2 {
-			continue
-		}
-		if ss[1] == "0" {
-			continue
-		}
-		acc = append(acc, distroPackage{
-			osVer: osVer,
-			pack: models.Package{
-				Name:    ss[0],
-				Version: strings.Split(ss[1], " ")[0],
-				Arch:    arch,
-			},
-		})
 	}
 
 	if len(cri.Criterias) == 0 {
 		return acc
 	}
 	for _, c := range cri.Criterias {
-		acc = walkOracle(c, osVer, arch, acc)
+		acc = walkOracle(c, osVer, arch, label, acc)
 	}
 	return acc
 }

@@ -49,11 +49,11 @@ import (
   ┌───┬─────────────────────────────┬───────────────┬───────────┬───────────────────────────────────────────┐
   │ 1 │ OVAL#$OSFAMILY#$VERSION#DEF │ $DEFINITIONID │ $OVALJSON │ TO GET OVALJSON                           │
   ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
-  │ 2 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Disctionary Binary Revision   │
+  │ 2 │ OVAL#FETCHMETA              │   Revision    │   string  │ GET Go-Oval-Dictionary Binary Revision    │
   ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
-  │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Disctionary Schema Version    │
+  │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Dictionary Schema Version     │
   ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
-  │ 4 │ OVAL#FETCHMETA              │ LastFetchedAt │ time.Time │ GET Go-Oval-Disctionary Last Fetched Time │
+  │ 4 │ OVAL#FETCHMETA              │ LastFetchedAt │ time.Time │ GET Go-Oval-Dictionary Last Fetched Time  │
   └───┴─────────────────────────────┴───────────────┴───────────┴───────────────────────────────────────────┘
 
   **/
@@ -66,7 +66,6 @@ const (
 	pkgKeyFormat          = "OVAL#%s#%s#PKG#%s"
 	depKeyFormat          = "OVAL#%s#%s#DEP"
 	lastModifiedKeyFormat = "OVAL#%s#%s#LASTMODIFIED"
-	fileMetaKey           = "OVAL#FILEMETA"
 	fetchMetaKey          = "OVAL#FETCHMETA"
 )
 

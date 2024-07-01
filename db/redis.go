@@ -17,6 +17,7 @@ import (
 
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 /**
@@ -54,6 +55,8 @@ import (
   │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Dictionary Schema Version     │
   ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
   │ 4 │ OVAL#FETCHMETA              │ LastFetchedAt │ time.Time │ GET Go-Oval-Dictionary Last Fetched Time  │
+  ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
+  │ 5 │ OVAL#ADVISORY#OSFAMILY      │ $ADVISORYNAME │ []string  │ TO GET Cve id                             │
   └───┴─────────────────────────────┴───────────────┴───────────┴───────────────────────────────────────────┘
 
   **/
@@ -65,6 +68,7 @@ const (
 	cveKeyFormat          = "OVAL#%s#%s#CVE#%s"
 	pkgKeyFormat          = "OVAL#%s#%s#PKG#%s"
 	depKeyFormat          = "OVAL#%s#%s#DEP"
+	advisoryKeyFormat     = "OVAL#ADVISORY#%s"
 	lastModifiedKeyFormat = "OVAL#%s#%s#LASTMODIFIED"
 	fetchMetaKey          = "OVAL#FETCHMETA"
 )
@@ -360,6 +364,25 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 						delete(oldDeps[def.DefinitionID]["cves"], cve.CveID)
 					}
 				}
+			}
+
+			var advisoryName string
+			var cveIDs []string
+			for _, reference := range def.References {
+				switch reference.Source {
+				case "RHSA":
+					advisoryName = reference.RefID
+				case "CVE":
+					cveIDs = append(cveIDs, reference.RefID)
+				}
+			}
+
+			if len(advisoryName) > 0 {
+				var cj []byte
+				if cj, err = json.Marshal(util.Unique(cveIDs)); err != nil {
+					return xerrors.Errorf("Failed to marshal cveID json. err: %w", err)
+				}
+				_ = pipe.HSet(ctx, fmt.Sprintf(advisoryKeyFormat, family), advisoryName, string(cj))
 			}
 
 			for _, pack := range def.AffectedPacks {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -325,7 +326,12 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 			return xerrors.Errorf("Failed to select old defs: %w", err)
 		}
 
-		bar := pb.StartNew(len(defs))
+		bar := pb.StartNew(len(defs)).SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 		for idx := range chunkSlice(len(defs), 998) {
 			var advs []models.Advisory
 			if err := tx.Model(defs[idx.From:idx.To]).Association("Advisory").Find(&advs); err != nil {
@@ -354,7 +360,12 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 	}
 
 	log15.Info("Inserting new Definitions...")
-	bar := pb.StartNew(len(root.Definitions))
+	bar := pb.StartNew(len(root.Definitions)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	if err := tx.Omit("Definitions").Create(&root).Error; err != nil {
 		tx.Rollback()
 		return xerrors.Errorf("Failed to insert Root. err: %w", err)

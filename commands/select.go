@@ -10,7 +10,6 @@ import (
 
 	"github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/db"
-	"github.com/vulsio/goval-dictionary/log"
 	"github.com/vulsio/goval-dictionary/models"
 )
 
@@ -19,124 +18,145 @@ var selectCmd = &cobra.Command{
 	Use:   "select",
 	Short: "Select from DB",
 	Long:  `Select from DB`,
-	RunE:  executeSelect,
 }
 
 func init() {
 	RootCmd.AddCommand(selectCmd)
 
-	selectCmd.PersistentFlags().Bool("by-package", false, "select OVAL by package name")
-	_ = viper.BindPFlag("by-package", selectCmd.PersistentFlags().Lookup("by-package"))
-
-	selectCmd.PersistentFlags().Bool("by-cveid", false, "select OVAL by CVE-ID")
-	_ = viper.BindPFlag("by-cveid", selectCmd.PersistentFlags().Lookup("by-cveid"))
-}
-
-func executeSelect(_ *cobra.Command, args []string) error {
-	if err := log.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
-		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
-	}
-
-	flagPkg := viper.GetBool("by-package")
-	flagCveID := viper.GetBool("by-cveid")
-
-	if (!flagPkg && !flagCveID) || (flagPkg && flagCveID) {
-		return xerrors.New("Failed to select command. err: specify --by-package or --by-cveid")
-	}
-
-	if len(args) < 3 {
-		if flagPkg {
-			return xerrors.Errorf(`
-			Usage:
-			select OVAL by package name
-			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
-			`)
-		}
-		if flagCveID {
-			return xerrors.Errorf(`
-			Usage:
-			select OVAL by CVE-ID
-			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
-			`)
-		}
-	} else if len(args) > 4 {
-		if flagPkg {
-			return xerrors.Errorf(`
-			Usage:
-			select OVAL by package name
-			$ goval-dictionary select --by-package [osFamily] [osVersion] [Package Name] [Optional: Architecture (Oracle, Amazon Only)]
-			`)
-		}
-		if flagCveID {
-			return xerrors.Errorf(`
-			Usage:
-			select OVAL by CVE-ID
-			$ goval-dictionary select --by-cveid [osFamily] [osVersion] [CVE-ID] [Optional: Architecture (Oracle, Amazon Only)]
-			`)
-		}
-	}
-
-	family := args[0]
-	release := args[1]
-	arg := args[2]
-	arch := ""
-	if len(args) == 4 {
-		switch family {
-		case config.Amazon, config.Oracle, config.Fedora:
-			arch = args[3]
-		default:
-			return xerrors.Errorf("Family: %s cannot use the Architecture argument.", family)
-		}
-	}
-
-	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
-	if err != nil {
-		if xerrors.Is(err, db.ErrDBLocked) {
-			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
-		}
-		return xerrors.Errorf("Failed to open DB. err: %w", err)
-	}
-
-	fetchMeta, err := driver.GetFetchMeta()
-	if err != nil {
-		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
-	}
-	if fetchMeta.OutDated() {
-		return xerrors.Errorf("Failed to select command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-	}
-
-	if flagPkg {
-		dfs, err := driver.GetByPackName(family, release, arg, arch)
-		if err != nil {
-			return xerrors.Errorf("Failed to get cve by package. err: %w", err)
-		}
-
-		for _, d := range dfs {
-			for _, cve := range d.Advisory.Cves {
-				fmt.Printf("%s\n", cve.CveID)
-				for _, pack := range d.AffectedPacks {
-					fmt.Printf("    %v\n", pack)
+	selectCmd.AddCommand(
+		&cobra.Command{
+			Use:   "package <family> <release> <package name> (<arch>)",
+			Short: "Select OVAL by package name",
+			Args:  cobra.RangeArgs(3, 4),
+			RunE: func(_ *cobra.Command, args []string) error {
+				arch := ""
+				if len(args) == 4 {
+					switch args[0] {
+					case config.Amazon, config.Oracle, config.Fedora:
+						arch = args[3]
+					default:
+						return xerrors.Errorf("Family: %s cannot use the Architecture argument.", args[0])
+					}
 				}
-			}
-		}
-		fmt.Println("------------------")
-		pp.ColoringEnabled = false
-		_, _ = pp.Println(dfs)
-	}
 
-	if flagCveID {
-		dfs, err := driver.GetByCveID(family, release, arg, arch)
-		if err != nil {
-			return xerrors.Errorf("Failed to get cve by cveID. err: %w", err)
-		}
-		for _, d := range dfs {
-			fmt.Printf("%s\n", d.Title)
-			fmt.Printf("%v\n", d.Advisory.Cves)
-		}
-		fmt.Println("------------------")
-		pp.ColoringEnabled = false
-		_, _ = pp.Println(dfs)
-	}
+				driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
+				if err != nil {
+					if xerrors.Is(err, db.ErrDBLocked) {
+						return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
+					}
+					return xerrors.Errorf("Failed to open DB. err: %w", err)
+				}
 
-	return nil
+				fetchMeta, err := driver.GetFetchMeta()
+				if err != nil {
+					return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+				}
+				if fetchMeta.OutDated() {
+					return xerrors.Errorf("Failed to select command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+				}
+
+				dfs, err := driver.GetByPackName(args[0], args[1], args[2], arch)
+				if err != nil {
+					return xerrors.Errorf("Failed to get cve by package. err: %w", err)
+				}
+
+				for _, d := range dfs {
+					for _, cve := range d.Advisory.Cves {
+						fmt.Printf("%s\n", cve.CveID)
+						for _, pack := range d.AffectedPacks {
+							fmt.Printf("    %v\n", pack)
+						}
+					}
+				}
+				fmt.Println("------------------")
+				pp.ColoringEnabled = false
+				_, _ = pp.Println(dfs)
+
+				return nil
+			},
+			Example: `$ goval-dictionary select package ubuntu 24.04 bash
+$ goval-dictionary select package oracle 9 bash x86_64`,
+		},
+		&cobra.Command{
+			Use:   "cve-id <family> <release> <cve id> (<arch>)",
+			Short: "Select OVAL by CVE-ID",
+			Args:  cobra.RangeArgs(3, 4),
+			RunE: func(_ *cobra.Command, args []string) error {
+				arch := ""
+				if len(args) == 4 {
+					switch args[0] {
+					case config.Amazon, config.Oracle, config.Fedora:
+						arch = args[3]
+					default:
+						return xerrors.Errorf("Family: %s cannot use the Architecture argument.", args[0])
+					}
+				}
+
+				driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
+				if err != nil {
+					if xerrors.Is(err, db.ErrDBLocked) {
+						return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
+					}
+					return xerrors.Errorf("Failed to open DB. err: %w", err)
+				}
+
+				fetchMeta, err := driver.GetFetchMeta()
+				if err != nil {
+					return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+				}
+				if fetchMeta.OutDated() {
+					return xerrors.Errorf("Failed to select command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+				}
+
+				dfs, err := driver.GetByCveID(args[0], args[1], args[2], arch)
+				if err != nil {
+					return xerrors.Errorf("Failed to get cve by cveID. err: %w", err)
+				}
+				for _, d := range dfs {
+					fmt.Printf("%s\n", d.Title)
+					fmt.Printf("%v\n", d.Advisory.Cves)
+				}
+				fmt.Println("------------------")
+				pp.ColoringEnabled = false
+				_, _ = pp.Println(dfs)
+
+				return nil
+			},
+			Example: `$ goval-dictionary select cve-id ubuntu 24.04 CVE-2024-6387
+$ goval-dictionary select cve-id oracle 9 CVE-2024-6387 x86_64`,
+		},
+		&cobra.Command{
+			Use:   "advisories <family> <release>",
+			Short: "List Advisories and Releated CVE-IDs",
+			Args:  cobra.ExactArgs(2),
+			RunE: func(_ *cobra.Command, args []string) error {
+				driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
+				if err != nil {
+					if xerrors.Is(err, db.ErrDBLocked) {
+						return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
+					}
+					return xerrors.Errorf("Failed to open DB. err: %w", err)
+				}
+
+				fetchMeta, err := driver.GetFetchMeta()
+				if err != nil {
+					return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
+				}
+				if fetchMeta.OutDated() {
+					return xerrors.Errorf("Failed to select command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+				}
+
+				m, err := driver.GetAdvisories(args[0], args[1])
+				if err != nil {
+					return xerrors.Errorf("Failed to get cve by cveID. err: %w", err)
+				}
+				pp.ColoringEnabled = false
+				_, _ = pp.Println(m)
+
+				return nil
+			},
+			Example: `$ goval-dictionary select advisories ubuntu 24.04`,
+		},
+	)
+
 }

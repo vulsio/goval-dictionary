@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
@@ -24,6 +25,7 @@ import (
 
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 // Supported DB dialects.
@@ -293,6 +295,109 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		return maps.Values(m), nil
 	default:
 		return defs, nil
+	}
+}
+
+// GetAdvisories select AdvisoryID: []CVE IDs
+func (r *RDBDriver) GetAdvisories(family, osVer string) (map[string][]string, error) {
+	family, osVer, err := formatFamilyAndOSVer(family, osVer)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
+	}
+
+	q := r.conn.
+		Joins("JOIN roots ON roots.id = definitions.root_id AND roots.family= ? AND roots.os_version = ?", family, osVer).
+		Joins("JOIN advisories ON advisories.definition_id = definitions.id").
+		Joins("JOIN cves ON cves.advisory_id = advisories.id").
+		Preload("Advisory").
+		Preload("Advisory.Cves")
+
+	switch family {
+	case c.Debian:
+		q = q.Preload("Debian", "dsa != \"\"")
+	case c.Ubuntu:
+		q = q.Preload("References", "ref_url LIKE ?", "https://ubuntu.com/security/notices/USN-%")
+	case c.RedHat:
+		q = q.Not("definitions.definition_id LIKE ?", "oval:com.redhat.cve:def:%").Preload("References", "source = ?", "RHSA")
+	case c.Oracle:
+		q = q.Preload("References", "source = ?", "elsa")
+	case c.Amazon, c.Fedora:
+	case c.Alpine:
+		return nil, nil
+	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop:
+		q = q.Preload("References", "source = ?", "SUSE-SU")
+	default:
+		return nil, nil
+	}
+
+	defs := []models.Definition{}
+	if err := q.Find(&defs).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	m := map[string][]string{}
+	switch family {
+	case c.Debian:
+		for _, d := range defs {
+			if d.Debian == nil || d.Debian.DSA == "" {
+				continue
+			}
+			for _, cve := range d.Advisory.Cves {
+				m[d.Debian.DSA] = append(m[d.Debian.DSA], cve.CveID)
+			}
+		}
+		for k := range m {
+			m[k] = util.Unique(m[k])
+		}
+		return m, nil
+	case c.Ubuntu:
+		for _, d := range defs {
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				m[strings.TrimPrefix(r.RefURL, "https://ubuntu.com/security/notices/")] = append(m[strings.TrimPrefix(r.RefURL, "https://ubuntu.com/security/notices/")], cves...)
+			}
+		}
+		for k := range m {
+			m[k] = util.Unique(m[k])
+		}
+		return m, nil
+	case c.RedHat, c.Oracle:
+		for _, d := range defs {
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				m[r.RefID] = append(m[r.RefID], cves...)
+			}
+		}
+		return m, nil
+	case c.Amazon, c.Fedora:
+		for _, d := range defs {
+			for _, cve := range d.Advisory.Cves {
+				m[d.Title] = append(m[d.Title], cve.CveID)
+			}
+		}
+		return m, nil
+	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop:
+		for _, d := range defs {
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				m[r.RefID] = append(m[r.RefID], cves...)
+			}
+		}
+		for k := range m {
+			m[k] = util.Unique(m[k])
+		}
+		return m, nil
+	default:
+		return nil, nil
 	}
 }
 

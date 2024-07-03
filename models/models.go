@@ -136,6 +136,7 @@ type Debian struct {
 	ID           uint `gorm:"primary_key" json:"-"`
 	DefinitionID uint `gorm:"index:idx_debian_definition_id" json:"-" xml:"-"`
 
+	DSA      string `gorm:"type:varchar(255)"`
 	MoreInfo string `gorm:"type:text"`
 
 	Date time.Time

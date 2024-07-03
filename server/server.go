@@ -43,6 +43,7 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/packs/:family/:release/:pack", getByPackName(driver))
 	e.GET("/cves/:family/:release/:id/:arch", getByCveID(driver))
 	e.GET("/cves/:family/:release/:id", getByCveID(driver))
+	e.GET("/advisories/:family/:release", getAdvisories(driver))
 	e.GET("/count/:family/:release", countOvalDefs(driver))
 	e.GET("/lastmodified/:family/:release", getLastModified(driver))
 	//  e.Post("/cpes", getByPackName(driver))
@@ -94,6 +95,20 @@ func getByCveID(driver db.DB) echo.HandlerFunc {
 			log15.Error("Failed to get by CveID.", "err", err)
 		}
 		return c.JSON(http.StatusOK, defs)
+	}
+}
+
+func getAdvisories(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
+		family := strings.ToLower(c.Param("family"))
+		release := c.Param("release")
+		log15.Debug("Params", "Family", family, "Release", release)
+
+		m, err := driver.GetAdvisories(family, release)
+		if err != nil {
+			log15.Error("Failed to get advisories.", "err", err)
+		}
+		return c.JSON(http.StatusOK, m)
 	}
 }
 

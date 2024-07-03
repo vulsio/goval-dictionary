@@ -190,11 +190,11 @@ Select from DB where package name is golang.
 
 <details>
 <summary>
-`$ goval-dictionary select --by-package redhat 7 golang x86_64`
+`$ goval-dictionary select package redhat 7 golang`
 </summary>
 
 ```bash
-$ goval-dictionary select --by-package redhat 7 golang x86_64
+$ goval-dictionary select package redhat 7 golang
 [Apr 10 10:22:43]  INFO Opening DB (sqlite3).
 CVE-2015-5739
     {3399 319 golang 0:1.6.3-1.el7_2.1}
@@ -422,7 +422,7 @@ CVE-YYYY-NNNN
 </summary>
 
 ```bash
-$ goval-dictionary select --by-cveid redhat 7 CVE-2017-6009
+$ goval-dictionary select cve-id redhat 7 CVE-2017-6009
 [Apr 12 12:12:36]  INFO Opening DB (sqlite3).
 RHSA-2017:0837: icoutils security update (Important)
 Important
@@ -624,6 +624,37 @@ Upper part format:
 ]
 ```
 </details>
+
+### Usage: select advisories
+
+<details>
+<summary>
+`Select Advisories from DB`
+</summary>
+
+```bash
+$ goval-dictionary select advisories redhat 9
+map[string][]string{
+  "RHSA-2023:6482": []string{
+    "CVE-2023-35789",
+  },
+  "RHSA-2022:8418": []string{
+    "CVE-2021-28153",
+  },
+  "RHSA-2024:0811": []string{
+    "CVE-2023-28486",
+    "CVE-2023-28487",
+    "CVE-2023-42465",
+    "CVE-2023-28486",
+    "CVE-2023-28487",
+    "CVE-2023-42465",
+    "CVE-2023-28486",
+    "CVE-2023-28487",
+    "CVE-2023-42465",
+  },
+  ...
+}
+```
 
 ### Usage: Start goval-dictionary as server mode
 

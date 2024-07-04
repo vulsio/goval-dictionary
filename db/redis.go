@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -338,7 +340,12 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	bar := pb.StartNew(len(root.Definitions))
+	bar := pb.StartNew(len(root.Definitions)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	for idx := range chunkSlice(len(root.Definitions), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, def := range root.Definitions[idx.From:idx.To] {

@@ -521,9 +521,10 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(advs), batchSize) {
+	keys := maps.Keys(advs)
+	for idx := range chunkSlice(len(keys), batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, adv := range maps.Keys(advs)[idx.From:idx.To] {
+		for _, adv := range keys[idx.From:idx.To] {
 			var aj []byte
 			if aj, err = json.Marshal(advs[adv]); err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)

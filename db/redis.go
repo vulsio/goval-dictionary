@@ -15,10 +15,12 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
 
 	c "github.com/vulsio/goval-dictionary/config"
 	"github.com/vulsio/goval-dictionary/models"
+	"github.com/vulsio/goval-dictionary/util"
 )
 
 /**
@@ -56,6 +58,8 @@ import (
   │ 3 │ OVAL#FETCHMETA              │ SchemaVersion │    uint   │ GET Go-Oval-Dictionary Schema Version     │
   ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
   │ 4 │ OVAL#FETCHMETA              │ LastFetchedAt │ time.Time │ GET Go-Oval-Dictionary Last Fetched Time  │
+  ├───┼─────────────────────────────┼───────────────┼───────────┼───────────────────────────────────────────┤
+  │ 5 │ OVAL#$OSFAMILY#$VERSION#ADV │ $ADVISORYID   │ []$CVEID  │ GET CVEIDs related to Advisory ID         │
   └───┴─────────────────────────────┴───────────────┴───────────┴───────────────────────────────────────────┘
 
   **/
@@ -66,6 +70,7 @@ const (
 	defKeyFormat          = "OVAL#%s#%s#DEF"
 	cveKeyFormat          = "OVAL#%s#%s#CVE#%s"
 	pkgKeyFormat          = "OVAL#%s#%s#PKG#%s"
+	advKeyFormat          = "OVAL#%s#%s#ADV"
 	depKeyFormat          = "OVAL#%s#%s#DEP"
 	lastModifiedKeyFormat = "OVAL#%s#%s#LASTMODIFIED"
 	fetchMetaKey          = "OVAL#FETCHMETA"
@@ -311,6 +316,31 @@ func fileterPacksByArch(packs []models.Package, arch string) []models.Package {
 	return filtered
 }
 
+// GetAdvisories select AdvisoryID: []CVE IDs
+func (r *RedisDriver) GetAdvisories(family, osVer string) (map[string][]string, error) {
+	family, osVer, err := formatFamilyAndOSVer(family, osVer)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to formatFamilyAndOSVer. err: %w", err)
+	}
+
+	ctx := context.Background()
+	v, err := r.conn.HGetAll(ctx, fmt.Sprintf(advKeyFormat, family, osVer)).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HGetAll. err: %w", err)
+	}
+
+	m := map[string][]string{}
+	for adv, s := range v {
+		var cves []string
+		if err := json.Unmarshal([]byte(s), &cves); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal JSON. err: %w", err)
+		}
+		m[adv] = cves
+	}
+
+	return m, nil
+}
+
 // InsertOval inserts OVAL
 func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	ctx := context.Background()
@@ -325,8 +355,89 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	}
 	log15.Info("Refreshing...", "Family", family, "Version", osVer)
 
-	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}}
-	newDeps := map[string]map[string]map[string]struct{}{}
+	advs := map[string][]string{}
+	switch family {
+	case c.Debian:
+		for _, d := range root.Definitions {
+			if d.Debian == nil || d.Debian.DSA == "" {
+				continue
+			}
+			for _, cve := range d.Advisory.Cves {
+				advs[d.Debian.DSA] = append(advs[d.Debian.DSA], cve.CveID)
+			}
+		}
+		for k := range advs {
+			advs[k] = util.Unique(advs[k])
+		}
+	case c.Ubuntu:
+		for _, d := range root.Definitions {
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				if strings.HasPrefix(r.RefURL, "https://ubuntu.com/security/notices/USN-") {
+					advs[strings.TrimPrefix(r.RefURL, "https://ubuntu.com/security/notices/")] = append(advs[strings.TrimPrefix(r.RefURL, "https://ubuntu.com/security/notices/")], cves...)
+				}
+			}
+		}
+		for k := range advs {
+			advs[k] = util.Unique(advs[k])
+		}
+	case c.RedHat:
+		for _, d := range root.Definitions {
+			if strings.HasPrefix(d.DefinitionID, "oval:com.redhat.cve:def:") {
+				continue
+			}
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				if r.Source == "RHSA" {
+					advs[r.RefID] = append(advs[r.RefID], cves...)
+				}
+			}
+		}
+	case c.Oracle:
+		for _, d := range root.Definitions {
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				if r.Source == "elsa" {
+					advs[r.RefID] = append(advs[r.RefID], cves...)
+				}
+			}
+		}
+	case c.Amazon, c.Fedora:
+		for _, d := range root.Definitions {
+			for _, cve := range d.Advisory.Cves {
+				advs[d.Title] = append(advs[d.Title], cve.CveID)
+			}
+		}
+	case c.Alpine:
+	case c.OpenSUSE, c.OpenSUSELeap, c.SUSEEnterpriseServer, c.SUSEEnterpriseDesktop:
+		for _, d := range root.Definitions {
+			cves := make([]string, 0, len(d.Advisory.Cves))
+			for _, cve := range d.Advisory.Cves {
+				cves = append(cves, cve.CveID)
+			}
+			for _, r := range d.References {
+				if r.Source == "SUSE-SU" {
+					advs[r.RefID] = append(advs[r.RefID], cves...)
+				}
+			}
+		}
+		for k := range advs {
+			advs[k] = util.Unique(advs[k])
+		}
+	default:
+	}
+
+	// newDeps, oldDeps: {"DEFID": {"cves": {"CVEID": {}}, "packages": {"PACKNAME": {}}}, "advisories": {"ADVISORYID": {}}}
+	newDeps := map[string]map[string]map[string]struct{}{"advisories": {}}
 	depKey := fmt.Sprintf(depKeyFormat, family, osVer)
 	oldDepsStr, err := r.conn.Get(ctx, depKey).Result()
 	if err != nil {
@@ -340,6 +451,7 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
+	log15.Info("Insert Definitions...")
 	bar := pb.StartNew(len(root.Definitions)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
@@ -402,16 +514,52 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 	}
 	bar.Finish()
 
+	log15.Info("Insert Advisories...")
+	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
+	keys := maps.Keys(advs)
+	for idx := range chunkSlice(len(keys), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, adv := range keys[idx.From:idx.To] {
+			var aj []byte
+			if aj, err = json.Marshal(advs[adv]); err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+
+			_ = pipe.HSet(ctx, fmt.Sprintf(advKeyFormat, family, osVer), adv, string(aj))
+			newDeps["advisories"][adv] = map[string]struct{}{}
+			if _, ok := oldDeps["advisories"]; ok {
+				delete(oldDeps["advisories"], adv)
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
 	pipe := r.conn.Pipeline()
-	for defID, definitions := range oldDeps {
-		for cveID := range definitions["cves"] {
-			_ = pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), defID)
-		}
-		for pack := range definitions["packages"] {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pack), defID)
-		}
-		if _, ok := newDeps[defID]; !ok {
-			_ = pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), defID)
+	for k, v := range oldDeps {
+		switch k {
+		case "advisories":
+			for advID := range v {
+				_ = pipe.HDel(ctx, fmt.Sprintf(advKeyFormat, family, osVer), advID)
+			}
+		default:
+			for cveID := range v["cves"] {
+				_ = pipe.SRem(ctx, fmt.Sprintf(cveKeyFormat, family, osVer, cveID), k)
+			}
+			for pack := range v["packages"] {
+				_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, pack), k)
+			}
+			if _, ok := newDeps[k]; !ok {
+				_ = pipe.HDel(ctx, fmt.Sprintf(defKeyFormat, family, osVer), k)
+			}
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)

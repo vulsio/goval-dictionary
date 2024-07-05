@@ -52,6 +52,7 @@ func ConvertToModel(root *Root) (defs []models.Definition) {
 				Updated:         time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
 			Debian: &models.Debian{
+				DSA:      ovaldef.Debian.DSA,
 				MoreInfo: ovaldef.Debian.MoreInfo,
 				Date:     util.ParsedOrDefaultTime([]string{"2006-01-02"}, ovaldef.Debian.Date),
 			},

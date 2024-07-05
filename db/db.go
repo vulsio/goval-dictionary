@@ -23,6 +23,7 @@ type DB interface {
 
 	GetByPackName(family string, osVer string, packName string, arch string) ([]models.Definition, error)
 	GetByCveID(family string, osVer string, cveID string, arch string) ([]models.Definition, error)
+	GetAdvisories(family string, osVer string) (map[string][]string, error)
 	InsertOval(*models.Root) error
 	CountDefs(string, string) (int, error)
 	GetLastModified(string, string) (time.Time, error)

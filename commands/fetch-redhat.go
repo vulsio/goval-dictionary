@@ -3,6 +3,8 @@ package commands
 import (
 	"encoding/xml"
 	"fmt"
+	"os"
+	"net/url"
 	"strings"
 	"time"
 
@@ -57,6 +59,15 @@ func fetchRedHat(_ *cobra.Command, args []string) (err error) {
 	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
+	}
+
+	httpProxy := viper.GetString("http-proxy")
+	if httpProxy != "" {
+		if url.Parse(httpProxy); err != nil {
+			return xerrors.Errorf("Failed to parse proxy url. err: %w", err)
+		}
+		os.Setenv("HTTP_PROXY", httpProxy)
+		os.Setenv("HTTPS_PROXY", httpProxy)
 	}
 
 	results, err := fetcher.FetchFiles(util.Unique(args))

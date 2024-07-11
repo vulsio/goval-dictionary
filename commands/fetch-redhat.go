@@ -3,8 +3,8 @@ package commands
 import (
 	"encoding/xml"
 	"fmt"
-	"os"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 

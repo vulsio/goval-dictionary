@@ -2,10 +2,9 @@ package redhat
 
 import (
 	"archive/tar"
-	"compress/gzip"
+	"bytes"
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -92,25 +91,18 @@ func FetchFiles(versions []string) (map[string][]util.FetchResult, error) {
 }
 
 func fetchOVALv1(names []string) ([]util.FetchResult, error) {
-	log15.Info("Fetching... ", "URL", "https://access.redhat.com/security/data/archive/oval_v1_20230706.tar.gz")
-	resp, err := http.Get("https://access.redhat.com/security/data/archive/oval_v1_20230706.tar.gz")
+	rs, err := util.FetchFeedFiles([]util.FetchRequest{{
+		Target:   "oval_v1_20230706.tar.gz",
+		URL:      "https://access.redhat.com/security/data/archive/oval_v1_20230706.tar.gz",
+		MIMEType: util.MIMETypeGzip,
+	}})
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to get oval v1. err: %w", err)
+		return nil, xerrors.Errorf("Failed to fetch. err: %w", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, xerrors.Errorf("Failed to get oval v1. err: bad status %d", resp.StatusCode)
-	}
-
-	gr, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to create gzip reader. err: %w", err)
-	}
-	defer gr.Close()
 
 	results := make([]util.FetchResult, 0, len(names))
 
-	tr := tar.NewReader(gr)
+	tr := tar.NewReader(bytes.NewReader(rs[0].Body))
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {

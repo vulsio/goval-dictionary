@@ -8,7 +8,7 @@ This is tool to build a local copy of the OVAL. The local copy is generated in s
 
 goval-dictionary requires the following packages.
 
-- SQLite3, MySQL, PostgreSQL or Redis
+- SQLite3, MariaDB, MySQL, PostgreSQL or Redis
 - git
 - gcc
 - lastest version of go
@@ -46,7 +46,7 @@ Available Commands:
 Flags:
       --config string       config file (default is $HOME/.oval.yaml)
       --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mariadb, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
   -h, --help                help for goval-dictionary
@@ -82,7 +82,7 @@ Flags:
 Global Flags:
       --config string       config file (default is $HOME/.oval.yaml)
       --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/oval.sqlite3")
-      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mariadb, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
       --http-proxy string   http://proxy-url:port (default: empty)
@@ -134,7 +134,7 @@ Flags:
 Global Flags:
       --config string       config file (default is $HOME/.oval.yaml)
       --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
-      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mariadb, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
       --http-proxy string   http://proxy-url:port (default: empty)
@@ -673,7 +673,7 @@ Flags:
 Global Flags:
       --config string       config file (default is $HOME/.oval.yaml)
       --dbpath string       /path/to/sqlite3 or SQL connection string (default "/$PWD/oval.sqlite3")
-      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mariadb, mysql, postgres or redis supported) (default "sqlite3")
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
       --http-proxy string   http://proxy-url:port (default: empty)

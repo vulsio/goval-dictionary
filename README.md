@@ -8,7 +8,7 @@ This is tool to build a local copy of the OVAL. The local copy is generated in s
 
 goval-dictionary requires the following packages.
 
-- SQLite3, MySQL, PostgreSQL or Redis
+- SQLite3, MySQL (or MariaDB), PostgreSQL or Redis
 - git
 - gcc
 - lastest version of go

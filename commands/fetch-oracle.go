@@ -2,13 +2,13 @@ package commands
 
 import (
 	"encoding/xml"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 
 	c "github.com/vulsio/goval-dictionary/config"

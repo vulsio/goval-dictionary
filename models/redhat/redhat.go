@@ -2,12 +2,13 @@ package redhat
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
 	version "github.com/knqyf263/go-rpm-version"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/maps"
 
 	"github.com/vulsio/goval-dictionary/models"
 	"github.com/vulsio/goval-dictionary/models/util"
@@ -112,7 +113,7 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 			}
 		}
 	}
-	return maps.Values(defs)
+	return slices.Collect(maps.Values(defs))
 }
 
 func collectRedHatPacks(v string, cri Criteria) []models.Package {
@@ -145,7 +146,7 @@ func collectRedHatPacks(v string, cri Criteria) []models.Package {
 
 		pkgs[n] = p
 	}
-	return maps.Values(pkgs)
+	return slices.Collect(maps.Values(pkgs))
 }
 
 func walkRedHat(cri Criteria, acc []models.Package, label string) []models.Package {

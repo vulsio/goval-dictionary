@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +17,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
 
 	c "github.com/vulsio/goval-dictionary/config"
@@ -458,9 +459,9 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(root.Definitions), batchSize) {
+	for chunk := range slices.Chunk(root.Definitions, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, def := range root.Definitions[idx.From:idx.To] {
+		for _, def := range chunk {
 			var dj []byte
 			if dj, err = json.Marshal(def); err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -510,7 +511,7 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		if _, err = pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -521,10 +522,11 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		}
 		return os.Stderr
 	}())
-	keys := maps.Keys(advs)
-	for idx := range chunkSlice(len(keys), batchSize) {
+
+	keys := slices.Collect(maps.Keys(advs))
+	for chunk := range slices.Chunk(keys, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, adv := range keys[idx.From:idx.To] {
+		for _, adv := range chunk {
 			var aj []byte
 			if aj, err = json.Marshal(advs[adv]); err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -539,7 +541,7 @@ func (r *RedisDriver) InsertOval(root *models.Root) (err error) {
 		if _, err = pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 

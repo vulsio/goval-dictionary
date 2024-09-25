@@ -130,29 +130,6 @@ func getAmazonLinuxVer(osVersion string) string {
 	return "1"
 }
 
-// IndexChunk has a starting point and an ending point for Chunk
-type IndexChunk struct {
-	From, To int
-}
-
-func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
-	ch := make(chan IndexChunk)
-
-	go func() {
-		defer close(ch)
-
-		for i := 0; i < length; i += chunkSize {
-			idx := IndexChunk{i, i + chunkSize}
-			if length < idx.To {
-				idx.To = length
-			}
-			ch <- idx
-		}
-	}()
-
-	return ch
-}
-
 func filterByRedHatMajor(packs []models.Package, majorVer string) (filtered []models.Package) {
 	for _, p := range packs {
 		if p.NotFixedYet ||

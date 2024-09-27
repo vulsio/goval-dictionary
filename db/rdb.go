@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,7 +17,6 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -237,7 +238,7 @@ func (r *RDBDriver) GetByPackName(family, osVer, packName, arch string) ([]model
 		for _, d := range defs {
 			m[d.DefinitionID] = d
 		}
-		return maps.Values(m), nil
+		return slices.Collect(maps.Values(m)), nil
 	default:
 		return defs, nil
 	}
@@ -292,7 +293,7 @@ func (r *RDBDriver) GetByCveID(family, osVer, cveID, arch string) ([]models.Defi
 		for _, d := range defs {
 			m[d.DefinitionID] = d
 		}
-		return maps.Values(m), nil
+		return slices.Collect(maps.Values(m)), nil
 	default:
 		return defs, nil
 	}
@@ -437,25 +438,25 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 			}
 			return os.Stderr
 		}())
-		for idx := range chunkSlice(len(defs), 998) {
+		for chunk := range slices.Chunk(defs, 998) {
 			var advs []models.Advisory
-			if err := tx.Model(defs[idx.From:idx.To]).Association("Advisory").Find(&advs); err != nil {
+			if err := tx.Model(chunk).Association("Advisory").Find(&advs); err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
 
-			for idx2 := range chunkSlice(len(advs), 998) {
-				if err := tx.Select(clause.Associations).Unscoped().Delete(advs[idx2.From:idx2.To]).Error; err != nil {
+			for chunk2 := range slices.Chunk(advs, 998) {
+				if err := tx.Select(clause.Associations).Unscoped().Delete(chunk2).Error; err != nil {
 					tx.Rollback()
 					return xerrors.Errorf("Failed to delete: %w", err)
 				}
 			}
 
-			if err := tx.Select(clause.Associations).Unscoped().Delete(defs[idx.From:idx.To]).Error; err != nil {
+			if err := tx.Select(clause.Associations).Unscoped().Delete(chunk).Error; err != nil {
 				tx.Rollback()
 				return xerrors.Errorf("Failed to delete: %w", err)
 			}
-			bar.Add(idx.To - idx.From)
+			bar.Add(len(chunk))
 		}
 		if err := tx.Unscoped().Where("id = ?", old.ID).Delete(&models.Root{}).Error; err != nil {
 			tx.Rollback()
@@ -480,25 +481,25 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 		root.Definitions[i].RootID = root.ID
 	}
 
-	for idx := range chunkSlice(len(root.Definitions), batchSize) {
-		if err := tx.Omit("AffectedPacks").Create(root.Definitions[idx.From:idx.To]).Error; err != nil {
+	for chunk := range slices.Chunk(root.Definitions, batchSize) {
+		if err := tx.Omit("AffectedPacks").Create(chunk).Error; err != nil {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to insert Definitions. err: %w", err)
 		}
 
-		for _, d := range root.Definitions[idx.From:idx.To] {
-			for idx2 := range chunkSlice(len(d.AffectedPacks), batchSize) {
-				for i := range d.AffectedPacks[idx2.From:idx2.To] {
-					d.AffectedPacks[idx2.From+i].DefinitionID = d.ID
-				}
-				if err := tx.Create(d.AffectedPacks[idx2.From:idx2.To]).Error; err != nil {
+		for _, d := range chunk {
+			for i := range d.AffectedPacks {
+				d.AffectedPacks[i].DefinitionID = d.ID
+			}
+			for chunk2 := range slices.Chunk(d.AffectedPacks, batchSize) {
+				if err := tx.Create(chunk2).Error; err != nil {
 					tx.Rollback()
 					return xerrors.Errorf("Failed to insert AffectedPacks. err: %w", err)
 				}
 			}
 		}
 
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 

@@ -91,7 +91,7 @@ clean-integration:
 
 fetch-rdb:
 	integration/goval-dict.old fetch debian --dbpath=$(PWD)/integration/oval.old.sqlite3 7 8 9 10 11 12
-	integration/goval-dict.old fetch ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+	integration/goval-dict.old fetch ubuntu --dbpath=$(PWD)/integration/oval.old.sqlite3 14.04 16.04 18.04 20.04 22.04 24.04 24.10
 	integration/goval-dict.old fetch redhat --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8 9
 	integration/goval-dict.old fetch oracle --dbpath=$(PWD)/integration/oval.old.sqlite3 5 6 7 8 9
 	integration/goval-dict.old fetch amazon --dbpath=$(PWD)/integration/oval.old.sqlite3 1 2 2022 2023
@@ -103,7 +103,7 @@ fetch-rdb:
 	integration/goval-dict.old fetch fedora --dbpath=$(PWD)/integration/oval.old.sqlite3 32 33 34 35 36 37 38 39 40
 
 	integration/goval-dict.new fetch debian --dbpath=$(PWD)/integration/oval.new.sqlite3 7 8 9 10 11 12
-	integration/goval-dict.new fetch ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+	integration/goval-dict.new fetch ubuntu --dbpath=$(PWD)/integration/oval.new.sqlite3 14.04 16.04 18.04 20.04 22.04 24.04 24.10
 	integration/goval-dict.new fetch redhat --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8 9
 	integration/goval-dict.new fetch oracle --dbpath=$(PWD)/integration/oval.new.sqlite3 5 6 7 8 9
 	integration/goval-dict.new fetch amazon --dbpath=$(PWD)/integration/oval.new.sqlite3 1 2 2022 2023
@@ -119,7 +119,7 @@ fetch-redis:
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
 
 	integration/goval-dict.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 7 8 9 10 11 12
-	integration/goval-dict.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+	integration/goval-dict.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 14.04 16.04 18.04 20.04 22.04 24.04 24.10
 	integration/goval-dict.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8 9
 	integration/goval-dict.old fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 5 6 7 8 9
 	integration/goval-dict.old fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 1 2 2022 2023
@@ -131,7 +131,7 @@ fetch-redis:
 	integration/goval-dict.old fetch fedora --dbtype redis --dbpath "redis://127.0.0.1:6379/0" 32 33 34 35 36 37 38 39 40
 
 	integration/goval-dict.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 7 8 9 10 11 12
-	integration/goval-dict.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+	integration/goval-dict.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 14.04 16.04 18.04 20.04 22.04 24.04 24.10
 	integration/goval-dict.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8 9
 	integration/goval-dict.new fetch oracle --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 5 6 7 8 9
 	integration/goval-dict.new fetch amazon --dbtype redis --dbpath "redis://127.0.0.1:6380/0" 1 2 2022 2023
@@ -144,7 +144,7 @@ fetch-redis:
 
 diff-cveid:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid debian 7 8 9 10 11 12
-	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid ubuntu 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid ubuntu 14.04 16.04 18.04 20.04 22.04 24.04 24.10
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid redhat 5 6 7 8 9
 	@ python integration/diff_server_mode.py --sample-rate 0.01 cveid oracle 5 6 7 8 9
 	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 cveid oracle 5 6 7 8 9
@@ -161,7 +161,7 @@ diff-cveid:
 
 diff-package:
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package debian 7 8 9 10 11 12
-	@ python integration/diff_server_mode.py --sample-rate 0.01 package ubuntu 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+	@ python integration/diff_server_mode.py --sample-rate 0.01 package ubuntu 14.04 16.04 18.04 20.04 22.04 24.04 24.10
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package redhat 5 6 7 8 9
 	@ python integration/diff_server_mode.py --sample-rate 0.01 package oracle 5 6 7 8 9
 	@ python integration/diff_server_mode.py --sample-rate 0.01 --arch x86_64 package oracle 5 6 7 8 9

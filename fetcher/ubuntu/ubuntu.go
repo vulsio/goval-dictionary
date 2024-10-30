@@ -81,38 +81,24 @@ func getOVALURL(version string) string {
 			return "unknown"
 		}
 	case "21":
-		switch minor {
-		case "04":
-			return fmt.Sprintf(main, config.Ubuntu2104)
-		case "10":
-			return fmt.Sprintf(main, config.Ubuntu2110)
-		default:
-			return "unknown"
-		}
+		return "unsupported"
 	case "22":
 		switch minor {
 		case "04":
 			return fmt.Sprintf(main, config.Ubuntu2204)
 		case "10":
-			return fmt.Sprintf(main, config.Ubuntu2210)
+			return "unsupported"
 		default:
 			return "unknown"
 		}
 	case "23":
-		switch minor {
-		case "04":
-			return fmt.Sprintf(main, config.Ubuntu2304)
-		case "10":
-			return fmt.Sprintf(main, config.Ubuntu2310)
-		default:
-			return "unknown"
-		}
+		return "unsupported"
 	case "24":
 		switch minor {
 		case "04":
 			return fmt.Sprintf(main, config.Ubuntu2404)
 		case "10":
-			return "unsupported"
+			return fmt.Sprintf(main, config.Ubuntu2410)
 		default:
 			return "unknown"
 		}

@@ -55,6 +55,9 @@ const (
 	// Ubuntu2404 is Noble Numbat
 	Ubuntu2404 = "noble"
 
+	// Ubuntu2410 is ⁠Oracular Oriole
+	Ubuntu2410 = "oracular"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

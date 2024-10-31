@@ -134,95 +134,9 @@ func (r *RedisDriver) GetByPackName(family, osVer, packName, arch string) ([]mod
 
 	ctx := context.Background()
 
-	defIDs, err := func() ([]string, error) {
-		switch family {
-		case c.Amazon, c.Oracle, c.Fedora:
-			isOld, err := func() (bool, error) {
-				bs, err := r.conn.Get(ctx, fmt.Sprintf(depKeyFormat, family, osVer)).Bytes()
-				if err != nil {
-					return false, xerrors.Errorf("Failed to Get %s. err: %w", fmt.Sprintf(depKeyFormat, family, osVer), err)
-				}
-				var dep map[string]map[string]map[string]struct{}
-				if err := json.Unmarshal(bs, &dep); err != nil {
-					return false, xerrors.Errorf("Failed to Unmarshal JSON. err: %w", err)
-				}
-				for _, def := range dep {
-					for k := range def["packages"] {
-						return strings.Contains(k, "#"), nil // old pattern: <package name>#<archtecture>
-					}
-				}
-				return false, xerrors.Errorf("%s:*:packages is empty", fmt.Sprintf(depKeyFormat, family, osVer))
-			}()
-			if err != nil {
-				return nil, xerrors.Errorf("Failed to check old goval-dictionary redis architecture. err: %w", err)
-			}
-
-			if isOld {
-				if arch != "" {
-					defIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, fmt.Sprintf("%s#%s", packName, arch))).Result()
-					if err != nil {
-						return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
-					}
-					return defIDs, nil
-				}
-				dbsize, err := r.conn.DBSize(ctx).Result()
-				if err != nil {
-					return nil, xerrors.Errorf("Failed to DBSize. err: %w", err)
-				}
-
-				var pkgKeys []string
-				var cursor uint64
-				for {
-					var keys []string
-					var err error
-					keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf(pkgKeyFormat, family, osVer, fmt.Sprintf("%s#%s", packName, "*")), dbsize/5).Result()
-					if err != nil {
-						return nil, xerrors.Errorf("Failed to Scan. err: %w", err)
-					}
-
-					pkgKeys = append(pkgKeys, keys...)
-
-					if cursor == 0 {
-						break
-					}
-				}
-
-				pipe := r.conn.Pipeline()
-				for _, pkey := range pkgKeys {
-					_ = pipe.SMembers(ctx, pkey)
-				}
-				cmders, err := pipe.Exec(ctx)
-				if err != nil {
-					return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
-				}
-
-				var defIDs []string
-				for _, cmder := range cmders {
-					result, err := cmder.(*redis.StringSliceCmd).Result()
-					if err != nil {
-						return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
-					}
-
-					defIDs = append(defIDs, result...)
-				}
-				return defIDs, nil
-			}
-
-			defIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, packName)).Result()
-			if err != nil {
-				return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
-			}
-			return defIDs, nil
-		default:
-			defIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, packName)).Result()
-			if err != nil {
-				return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
-			}
-			return defIDs, err
-		}
-	}()
+	defIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, family, osVer, packName)).Result()
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to get Definition IDs. err: %w", err)
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 	}
 	if len(defIDs) == 0 {
 		return []models.Definition{}, nil

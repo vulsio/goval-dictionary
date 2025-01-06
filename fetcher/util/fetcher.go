@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/klauspost/compress/zstd"
 	"github.com/spf13/viper"
 	"github.com/ulikunitz/xz"
 	"golang.org/x/xerrors"
@@ -23,8 +24,10 @@ import (
 type MIMEType int
 
 const (
+	// MIMETypeUnknown :
+	MIMETypeUnknown MIMEType = iota
 	// MIMETypeXML :
-	MIMETypeXML MIMEType = iota
+	MIMETypeXML
 	// MIMETypeTxt :
 	MIMETypeTxt
 	// MIMETypeJSON :
@@ -39,6 +42,8 @@ const (
 	MIMETypeXz
 	// MIMETypeGzip :
 	MIMETypeGzip
+	// MIMETypeZst :
+	MIMETypeZst
 )
 
 func (m MIMEType) String() string {
@@ -59,6 +64,8 @@ func (m MIMEType) String() string {
 		return "xz"
 	case MIMETypeGzip:
 		return "gz"
+	case MIMETypeZst:
+		return "zst"
 	default:
 		return "Unknown"
 	}
@@ -219,6 +226,16 @@ func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 		if _, err = b.ReadFrom(r); err != nil {
 			return nil, xerrors.Errorf("Failed to read gzip file. err: %w", err)
 		}
+	case MIMETypeZst:
+		r, err := zstd.NewReader(bytes.NewReader(buf.Bytes()))
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to open zstd file. err: %w", err)
+		}
+		if _, err = b.ReadFrom(r); err != nil {
+			return nil, xerrors.Errorf("Failed to read zstd file. err: %w", err)
+		}
+	default:
+		return nil, xerrors.Errorf("unexpected request MIME Type. expected: %q, actual: %q", []MIMEType{MIMETypeXML, MIMETypeTxt, MIMETypeJSON, MIMETypeYml, MIMETypeHTML, MIMETypeBzip2, MIMETypeXz, MIMETypeGzip, MIMETypeZst}, req.MIMEType)
 	}
 
 	return b.Bytes(), nil

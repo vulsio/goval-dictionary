@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -192,7 +194,7 @@ var errNoUpdateInfoField = xerrors.New("No updateinfo field in the repomd")
 
 func fetchUpdateInfosFedora(results []util.FetchResult) ([]util.FetchResult, error) {
 	log15.Info("start fetch updateinfo in repomd.xml")
-	updateInfoReqs, err := extractInfoFromRepoMd(results, "updateinfo", util.MIMETypeXz)
+	updateInfoReqs, err := extractInfoFromRepoMd(results, "updateinfo")
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to extract updateinfo from xml, err: %w", err)
 	}
@@ -274,7 +276,7 @@ func fetchModuleFeedFilesFedora(reqs []util.FetchRequest) ([]util.FetchResult, e
 
 func fetchModulesYamlFedora(results []util.FetchResult) (moduleInfosPerVersion, error) {
 	log15.Info("start fetch modules.yaml in repomd.xml")
-	updateInfoReqs, err := extractInfoFromRepoMd(results, "modules", util.MIMETypeGzip)
+	updateInfoReqs, err := extractInfoFromRepoMd(results, "modules")
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to extract modules from xml, err: %w", err)
 	}
@@ -377,7 +379,7 @@ func fetchCveIDsFromBugzilla(id string) ([]string, error) {
 	return ids, nil
 }
 
-func extractInfoFromRepoMd(results []util.FetchResult, rt string, mt util.MIMEType) ([]util.FetchRequest, error) {
+func extractInfoFromRepoMd(results []util.FetchResult, rt string) ([]util.FetchRequest, error) {
 	var updateInfoReqs []util.FetchRequest
 	for _, r := range results {
 		var repoMd repoMd
@@ -394,6 +396,23 @@ func extractInfoFromRepoMd(results []util.FetchResult, rt string, mt util.MIMETy
 				return nil, xerrors.Errorf("Failed to parse URL in XML. err: %w", err)
 			}
 			u.Path = strings.Replace(u.Path, "repodata/repomd.xml", repo.Location.Href, 1)
+
+			mt, err := func() (util.MIMEType, error) {
+				switch ext := filepath.Ext(path.Base(repo.Location.Href)); ext {
+				case ".gz":
+					return util.MIMETypeGzip, nil
+				case ".xz":
+					return util.MIMETypeXz, nil
+				case ".zst":
+					return util.MIMETypeZst, nil
+				default:
+					return util.MIMETypeUnknown, xerrors.Errorf("%q is not supported extension", ext)
+				}
+			}()
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to get MIME Type. err: %w", err)
+			}
+
 			req := util.FetchRequest{
 				URL:      u.String(),
 				Target:   r.Target,

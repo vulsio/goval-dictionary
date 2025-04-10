@@ -127,22 +127,19 @@ func FetchFeedFiles(reqs []FetchRequest) (results []FetchResult, err error) {
 	for range reqs {
 		wg.Add(1)
 		tasks <- func() {
-			select {
-			case req := <-reqChan:
-				body, err := fetchFileWithUA(req)
-				wg.Done()
-				if err != nil {
-					errChan <- err
-					return
-				}
-				resChan <- FetchResult{
-					Target:        req.Target,
-					URL:           req.URL,
-					Body:          body,
-					LogSuppressed: req.LogSuppressed,
-				}
+			req := <-reqChan
+			body, err := fetchFileWithUA(req)
+			wg.Done()
+			if err != nil {
+				errChan <- err
+				return
 			}
-			return
+			resChan <- FetchResult{
+				Target:        req.Target,
+				URL:           req.URL,
+				Body:          body,
+				LogSuppressed: req.LogSuppressed,
+			}
 		}
 	}
 	wg.Wait()
@@ -188,11 +185,8 @@ func fetchFileWithUA(req FetchRequest) (body []byte, err error) {
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to download. err: %w", err)
 	}
-	defer func() {
-		if resp != nil {
-			resp.Body.Close()
-		}
-	}()
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("Failed to HTTP GET. url: %s, response: %+v", req.URL, resp)
 	}

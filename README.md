@@ -110,10 +110,9 @@ $ goval-dictionary fetch debian 7 8 9 10 11 12
 
 #### Usage: Fetch OVAL data from Ubuntu
 
-- [Ubuntu(main)](https://security-metadata.canonical.com/oval/)
-- [Ubuntu(sub)](https://people.canonical.com/~ubuntu-security/oval/)
+- [Ubuntu](https://security-metadata.canonical.com/oval/)
 ```bash
-$ goval-dictionary fetch ubuntu 14.04 16.04 18.04 20.04 21.04 21.10 22.04 22.10 23.04 23.10 24.04
+$ goval-dictionary fetch ubuntu 14.04 16.04 18.04 20.04 22.04 24.04 24.10 25.04
 ```
 
 #### Usage: Fetch OVAL data from SUSE

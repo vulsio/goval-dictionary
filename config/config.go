@@ -58,6 +58,9 @@ const (
 	// Ubuntu2410 is ⁠Oracular Oriole
 	Ubuntu2410 = "oracular"
 
+	// Ubuntu2504 is Plucky Puffin
+	Ubuntu2504 = "plucky"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

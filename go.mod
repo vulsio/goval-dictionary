@@ -15,7 +15,7 @@ require (
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/viper v1.20.0
+	github.com/spf13/viper v1.20.1
 	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/net v0.41.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2

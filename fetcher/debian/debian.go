@@ -42,6 +42,8 @@ func debianName(major string) string {
 		return config.Debian11
 	case "12":
 		return config.Debian12
+	case "13":
+		return config.Debian13
 	default:
 		return "unknown"
 	}

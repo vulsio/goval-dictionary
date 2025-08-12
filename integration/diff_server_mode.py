@@ -121,7 +121,7 @@ else:
     exit(1)
 
 if args.ostype == 'debian':
-    if len(list(set(args.release) - set(['7', '8', '9', '10', '11', '12']))) > 0:
+    if len(list(set(args.release) - set(['7', '8', '9', '10', '11', '12', '13']))) > 0:
         logger.error(
             f'Failed to diff_response..., err: This Release Version({args.release}) does not support test mode')
         raise NotImplementedError

@@ -120,9 +120,14 @@ func FetchFiles(versions []string) ([]util.FetchResult, error) {
 	if len(reqs) == 0 {
 		return nil, xerrors.New("There are no versions to fetch")
 	}
-	results, err := util.FetchFeedFiles(reqs)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to fetch. err: %w", err)
+
+	results := make([]util.FetchResult, 0, len(reqs))
+	for _, req := range reqs {
+		rs, err := util.FetchFeedFiles([]util.FetchRequest{req})
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to fetch. err: %w", err)
+		}
+		results = append(results, rs...)
 	}
 	return results, nil
 }

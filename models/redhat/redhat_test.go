@@ -1,12 +1,11 @@
 package redhat
 
 import (
-	"reflect"
+	"slices"
 	"sort"
 	"testing"
 
 	"github.com/k0kubun/pp"
-
 	"github.com/vulsio/goval-dictionary/models"
 )
 
@@ -14,6 +13,7 @@ func TestWalkRedHat(t *testing.T) {
 	var tests = []struct {
 		version  string
 		cri      Criteria
+		resolver archResolver
 		expected []models.Package
 	}{
 		{
@@ -295,10 +295,53 @@ func TestWalkRedHat(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			version: "9",
+			cri: Criteria{
+				Criterions: []Criterion{
+					{
+						Comment: "redhat-release is earlier than 0:9.0-2.17.el9",
+						TestRef: "oval:com.redhat.rhba:tst:20223893001",
+					},
+				},
+			},
+			resolver: mkResolver(map[string]string{
+				"oval:com.redhat.rhba:tst:20223893001": "aarch64|x86_64",
+			}),
+			expected: []models.Package{
+				{Name: "redhat-release",
+					Version: "0:9.0-2.17.el9",
+					Arch:    "aarch64",
+				},
+				{Name: "redhat-release",
+					Version: "0:9.0-2.17.el9",
+					Arch:    "x86_64",
+				},
+			},
+		},
+		{
+			version: "9",
+			cri: Criteria{
+				Criterions: []Criterion{
+					{
+						Comment: "redhat-release is installed",
+						TestRef: "oval:com.redhat.rhba:tst:installed",
+					},
+				},
+			},
+			resolver: mkResolver(map[string]string{
+				"oval:com.redhat.rhba:tst:installed": "ppc64le|s390x",
+			}),
+			expected: []models.Package{
+				{Name: "redhat-release", NotFixedYet: true, Arch: "ppc64le"},
+				{Name: "redhat-release", NotFixedYet: true, Arch: "s390x"},
+			},
+		},
 	}
 
 	for i, tt := range tests {
-		actual := collectRedHatPacks(tt.version, tt.cri)
+		actual := collectRedHatPacks(tt.version, tt.cri, tt.resolver)
 		sort.Slice(actual, func(i, j int) bool {
 			if actual[i].Name == actual[j].Name {
 				return actual[i].ModularityLabel < actual[j].ModularityLabel
@@ -312,10 +355,26 @@ func TestWalkRedHat(t *testing.T) {
 			return tt.expected[i].Name < tt.expected[j].Name
 		})
 
-		if !reflect.DeepEqual(tt.expected, actual) {
+		if !slices.Equal(tt.expected, actual) {
 			e := pp.Sprintf("%v", tt.expected)
 			a := pp.Sprintf("%v", actual)
 			t.Errorf("[%d]: expected: %s\n, actual: %s\n", i, e, a)
 		}
 	}
+}
+
+// minimal resolver for tests: map testRef -> "arch1|arch2"
+func mkResolver(m map[string]string) archResolver {
+	ar := archResolver{
+		testToState: map[string]string{},
+		stateToArch: map[string]string{},
+	}
+	i := 0
+	for testRef, archText := range m {
+		st := "teststate-" + string(rune('A'+i))
+		ar.testToState[testRef] = st
+		ar.stateToArch[st] = archText
+		i++
+	}
+	return ar
 }

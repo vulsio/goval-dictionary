@@ -375,6 +375,9 @@ func (r *RDBDriver) GetAdvisories(family, osVer string) (map[string][]string, er
 				m[r.RefID] = append(m[r.RefID], cves...)
 			}
 		}
+		for k := range m {
+			m[k] = util.Unique(m[k])
+		}
 		return m, nil
 	case c.Amazon, c.Fedora:
 		for _, d := range defs {
@@ -482,12 +485,22 @@ func (r *RDBDriver) InsertOval(root *models.Root) error {
 	}
 
 	for chunk := range slices.Chunk(root.Definitions, batchSize) {
-		if err := tx.Omit("AffectedPacks").Create(chunk).Error; err != nil {
+		if err := tx.Omit("Advisory.Cves", "AffectedPacks").Create(chunk).Error; err != nil {
 			tx.Rollback()
 			return xerrors.Errorf("Failed to insert Definitions. err: %w", err)
 		}
 
 		for _, d := range chunk {
+			for i := range d.Advisory.Cves {
+				d.Advisory.Cves[i].AdvisoryID = d.Advisory.ID
+			}
+			for chunk2 := range slices.Chunk(d.Advisory.Cves, batchSize) {
+				if err := tx.Create(chunk2).Error; err != nil {
+					tx.Rollback()
+					return xerrors.Errorf("Failed to insert CVEs. err: %w", err)
+				}
+			}
+
 			for i := range d.AffectedPacks {
 				d.AffectedPacks[i].DefinitionID = d.ID
 			}

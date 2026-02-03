@@ -197,9 +197,9 @@ func parseDefinitions(xmlName string, ovalDefs Definitions, tests map[string]rpm
 
 func collectSUSEPacks(xmlName string, cri Criteria, tests map[string]rpmInfoTest) []distroPackage {
 	if strings.Contains(xmlName, "opensuse.12") {
-		verPkgs := make([]distroPackage, 0, len(pkgs))
 		v := strings.TrimSuffix(strings.TrimPrefix(xmlName, "opensuse."), ".xml")
 		_, pkgs := walkCriterion(cri, []string{}, []models.Package{}, tests)
+		verPkgs := make([]distroPackage, 0, len(pkgs))
 		for _, pkg := range pkgs {
 			verPkgs = append(verPkgs, distroPackage{
 				osVer: v,

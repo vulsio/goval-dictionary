@@ -18,6 +18,9 @@ import (
 func ConvertToModel(v string, roots []Root) []models.Definition {
 	defs := map[string]models.Definition{}
 	for _, root := range roots {
+
+		ar := newArchResolver(root)
+
 		for _, d := range root.Definitions.Definitions {
 			if strings.HasPrefix(d.ID, "oval:com.redhat.unaffected:def:") || strings.Contains(d.Description, "** REJECT **") {
 				continue
@@ -93,7 +96,7 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 					Issued:             issued,
 					Updated:            updated,
 				},
-				AffectedPacks: collectRedHatPacks(v, d.Criteria),
+				AffectedPacks: collectRedHatPacks(v, d.Criteria, ar),
 				References:    rs,
 			}
 
@@ -116,16 +119,18 @@ func ConvertToModel(v string, roots []Root) []models.Definition {
 	return slices.Collect(maps.Values(defs))
 }
 
-func collectRedHatPacks(v string, cri Criteria) []models.Package {
+func collectRedHatPacks(v string, cri Criteria, ar archResolver) []models.Package {
 	pkgs := map[string]models.Package{}
-	for _, p := range walkRedHat(cri, []models.Package{}, "") {
+	for _, p := range walkRedHat(cri, []models.Package{}, "", ar) {
 		n := p.Name
 		if p.ModularityLabel != "" {
 			n = fmt.Sprintf("%s::%s", p.ModularityLabel, p.Name)
 		}
 
+		key := n + "|" + p.Arch
+
 		if p.NotFixedYet {
-			pkgs[n] = p
+			pkgs[key] = p
 			continue
 		}
 
@@ -136,7 +141,7 @@ func collectRedHatPacks(v string, cri Criteria) []models.Package {
 
 		// since different versions are defined for the same package, the newer version is adopted
 		// example: OVALv2: oval:com.redhat.rhsa:def:20111349, oval:com.redhat.rhsa:def:20120451
-		if base, ok := pkgs[n]; ok {
+		if base, ok := pkgs[key]; ok {
 			v1 := version.NewVersion(base.Version)
 			v2 := version.NewVersion(p.Version)
 			if v1.GreaterThan(v2) {
@@ -144,12 +149,12 @@ func collectRedHatPacks(v string, cri Criteria) []models.Package {
 			}
 		}
 
-		pkgs[n] = p
+		pkgs[key] = p
 	}
 	return slices.Collect(maps.Values(pkgs))
 }
 
-func walkRedHat(cri Criteria, acc []models.Package, label string) []models.Package {
+func walkRedHat(cri Criteria, acc []models.Package, label string, ar archResolver) []models.Package {
 	for _, c := range cri.Criterions {
 		switch {
 		case strings.HasPrefix(c.Comment, "Module ") && strings.HasSuffix(c.Comment, " is enabled"):
@@ -159,25 +164,88 @@ func walkRedHat(cri Criteria, acc []models.Package, label string) []models.Packa
 			if len(ss) != 2 {
 				continue
 			}
-			acc = append(acc, models.Package{
-				Name:            ss[0],
-				Version:         strings.Split(ss[1], " ")[0],
-				ModularityLabel: label,
-			})
+			name := ss[0]
+			ver := strings.Split(ss[1], " ")[0]
+
+			arches := normalizeArches(ar.archForTestRef(c.TestRef))
+			acc = emitPkgs(acc, name, ver, label, false, arches)
+
 		case !strings.HasPrefix(c.Comment, "Red Hat Enterprise Linux") && !strings.HasPrefix(c.Comment, "Red Hat CoreOS") && strings.HasSuffix(c.Comment, " is installed"):
-			acc = append(acc, models.Package{
-				Name:            strings.TrimSuffix(c.Comment, " is installed"),
-				ModularityLabel: label,
-				NotFixedYet:     true,
-			})
+
+			name := strings.TrimSuffix(c.Comment, " is installed")
+			arches := normalizeArches(ar.archForTestRef(c.TestRef))
+			acc = emitPkgs(acc, name, "", label, true, arches)
 		}
 	}
 
-	if len(cri.Criterias) == 0 {
-		return acc
-	}
 	for _, c := range cri.Criterias {
-		acc = walkRedHat(c, acc, label)
+		acc = walkRedHat(c, acc, label, ar)
+	}
+	return acc
+}
+
+type archResolver struct {
+	testToState map[string]string // rpminfo_test id -> state id (state_ref)
+	stateToArch map[string]string // state id -> arch text (may be "aarch64|ppc64le|...")
+}
+
+func newArchResolver(root Root) archResolver {
+	ar := archResolver{
+		testToState: map[string]string{},
+		stateToArch: map[string]string{},
+	}
+
+	// Map test -> state_ref (NOTE: uses t.State.StateRef)
+	for _, t := range root.Tests.RpminfoTests {
+		if t.ID != "" && t.State.StateRef != "" {
+			ar.testToState[t.ID] = t.State.StateRef
+		}
+	}
+
+	// Map state id -> arch text
+	for _, s := range root.States.RpminfoStates {
+		if s.ID != "" && s.Arch.Text != "" {
+			ar.stateToArch[s.ID] = s.Arch.Text
+		}
+	}
+	return ar
+}
+
+func (ar archResolver) archForTestRef(testRef string) string {
+	if testRef == "" {
+		return ""
+	}
+	if st := ar.testToState[testRef]; st != "" {
+		return ar.stateToArch[st]
+	}
+	return ""
+}
+
+// Split "aarch64|ppc64le|s390x|x86_64" -> []string{...}
+func normalizeArches(s string) []string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, "|")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+	return parts
+}
+
+func emitPkgs(acc []models.Package, name, ver, label string, notFixed bool, arches []string) []models.Package {
+	if len(arches) == 0 {
+		arches = []string{""}
+	}
+	for _, a := range arches {
+		acc = append(acc, models.Package{
+			Name:            name,
+			Version:         ver,
+			ModularityLabel: label,
+			Arch:            a,
+			NotFixedYet:     notFixed,
+		})
 	}
 	return acc
 }

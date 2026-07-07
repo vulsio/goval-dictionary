@@ -61,6 +61,12 @@ const (
 	// Ubuntu2504 is Plucky Puffin
 	Ubuntu2504 = "plucky"
 
+	// Ubuntu2510 is Questing Quokka
+	Ubuntu2510 = "questing"
+
+	// Ubuntu2604 is Resolute Raccoon
+	Ubuntu2604 = "resolute"
+
 	// Debian7 is wheezy
 	Debian7 = "wheezy"
 

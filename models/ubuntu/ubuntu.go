@@ -128,7 +128,7 @@ func parseDefinitions(ovalDefs []Definition, tests map[string]dpkgInfoTest) []mo
 			})
 		}
 
-		date := util.ParsedOrDefaultTime([]string{"2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05 +0000", "2006-01-02 15:04:05 MST"}, d.Advisory.PublicDate)
+		date := util.ParsedOrDefaultTime([]string{"2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05 +0000", "2006-01-02 15:04:05 MST", time.RFC3339}, d.Advisory.PublicDate)
 
 		def := models.Definition{
 			DefinitionID: d.ID,
@@ -176,21 +176,23 @@ func walkCriterion(cri Criteria, tests map[string]dpkgInfoTest) []models.Package
 			continue
 		}
 
-		if strings.Contains(c.Comment, "is related to the CVE in some way and has been fixed") || // status: not vulnerable(= not affected)
-			strings.Contains(c.Comment, "is affected and may need fixing") { // status: needs-triage
+		if strings.Contains(c.Comment, "is related to the CVE in some way and has been fixed") || // status: not vulnerable(= not affected) (old wording)
+			strings.Contains(c.Comment, "is affected and may need fixing") { // status: needs-triage (old wording)
 			continue
 		}
 
-		if strings.Contains(c.Comment, "is affected and needs fixing") || // status: needed
-			strings.Contains(c.Comment, "is affected, but a decision has been made to defer addressing it") || // status: deferred
-			strings.Contains(c.Comment, "is affected. An update containing the fix has been completed and is pending publication") || // status: pending
-			strings.Contains(c.Comment, "while related to the CVE in some way, a decision has been made to ignore this issue") { // status: ignored
+		if strings.Contains(c.Comment, "is affected and needs fixing") || // status: needed (old wording)
+			strings.Contains(c.Comment, "is affected, but a decision has been made to defer addressing it") || // status: deferred (old wording)
+			strings.Contains(c.Comment, "is affected. An update containing the fix has been completed and is pending publication") || // status: pending (old wording)
+			strings.Contains(c.Comment, "while related to the CVE in some way, a decision has been made to ignore this issue") || // status: ignored (old wording)
+			strings.Contains(c.Comment, "might be affected and may need fixing") { // status: needed/deferred/pending/ignored/needs-triage (current wording; Canonical no longer distinguishes these via comment text, so treat as not fixed yet)
 			pkgs = append(pkgs, models.Package{
 				Name:        t.Name,
 				NotFixedYet: true,
 			})
-		} else if strings.Contains(c.Comment, "was vulnerable but has been fixed") || // status: released
-			strings.Contains(c.Comment, "was vulnerable and has been fixed") { // status: released, only this comment: "firefox package in $RELEASE_NAME was vulnerable and has been fixed, but no release version available for it."
+		} else if strings.Contains(c.Comment, "was vulnerable but has been fixed") || // status: released (old wording)
+			strings.Contains(c.Comment, "was vulnerable and has been fixed") || // status: released (old wording), only this comment: "firefox package in $RELEASE_NAME was vulnerable and has been fixed, but no release version available for it."
+			strings.Contains(c.Comment, "is affected and has been fixed") { // status: released (current wording)
 			pkgs = append(pkgs, models.Package{
 				Name:        t.Name,
 				Version:     t.FixedVersion,

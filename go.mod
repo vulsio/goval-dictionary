@@ -12,7 +12,7 @@ require (
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/klauspost/compress v1.18.6
 	github.com/knqyf263/go-rpm-version v0.0.0-20220614171824-631e686d1075
-	github.com/labstack/echo/v4 v4.15.2
+	github.com/labstack/echo/v4 v4.15.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0

@@ -211,6 +211,50 @@ func TestCollectUbuntuPacks(t *testing.T) {
 				},
 			},
 		},
+		{
+			// current Canonical wording (statuses needed/deferred/pending/ignored/needs-triage are no longer distinguished)
+			cri: Criteria{
+				Criterions: []Criterion{
+					{
+						TestRef: "oval:com.ubuntu.jammy:tst:202662380000000",
+						Comment: "glibc source package in jammy, might be affected and may need fixing.",
+					},
+				},
+			},
+			tests: map[string]dpkgInfoTest{
+				"oval:com.ubuntu.jammy:tst:202662380000000": {Name: "glibc"},
+			},
+			expected: []models.Package{
+				{
+					Name:        "glibc",
+					NotFixedYet: true,
+				},
+			},
+		},
+		{
+			// current Canonical wording for released/fixed status
+			cri: Criteria{
+				Criterions: []Criterion{
+					{
+						TestRef: "oval:com.ubuntu.jammy:tst:202662380000010",
+						Comment: "glibc source package in jammy, is affected and has been fixed (note: '2.35-0ubuntu3.14').",
+					},
+				},
+			},
+			tests: map[string]dpkgInfoTest{
+				"oval:com.ubuntu.jammy:tst:202662380000010": {
+					Name:         "glibc",
+					FixedVersion: "0:2.35-0ubuntu3.14",
+				},
+			},
+			expected: []models.Package{
+				{
+					Name:        "glibc",
+					Version:     "0:2.35-0ubuntu3.14",
+					NotFixedYet: false,
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {

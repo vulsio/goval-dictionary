@@ -106,6 +106,15 @@ func getOVALURL(version string) string {
 		switch minor {
 		case "04":
 			return fmt.Sprintf(main, config.Ubuntu2504)
+		case "10":
+			return fmt.Sprintf(main, config.Ubuntu2510)
+		default:
+			return "unknown"
+		}
+	case "26":
+		switch minor {
+		case "04":
+			return fmt.Sprintf(main, config.Ubuntu2604)
 		default:
 			return "unknown"
 		}
